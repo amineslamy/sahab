@@ -7,8 +7,7 @@
 
     <title>ثبت گزارش جدید - سامانه مدیریت تحقیقات</title>
 
-    <!-- جلوگیری از خطای نمایش متن قبل از بارگذاری فونت -->
-    <meta name="theme-color" content="#1e293b">
+    <meta name="theme-color" content="#0f172a">
 
     <!-- Tailwind محلی -->
     <script src="js/tailwindcss.js"></script>
@@ -16,17 +15,12 @@
     <!-- PocketBase SDK محلی -->
     <script src="js/pocketbase.umd.js?v=1"></script>
 
-    <!-- jQuery؛ موردنیاز Persian Datepicker -->
+    <!-- jQuery -->
     <script src="js/jquery-3.6.4.min.js"></script>
 
     <!-- Persian Datepicker -->
-    <link
-        rel="stylesheet"
-        href="css/persian-datepicker.min.css"
-    >
-
+    <link rel="stylesheet" href="css/persian-datepicker.min.css">
     <script src="js/persian-date.min.js"></script>
-
     <script src="js/persian-datepicker.min.js"></script>
 
     <!-- Quill Editor -->
@@ -36,98 +30,70 @@
     <link rel="stylesheet" href="css/create-report.css">
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center py-8 px-4">
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col items-center py-10 px-6">
 
-    <!-- کانتینر اصلی -->
-    <main class="w-full max-w-5xl bg-white rounded-2xl shadow-md border border-slate-200">
+    <!-- کانتینر اصلی دسکتاپ (عرض عریض‌تر max-w-6xl) -->
+    <main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300">
 
-        <!-- هدر -->
-        <header class="bg-slate-800 text-white px-8 py-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-
+        <!-- هدر با فونت و آیکون‌بندی برجسته -->
+        <header class="bg-slate-900 text-white px-8 py-7 flex flex-row justify-between items-center rounded-t-2xl">
             <div>
-                <h1 class="text-xl font-bold">
+                <h1 class="text-2xl font-black tracking-tight">
                     ثبت گزارش / سند جدید
                 </h1>
-
-                <p class="text-xs text-slate-300 mt-2">
-                    ثبت اطلاعات ساختاریافته و پیوست مدارک در پایگاه داده
+                <p class="text-sm text-slate-300 mt-1.5 font-medium">
+                    ثبت اطلاعات ساختاریافته و پیوست مدارک در پایگاه داده سامانه
                 </p>
             </div>
 
-            <a
-                href="index.html"
-                class="inline-flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-4 py-2.5 rounded-lg transition-all duration-200"
-            >
+            <a href="index.html"
+                class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-all duration-200 border border-slate-700 shadow-sm">
                 بازگشت به داشبورد
             </a>
         </header>
 
         <!-- فرم اصلی -->
-        <form
-            id="create-report-form"
-            class="p-5 sm:p-8 space-y-8"
-            novalidate
-            autocomplete="off"
-        >
+        <form id="create-report-form" class="p-8 space-y-10" novalidate autocomplete="off">
 
             <!-- پیام خطا -->
-            <div
-                id="error-alert"
-                role="alert"
-                aria-live="assertive"
-                class="hidden bg-red-50 border-r-4 border-red-500 text-red-800 p-4 rounded-lg text-sm"
-            ></div>
+            <div id="error-alert" role="alert" aria-live="assertive"
+                class="hidden bg-red-50 border-r-4 border-red-600 text-red-900 p-5 rounded-xl text-base font-bold shadow-sm">
+            </div>
 
             <!-- اطلاعات پایه -->
-            <section class="bg-slate-50/50 p-5 sm:p-6 rounded-xl border border-slate-200 space-y-6">
+            <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
-                <div class="border-b border-slate-200 pb-3">
-                    <h2 class="text-base font-bold text-slate-800">
+                <div class="border-b border-slate-300 pb-4">
+                    <h2 class="text-lg font-black text-slate-900">
                         اطلاعات پایه گزارش
                     </h2>
-
-                    <p class="text-xs text-slate-500 mt-1">
-                        اطلاعات اصلی گزارش را وارد کنید.
+                    <p class="text-sm text-slate-600 mt-1">
+                        مشخصات اصلی و درجه‌های دسترسی سند را تعیین کنید.
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- عنوان -->
                     <div class="md:col-span-2">
-                        <label
-                            for="report-title"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="report-title" class="block text-base font-black text-slate-800 mb-2.5">
                             عنوان گزارش / سند
-                            <span class="text-red-500">*</span>
+                            <span class="text-red-600">*</span>
                         </label>
 
-                        <input
-                            type="text"
-                            id="report-title"
-                            name="title"
-                            required
-                            maxlength="500"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm transition-all"
-                            placeholder="مثال: ارزیابی تحلیلی آخرین تحولات میدانی"
-                        >
+                        <input type="text" id="report-title" name="title" required maxlength="500"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold transition-all shadow-sm"
+                            placeholder="مثال: ارزیابی تحلیلی آخرین تحولات میدانی">
                     </div>
 
                     <!-- طبقه‌بندی -->
                     <div>
-                        <label
-                            for="report-classification"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="report-classification" class="block text-base font-black text-slate-800 mb-2.5">
                             سطح طبقه‌بندی
                         </label>
 
-                        <select
-                            id="report-classification"
-                            name="classification"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm bg-white cursor-pointer"
-                        >
+                        <select id="report-classification" name="classification"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
                             <option value="">-- بدون طبقه‌بندی --</option>
                             <option value="عادی">عادی</option>
                             <option value="محرمانه">محرمانه</option>
@@ -139,18 +105,12 @@
 
                     <!-- اولویت -->
                     <div>
-                        <label
-                            for="report-priority"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="report-priority" class="block text-base font-black text-slate-800 mb-2.5">
                             اولویت
                         </label>
 
-                        <select
-                            id="report-priority"
-                            name="priority"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm bg-white cursor-pointer"
-                        >
+                        <select id="report-priority" name="priority"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
                             <option value="">-- بدون اولویت --</option>
                             <option value="عادی">عادی</option>
                             <option value="فوری">فوری</option>
@@ -160,18 +120,12 @@
 
                     <!-- نوع خبر -->
                     <div>
-                        <label
-                            for="report-news-type"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="report-news-type" class="block text-base font-black text-slate-800 mb-2.5">
                             نوع خبر / سند
                         </label>
 
-                        <select
-                            id="report-news-type"
-                            name="news_type"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm bg-white cursor-pointer"
-                        >
+                        <select id="report-news-type" name="news_type"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
                             <option value="">-- بدون نوع --</option>
                             <option value="آشکار">آشکار</option>
                             <option value="رسمی">رسمی</option>
@@ -184,18 +138,12 @@
 
                     <!-- ارزیابی -->
                     <div>
-                        <label
-                            for="report-evaluation"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="report-evaluation" class="block text-base font-black text-slate-800 mb-2.5">
                             ارزیابی صحت
                         </label>
 
-                        <select
-                            id="report-evaluation"
-                            name="evaluation"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm bg-white cursor-pointer"
-                        >
+                        <select id="report-evaluation" name="evaluation"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
                             <option value="">-- بدون ارزیابی --</option>
                             <option value="صحت دارد">صحت دارد</option>
                             <option value="احتمالا صحت دارد">احتمالا صحت دارد</option>
@@ -206,378 +154,243 @@
 
                     <!-- تاریخ وقوع -->
                     <div>
-                        <label
-                            for="occurrence-date-picker"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="occurrence-date-picker" class="block text-base font-black text-slate-800 mb-2.5">
                             تاریخ وقوع رویداد
-                            <span class="text-red-500">*</span>
+                            <span class="text-red-600">*</span>
                         </label>
 
-                        <input
-                            type="text"
-                            id="occurrence-date-picker"
-                            readonly
-                            required
-                            inputmode="none"
-                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm bg-white cursor-pointer"
-                            placeholder="انتخاب تاریخ شمسی"
-                        >
+                        <input type="text" id="occurrence-date-picker" readonly required inputmode="none"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm"
+                            placeholder="انتخاب تاریخ شمسی">
 
-                        <!-- مقدار نهایی که JS برای PocketBase استفاده می‌کند -->
-                        <input
-                            type="hidden"
-                            id="report-occurrence-date"
-                            name="occurrence_date"
-                        >
+                        <input type="hidden" id="report-occurrence-date" name="occurrence_date">
                     </div>
-
 
                 </div>
             </section>
 
             <!-- روابط -->
-            <section class="bg-slate-50/50 p-5 sm:p-6 rounded-xl border border-slate-200 space-y-6">
+            <!-- روابط -->
+            <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
-                <div class="border-b border-slate-200 pb-3">
-                    <h2 class="text-base font-bold text-slate-800">
+                <div class="border-b border-slate-300 pb-4">
+                    <h2 class="text-lg font-black text-slate-900">
                         روابط و دسته‌بندی‌ها
                     </h2>
-
-                    <p class="text-xs text-slate-500 mt-1">
+                    <p class="text-sm text-slate-600 mt-1">
                         حداقل یک موضوع و یک کیس مرتبط انتخاب کنید.
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- موضوعات -->
                     <div class="relative">
-
-                        <label
-                            for="topics-picker-container"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="topics-picker-container" class="block text-base font-black text-slate-800 mb-2.5">
                             موضوعات مرتبط
-                            <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-slate-400">
-                                حداکثر ۱۰ مورد
-                            </span>
+                            <span class="text-red-600">*</span>
                         </label>
 
-                        <div
-                            id="topics-picker-container"
-                            tabindex="0"
-                            role="combobox"
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                            aria-controls="topics-dropdown"
-                            class="custom-multiselect-container border border-slate-300 rounded-xl p-2 bg-white min-h-[48px] cursor-pointer flex flex-wrap gap-1.5 items-center focus:outline-none focus:ring-2 focus:ring-slate-800"
-                        >
-                            <span class="text-slate-400 text-xs select-none pr-2">
+                        <div id="topics-picker-container" tabindex="0" role="combobox" aria-haspopup="listbox"
+                            aria-expanded="false" aria-controls="topics-dropdown"
+                            class="custom-multiselect-container border-2 border-slate-300 rounded-xl p-3 bg-white min-h-[56px] cursor-pointer flex flex-wrap gap-2 items-center focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm">
+                            <span class="text-slate-500 text-sm font-medium select-none pr-2">
                                 در حال بارگذاری موضوعات...
                             </span>
                         </div>
 
-                        <div
-                            id="topics-dropdown"
-                            role="listbox"
-                            aria-label="فهرست موضوعات"
-                            class="hidden absolute z-30 w-full bg-white border border-slate-200 rounded-xl shadow-lg mt-1 max-h-60 overflow-y-auto"
-                        ></div>
+                        <!-- منوی آبشاری موضوعات به همراه جستجو -->
+                        <div id="topics-dropdown" role="listbox"
+                            class="hidden absolute z-30 w-full bg-white border-2 border-slate-300 rounded-xl shadow-2xl mt-2 overflow-hidden">
+                            <div class="p-2.5 border-b border-slate-200 bg-slate-50">
+                                <input type="text" id="topics-search-input" placeholder="جستجو در موضوعات..."
+                                    class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800">
+                            </div>
+                            <div id="topics-list-container" class="max-h-64 overflow-y-auto p-1.5 space-y-1"></div>
+                        </div>
                     </div>
 
                     <!-- کیس‌ها -->
                     <div class="relative">
-
-                        <label
-                            for="cases-picker-container"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="cases-picker-container" class="block text-base font-black text-slate-800 mb-2.5">
                             کیس‌های مرتبط
-                            <span class="text-red-500">*</span>
-                            <span class="text-xs font-normal text-slate-400">
-                                حداکثر ۱۰ مورد
-                            </span>
+                            <span class="text-red-600">*</span>
                         </label>
 
-                        <div
-                            id="cases-picker-container"
-                            tabindex="0"
-                            role="combobox"
-                            aria-haspopup="listbox"
-                            aria-expanded="false"
-                            aria-controls="cases-dropdown"
-                            class="custom-multiselect-container border border-slate-300 rounded-xl p-2 bg-white min-h-[48px] cursor-pointer flex flex-wrap gap-1.5 items-center focus:outline-none focus:ring-2 focus:ring-slate-800"
-                        >
-                            <span class="text-slate-400 text-xs select-none pr-2">
+                        <div id="cases-picker-container" tabindex="0" role="combobox" aria-haspopup="listbox"
+                            aria-expanded="false" aria-controls="cases-dropdown"
+                            class="custom-multiselect-container border-2 border-slate-300 rounded-xl p-3 bg-white min-h-[56px] cursor-pointer flex flex-wrap gap-2 items-center focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm">
+                            <span class="text-slate-500 text-sm font-medium select-none pr-2">
                                 در حال بارگذاری کیس‌ها...
                             </span>
                         </div>
 
-                        <div
-                            id="cases-dropdown"
-                            role="listbox"
-                            aria-label="فهرست کیس‌ها"
-                            class="hidden absolute z-30 w-full bg-white border border-slate-200 rounded-xl shadow-lg mt-1 max-h-60 overflow-y-auto"
-                        ></div>
+                        <!-- منوی آبشاری کیس‌ها به همراه جستجو -->
+                        <div id="cases-dropdown" role="listbox"
+                            class="hidden absolute z-30 w-full bg-white border-2 border-slate-300 rounded-xl shadow-2xl mt-2 overflow-hidden">
+                            <div class="p-2.5 border-b border-slate-200 bg-slate-50">
+                                <input type="text" id="cases-search-input"
+                                    placeholder="جستجو در کیس‌ها و زیرمجموعه‌ها..."
+                                    class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800">
+                            </div>
+                            <div id="cases-list-container" class="max-h-72 overflow-y-auto p-1.5 space-y-1"></div>
+                        </div>
                     </div>
 
                 </div>
             </section>
 
             <!-- محتوا -->
-            <section class="bg-slate-50/50 p-5 sm:p-6 rounded-xl border border-slate-200 space-y-6">
+            <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
-                <div class="border-b border-slate-200 pb-3">
-                    <h2 class="text-base font-bold text-slate-800">
-                        خلاصه و محتوای گزارش
+                <div class="border-b border-slate-300 pb-4">
+                    <h2 class="text-lg font-black text-slate-900">
+                        خلاصه و متن کامل گزارش
                     </h2>
-
-                    <p class="text-xs text-slate-500 mt-1">
-                        چکیده اختیاری است، اما شرح کامل گزارش الزامی است.
+                    <p class="text-sm text-slate-600 mt-1">
+                        متن اصلی گزارش را به همراه چکیده وارد کنید.
                     </p>
                 </div>
 
                 <!-- چکیده -->
                 <div>
-                    <label
-                        for="report-abstract"
-                        class="block text-sm font-bold text-slate-700 mb-2"
-                    >
+                    <label for="report-abstract" class="block text-base font-black text-slate-800 mb-2.5">
                         چکیده سند / خلاصه تحلیل
                     </label>
 
-                    <textarea
-                        id="report-abstract"
-                        name="abstract"
-                        rows="3"
-                        maxlength="5000"
-                        class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-800 focus:border-slate-800 focus:outline-none text-sm transition-all resize-y"
-                        placeholder="خلاصه کوتاهی از اهداف یا محتوای این سند را بنویسید"
-                    ></textarea>
+                    <textarea id="report-abstract" name="abstract" rows="3" maxlength="5000"
+                        class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold transition-all shadow-sm leading-relaxed"
+                        placeholder="خلاصه کوتاهی از اهداف یا محتوای این سند را بنویسید..."></textarea>
                 </div>
 
                 <!-- Quill -->
                 <div>
-                    <label
-                        for="editor-container"
-                        class="block text-sm font-bold text-slate-700 mb-2"
-                    >
+                    <label for="editor-container" class="block text-base font-black text-slate-800 mb-2.5">
                         شرح مفصل سند یا گزارش
-                        <span class="text-red-500">*</span>
+                        <span class="text-red-600">*</span>
                     </label>
 
-                    <div
-                        id="editor-container"
-                        aria-label="شرح مفصل گزارش"
-                        class="bg-white rounded-xl border border-slate-300 min-h-[300px]"
-                    ></div>
-
-                    <p class="text-[11px] text-slate-400 mt-2">
-                        متن گزارش را به‌صورت کامل وارد کنید.
-                    </p>
+                    <div id="editor-container" aria-label="شرح مفصل گزارش"
+                        class="bg-white rounded-xl border-2 border-slate-300 min-h-[350px] shadow-sm"></div>
                 </div>
 
             </section>
 
             <!-- فایل‌ها -->
-            <section class="bg-slate-50/50 p-5 sm:p-6 rounded-xl border border-slate-200 space-y-6">
+            <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
-                <div class="border-b border-slate-200 pb-3">
-                    <h2 class="text-base font-bold text-slate-800">
+                <div class="border-b border-slate-300 pb-4">
+                    <h2 class="text-lg font-black text-slate-900">
                         فایل‌های پیوست و رسانه
                     </h2>
-
-                    <p class="text-xs text-slate-500 mt-1">
-                        محدودیت تصویر شاخص ۲۰ مگابایت و محدودیت پیوست‌ها ۱۶ فایل با مجموع حداکثر ۱.۲ گیگابایت است.
+                    <p class="text-sm text-slate-600 mt-1">
+                        افزودن تصویر شاخص و فایل‌های ضمیمه مربوط به این سند.
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                     <!-- تصویر شاخص -->
                     <div>
-
-                        <label
-                            for="cover-drag-zone"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="cover-drag-zone" class="block text-base font-black text-slate-800 mb-2.5">
                             تصویر شاخص
-                            <span class="text-xs font-normal text-slate-400">
-                                حداکثر ۲۰ مگابایت
-                            </span>
                         </label>
 
-                        <div
-                            id="cover-drag-zone"
-                            tabindex="0"
-                            role="button"
-                            aria-label="انتخاب تصویر شاخص"
-                            class="drag-zone border-2 border-dashed border-slate-300 rounded-xl p-6 min-h-[170px] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100/50 focus:outline-none focus:ring-2 focus:ring-slate-800 transition duration-200"
-                        >
+                        <div id="cover-drag-zone" tabindex="0" role="button" aria-label="انتخاب تصویر شاخص"
+                            class="drag-zone border-2 border-dashed border-slate-400 rounded-xl p-8 min-h-[190px] flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-900 transition shadow-sm">
 
-                            <input
-                                type="file"
-                                id="report-cover-image"
-                                name="cover_image"
-                                accept="image/*"
-                                class="hidden"
-                            >
+                            <input type="file" id="report-cover-image" name="cover_image" accept="image/*"
+                                class="hidden">
 
-                            <svg
-                                class="w-10 h-10 text-slate-400 mb-2"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                ></path>
+                            <svg class="w-12 h-12 text-slate-500 mb-3" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                </path>
                             </svg>
 
-                            <span class="text-xs font-semibold text-slate-600 text-center">
-                                کشیدن و رها کردن تصویر یا کلیک کنید
+                            <span class="text-sm font-bold text-slate-800 text-center">
+                                کشیدن و رها کردن تصویر یا کلیک جهت انتخاب
                             </span>
 
-                            <span class="text-[10px] text-slate-400 mt-1">
-                                فقط فایل‌های تصویری
+                            <span class="text-xs font-semibold text-slate-500 mt-1.5">
+                                فرمت‌های تصویری تا سقف ۲۰ مگابایت
                             </span>
                         </div>
 
                         <!-- پیش‌نمایش تصویر -->
-                        <div
-                            id="cover-preview-container"
-                            class="hidden mt-3 p-3 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-3"
-                        >
-                            <div class="flex items-center gap-3 min-w-0">
-
-                                <img
-                                    id="cover-preview-img"
-                                    src=""
-                                    alt="پیش‌نمایش تصویر شاخص"
-                                    class="w-12 h-12 object-cover rounded-md border border-slate-300 shrink-0"
-                                >
+                        <div id="cover-preview-container"
+                            class="hidden mt-4 p-4 bg-white border-2 border-slate-300 rounded-xl flex items-center justify-between gap-4 shadow-sm">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <img id="cover-preview-img" src="" alt="پیش‌نمایش تصویر شاخص"
+                                    class="w-14 h-14 object-cover rounded-lg border border-slate-300 shrink-0">
 
                                 <div class="flex flex-col min-w-0">
-                                    <span
-                                        id="cover-filename"
-                                        class="text-xs font-semibold text-slate-700 truncate max-w-[180px]"
-                                    ></span>
+                                    <span id="cover-filename"
+                                        class="text-sm font-bold text-slate-800 truncate max-w-[200px]"></span>
 
-                                    <span
-                                        id="cover-filesize"
-                                        class="text-[10px] text-slate-400"
-                                    ></span>
+                                    <span id="cover-filesize" class="text-xs font-medium text-slate-500"></span>
                                 </div>
                             </div>
 
-                            <button
-                                type="button"
-                                id="remove-cover-btn"
-                                class="text-red-500 hover:text-red-700 text-xs font-bold transition shrink-0"
-                            >
-                                حذف
+                            <button type="button" id="remove-cover-btn"
+                                class="text-red-600 hover:text-red-800 text-sm font-bold transition shrink-0 px-2 py-1">
+                                حذف تصویر
                             </button>
                         </div>
                     </div>
 
                     <!-- پیوست‌ها -->
                     <div>
-
-                        <label
-                            for="attachments-drag-zone"
-                            class="block text-sm font-bold text-slate-700 mb-2"
-                        >
+                        <label for="attachments-drag-zone" class="block text-base font-black text-slate-800 mb-2.5">
                             فایل‌های پیوست
-                            <span class="text-xs font-normal text-slate-400">
-                                حداکثر ۱۶ فایل، مجموعاً ۱.۲ گیگابایت
-                            </span>
                         </label>
 
-                        <div
-                            id="attachments-drag-zone"
-                            tabindex="0"
-                            role="button"
-                            aria-label="انتخاب فایل‌های پیوست"
-                            class="drag-zone border-2 border-dashed border-slate-300 rounded-xl p-6 min-h-[170px] flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100/50 focus:outline-none focus:ring-2 focus:ring-slate-800 transition duration-200"
-                        >
+                        <div id="attachments-drag-zone" tabindex="0" role="button" aria-label="انتخاب فایل‌های پیوست"
+                            class="drag-zone border-2 border-dashed border-slate-400 rounded-xl p-8 min-h-[190px] flex flex-col items-center justify-center cursor-pointer bg-white hover:bg-slate-100/80 focus:outline-none focus:ring-2 focus:ring-slate-900 transition shadow-sm">
 
-                            <input
-                                type="file"
-                                id="report-attachments"
-                                name="attachments"
-                                multiple
-                                class="hidden"
-                            >
+                            <input type="file" id="report-attachments" name="attachments" multiple class="hidden">
 
-                            <svg
-                                class="w-10 h-10 text-slate-400 mb-2"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M12 4v16m8-8H4"
-                                ></path>
+                            <svg class="w-12 h-12 text-slate-500 mb-3" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
                             </svg>
 
-                            <span class="text-xs font-semibold text-slate-600 text-center">
-                                کشیدن و رها کردن پیوست‌ها یا کلیک کنید
+                            <span class="text-sm font-bold text-slate-800 text-center">
+                                کشیدن و رها کردن فایل‌ها یا کلیک جهت انتخاب
                             </span>
 
-                            <span class="text-[10px] text-slate-400 mt-1">
-                                هر نوع فایل تا سقف مجاز
+                            <span class="text-xs font-semibold text-slate-500 mt-1.5">
+                                حداکثر ۱۶ فایل (مجموعاً ۱.۲ گیگابایت)
                             </span>
                         </div>
 
                         <!-- فهرست پیوست‌ها -->
-                        <div
-                            id="attachments-list"
-                            class="mt-3 space-y-2 max-h-48 overflow-y-auto"
-                            aria-live="polite"
-                        ></div>
+                        <div id="attachments-list" class="mt-4 space-y-2.5 max-h-52 overflow-y-auto" aria-live="polite">
+                        </div>
                     </div>
 
                 </div>
             </section>
 
-            <!-- دکمه‌های عملیاتی -->
-            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-6 border-t border-slate-200">
+            <!-- دکمه‌های عملیاتی درشت -->
+            <div class="flex items-center justify-end gap-4 pt-8 border-t-2 border-slate-200">
 
-                <a
-                    href="index.html"
-                    class="px-6 py-3 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition-all text-center"
-                >
+                <a href="index.html"
+                    class="px-8 py-4 rounded-xl border-2 border-slate-300 text-slate-700 hover:bg-slate-200 text-base font-bold transition-all text-center">
                     انصراف
                 </a>
 
-                <button
-                    type="submit"
-                    id="submit-btn"
-                    class="px-8 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
+                <button type="submit" id="submit-btn"
+                    class="px-10 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-base font-black transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
 
-                    <span
-                        id="btn-spinner"
-                        data-submit-spinner
-                        class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
-                        aria-hidden="true"
-                    ></span>
+                    <span id="btn-spinner" data-submit-spinner
+                        class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
+                        aria-hidden="true"></span>
 
-                    <span
-                        id="btn-text"
-                        data-submit-text
-                    >
-                        ثبت و ذخیره‌سازی نهایی
+                    <span id="btn-text" data-submit-text>
+                        ثبت و ذخیره‌سازی نهایی گزارش
                     </span>
                 </button>
 
@@ -587,36 +400,20 @@
     </main>
 
     <!-- پیام موفقیت -->
-    <div
-        id="success-toast"
-        role="status"
-        aria-live="polite"
-        class="fixed bottom-5 right-5 hidden bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-xl z-50 flex items-center gap-3 transition-all duration-300 transform translate-y-10 opacity-0"
-    >
-        <svg
-            class="w-6 h-6 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-        >
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0"
-            ></path>
+    <div id="success-toast" role="status" aria-live="polite"
+        class="fixed bottom-6 right-6 hidden bg-emerald-700 text-white px-8 py-5 rounded-2xl shadow-2xl z-50 flex items-center gap-4 transition-all duration-300 transform translate-y-10 opacity-0 border border-emerald-600">
+        <svg class="w-7 h-7 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0">
+            </path>
         </svg>
 
-        <span class="text-sm font-semibold">
+        <span class="text-base font-bold">
             گزارش با موفقیت در سامانه ثبت شد. در حال هدایت...
         </span>
     </div>
 
-    <!-- Quill باید پیش از فایل اختصاصی صفحه بارگذاری شود -->
+    <!-- JSها -->
     <script src="js/quill.min.js"></script>
-
-    <!-- JavaScript اختصاصی فرم -->
     <script src="js/create-report.js"></script>
 
 </body>

@@ -11,20 +11,24 @@
 }
 
 body {
-    font-family: 'Vazirmatn', tahoma;
+    font-family: 'Vazirmatn', tahoma, sans-serif;
+    font-size: 16px; /* پایه استاندارد دسکتاپ */
+    color: #0f172a;
+    background-color: #f1f5f9;
 }
 
-/* ۱. استایل‌دهی و راست‌چین کردن ویرایشگر Quill */
+/* ۱. استایل‌دهی درشت و راست‌چین ویرایشگر Quill */
 .ql-editor {
     font-family: 'Vazirmatn', sans-serif !important;
-    font-size: 0.95rem !important;
-    line-height: 1.85 !important;
-    min-height: 280px;
+    font-size: 1.1rem !important; /* سایز متن درشت و بسیار خوانا */
+    line-height: 2 !important; /* فاصله خطوط استاندارد برای سهولت مطالعه */
+    min-height: 320px;
     direction: rtl !important;
     text-align: right !important;
+    color: #0f172a !important;
 }
 
-/* تضمین اعمال راست‌چین برای همه‌ی تگ‌های داخلی ادیتور */
+/* تضمین اعمال راست‌چین و فونت درشت برای همه‌ی تگ‌های داخلی ادیتور */
 .ql-editor p,
 .ql-editor h1,
 .ql-editor h2,
@@ -37,44 +41,45 @@ body {
     text-align: right !important;
 }
 
-/* استایل‌دهی تیترها درون بدنه ویرایشگر */
+/* استایل‌دهی درشت و واضح تیترها درون بدنه ویرایشگر */
 .ql-editor h1 {
-    font-size: 1.5rem !important;
+    font-size: 1.75rem !important;
     font-weight: 800 !important;
-    color: #1e293b !important;
-    margin-top: 1.25rem !important;
-    margin-bottom: 0.75rem !important;
-    border-bottom: 2px solid #f1f5f9;
-    padding-bottom: 0.4rem;
+    color: #0f172a !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.85rem !important;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 0.5rem;
 }
 
 .ql-editor h2 {
-    font-size: 1.25rem !important;
+    font-size: 1.45rem !important;
     font-weight: 700 !important;
-    color: #334155 !important;
-    margin-top: 1.1rem !important;
-    margin-bottom: 0.6rem !important;
+    color: #1e293b !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
 }
 
 .ql-editor h3 {
-    font-size: 1.1rem !important;
+    font-size: 1.25rem !important;
     font-weight: 700 !important;
-    color: #475569 !important;
-    margin-top: 0.9rem !important;
-    margin-bottom: 0.5rem !important;
+    color: #334155 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.6rem !important;
 }
 
 /* راست‌چین کردن نقل‌قول‌ها در ویرایشگر */
 .ql-editor blockquote {
-    border-right: 4px solid #475569 !important;
+    border-right: 5px solid #334155 !important;
     border-left: none !important;
-    padding-right: 16px !important;
+    padding-right: 18px !important;
     padding-left: 0 !important;
-    color: #64748b !important;
+    font-size: 1.05rem !important;
+    color: #334155 !important;
     background-color: #f8fafc;
-    margin: 1rem 0 !important;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    margin: 1.2rem 0 !important;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 /* تراز کردن متن راهنما (Placeholder) به سمت راست */
@@ -82,7 +87,8 @@ body {
     right: 15px !important;
     left: auto !important;
     font-style: normal !important;
-    color: #94a3b8 !important;
+    font-size: 1.05rem !important;
+    color: #64748b !important;
 }
 
 .ql-toolbar,
@@ -90,15 +96,15 @@ body {
     font-family: 'Vazirmatn', sans-serif !important;
 }
 
-/* شناور ساختن نوار ابزار Quill برای دسترسی راحت در متون طولانی */
+/* شناور ساختن نوار ابزار Quill برای متون طولانی */
 .ql-toolbar.ql-snow {
     position: sticky !important;
     top: 0 !important;
-    z-index: 40 !important;
+    z-index: 50 !important;
     background-color: #ffffff !important;
-    border-bottom: 1px solid #e2e8f0 !important;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
+    border-bottom: 2px solid #cbd5e1 !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    padding: 10px !important;
 }
 
 .ql-container.ql-snow {
@@ -112,10 +118,10 @@ body {
     transition: all 0.2s ease-in-out;
 }
 
+.drag-zone:hover,
 .drag-zone.drag-active {
-    border-color: #1e293b;
-    background-color: #f8fafc;
-    transform: scale(1.01);
+    border-color: #0f172a;
+    background-color: #f1f5f9;
 }
 
 /* ۳. استایل‌های تگ‌باکس چندانتخابی پویا */
@@ -125,14 +131,14 @@ body {
 
 .custom-multiselect-container:focus-within, 
 .custom-multiselect-container:hover {
-    border-color: #1e293b;
+    border-color: #0f172a;
 }
 
 /* ۴. شخصی‌سازی اسکرولبار برای دراپ‌داون‌ها */
 #topics-dropdown::-webkit-scrollbar,
 #cases-dropdown::-webkit-scrollbar,
 #attachments-list::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 #topics-dropdown::-webkit-scrollbar-track,
@@ -144,40 +150,80 @@ body {
 #topics-dropdown::-webkit-scrollbar-thumb,
 #cases-dropdown::-webkit-scrollbar-thumb,
 #attachments-list::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-}
-
-#topics-dropdown::-webkit-scrollbar-thumb:hover,
-#cases-dropdown::-webkit-scrollbar-thumb:hover,
-#attachments-list::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+    border-radius: 4px;
 }
 
-/* ۵. استایل‌های تقویم شمسی باباخانی جهت همخوانی با پوسته تیره/اسلیت */
+/* ۵. استایل‌های تقویم شمسی با فونت درشت */
 .datepicker-plot-area {
     font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 1rem !important;
     border-radius: 12px !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
 }
 
 .datepicker-plot-area .datepicker-day-view .table-days td.selected span {
-    background-color: #1e293b !important;
-    box-shadow: none !important;
+    background-color: #0f172a !important;
 }
 
-.datepicker-plot-area .datepicker-day-view .table-days td span:hover {
-    background-color: #f1f5f9 !important;
-    color: #1e293b !important;
+/* درشت‌سازی تگ‌های انتخاب شده */
+.selected-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: 0.95rem !important;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* شناور ساختن نوار ابزار Quill برای دسترسی راحت در متون طولانی */
-.ql-toolbar.ql-snow {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 50 !important;
-    background-color: #ffffff !important;
-    border-bottom: 1px solid #cbd5e1 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+.selected-tag button {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.selected-tag button:hover {
+    color: #ef4444;
+}
+
+/* استایل آیتم‌های منوی آبشاری کیس‌ها و موضوعات */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 1rem !important;
+    font-weight: 600;
+    color: #0f172a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5f9;
+}
+
+.dropdown-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0f172a;
+    cursor: pointer;
+}
+
+/* استایل اختصاصی برای ساختار درختی کیس‌های زیرمجموعه */
+.dropdown-item.child-case {
+    margin-right: 24px; /* تورفتگی برای نشان دادن زیرمجموعه بودن */
+    border-right: 3px solid #cbd5e1;
+    background-color: #f8fafc;
+}
+
+.dropdown-item.child-case:hover {
+    background-color: #e2e8f0;
 }

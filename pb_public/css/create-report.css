@@ -1,108 +1,173 @@
-        @font-face {
-            font-family: 'Vazirmatn';
-            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
-            font-weight: 400;
-        }
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+    font-weight: 400;
+}
 
-        @font-face {
-            font-family: 'Vazirmatn';
-            src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
-            font-weight: 700;
-        }
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
+    font-weight: 700;
+}
 
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-        }
+body {
+    font-family: 'Vazirmatn', tahoma;
+}
 
-        /* ۱. تنظیم فونت، سایز و راست‌چین بودن پیش‌فرض متن و Pasteها */
-        .ql-editor {
-            font-family: 'Vazirmatn', sans-serif !important;
-            font-size: 1rem !important;
-            /* سایز پیش‌فرض ۱۶ پیکسل */
-            line-height: 1.8 !important;
-            /* فاصله مناسب بین خطوط فارسی */
-            min-height: 280px;
-            direction: rtl !important;
-            /* اجبار تمام عناصر و پیست‌ها به راست‌چین */
-            text-align: right !important;
-        }
+/* ۱. استایل‌دهی و راست‌چین کردن ویرایشگر Quill */
+.ql-editor {
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 0.95rem !important;
+    line-height: 1.85 !important;
+    min-height: 280px;
+    direction: rtl !important;
+    text-align: right !important;
+}
 
-        /* راست‌چین کردن تمامی عناصر داخل ادیتور (پاراگراف‌ها، تیترها، لیست‌ها) */
-        .ql-editor p,
-        .ql-editor h1,
-        .ql-editor h2,
-        .ql-editor h3,
-        .ql-editor ul,
-        .ql-editor ol,
-        .ql-editor blockquote {
-            direction: rtl !important;
-            text-align: right !important;
-        }
+/* تضمین اعمال راست‌چین برای همه‌ی تگ‌های داخلی ادیتور */
+.ql-editor p,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor ul,
+.ql-editor ol,
+.ql-editor blockquote,
+.ql-editor pre {
+    direction: rtl !important;
+    text-align: right !important;
+}
 
-        /* ۲. سفارشی‌سازی تیترها (Headings) */
-        .ql-editor h1 {
-            font-size: 1.6rem !important;
-            /* اندازه تیتر ۱ */
-            font-weight: 800 !important;
-            color: #1e293b !important;
-            /* رنگ تیره سرمه‌ای/اسلیتی */
-            margin-top: 1.2rem !important;
-            margin-bottom: 0.6rem !important;
-            border-bottom: 2px solid #e2e8f0;
-            /* خط زیرین شیک برای تیتر ۱ */
-            padding-bottom: 0.3rem;
-        }
+/* استایل‌دهی تیترها درون بدنه ویرایشگر */
+.ql-editor h1 {
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 0.4rem;
+}
 
-        .ql-editor h2 {
-            font-size: 1.35rem !important;
-            /* اندازه تیتر ۲ */
-            font-weight: 700 !important;
-            color: #334155 !important;
-            margin-top: 1rem !important;
-            margin-bottom: 0.5rem !important;
-        }
+.ql-editor h2 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    margin-top: 1.1rem !important;
+    margin-bottom: 0.6rem !important;
+}
 
-        .ql-editor h3 {
-            font-size: 1.15rem !important;
-            /* اندازه تیتر ۳ */
-            font-weight: 700 !important;
-            color: #475569 !important;
-            margin-top: 0.8rem !important;
-            margin-bottom: 0.4rem !important;
-        }
+.ql-editor h3 {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    color: #475569 !important;
+    margin-top: 0.9rem !important;
+    margin-bottom: 0.5rem !important;
+}
 
-        /* استایل نقل‌قول (Blockquote) */
-        .ql-editor blockquote {
-            border-right: 4px solid #475569 !important;
-            border-left: none !important;
-            padding-right: 12px !important;
-            padding-left: 0 !important;
-            color: #64748b !important;
-            background-color: #f8fafc;
-            padding-top: 6px;
-            padding-bottom: 6px;
-        }
+/* راست‌چین کردن نقل‌قول‌ها در ویرایشگر */
+.ql-editor blockquote {
+    border-right: 4px solid #475569 !important;
+    border-left: none !important;
+    padding-right: 16px !important;
+    padding-left: 0 !important;
+    color: #64748b !important;
+    background-color: #f8fafc;
+    margin: 1rem 0 !important;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
 
-        /* ۳. راست‌چین کردن Placeholder (متن راهنما) */
-        .ql-editor.ql-blank::before {
-            right: 15px !important;
-            left: auto !important;
-            font-style: normal !important;
-            color: #94a3b8 !important;
-        }
+/* تراز کردن متن راهنما (Placeholder) به سمت راست */
+.ql-editor.ql-blank::before {
+    right: 15px !important;
+    left: auto !important;
+    font-style: normal !important;
+    color: #94a3b8 !important;
+}
 
-        /* ۴. ست کردن فونت وزیرمتن روی نوار ابزار بالا */
-        .ql-toolbar,
-        .ql-container {
-            font-family: 'Vazirmatn', sans-serif !important;
-        }
+.ql-toolbar,
+.ql-container {
+    font-family: 'Vazirmatn', sans-serif !important;
+}
 
-        /* شناور ساختن نوار ابزار Quill */
-        .ql-toolbar.ql-snow {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 50 !important;
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #cbd5e1 !important;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
-        }
+/* شناور ساختن نوار ابزار Quill برای دسترسی راحت در متون طولانی */
+.ql-toolbar.ql-snow {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.ql-container.ql-snow {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    background-color: #ffffff;
+}
+
+/* ۲. سفارشی‌سازی ناحیه درگ اند دراپ فایل */
+.drag-zone {
+    transition: all 0.2s ease-in-out;
+}
+
+.drag-zone.drag-active {
+    border-color: #1e293b;
+    background-color: #f8fafc;
+    transform: scale(1.01);
+}
+
+/* ۳. استایل‌های تگ‌باکس چندانتخابی پویا */
+.custom-multiselect-container {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-multiselect-container:focus-within, 
+.custom-multiselect-container:hover {
+    border-color: #1e293b;
+}
+
+/* ۴. شخصی‌سازی اسکرولبار برای دراپ‌داون‌ها */
+#topics-dropdown::-webkit-scrollbar,
+#cases-dropdown::-webkit-scrollbar,
+#attachments-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#topics-dropdown::-webkit-scrollbar-track,
+#cases-dropdown::-webkit-scrollbar-track,
+#attachments-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#topics-dropdown::-webkit-scrollbar-thumb,
+#cases-dropdown::-webkit-scrollbar-thumb,
+#attachments-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+#topics-dropdown::-webkit-scrollbar-thumb:hover,
+#cases-dropdown::-webkit-scrollbar-thumb:hover,
+#attachments-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* ۵. استایل‌های تقویم شمسی باباخانی جهت همخوانی با پوسته تیره/اسلیت */
+.datepicker-plot-area {
+    font-family: 'Vazirmatn', sans-serif !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.datepicker-plot-area .datepicker-day-view .table-days td.selected span {
+    background-color: #1e293b !important;
+    box-shadow: none !important;
+}
+
+.datepicker-plot-area .datepicker-day-view .table-days td span:hover {
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+}

@@ -171,3 +171,13 @@ body {
     background-color: #f1f5f9 !important;
     color: #1e293b !important;
 }
+
+/* شناور ساختن نوار ابزار Quill برای دسترسی راحت در متون طولانی */
+.ql-toolbar.ql-snow {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}

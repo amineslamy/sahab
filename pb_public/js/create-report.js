@@ -557,7 +557,6 @@ document.addEventListener('DOMContentLoaded', () => {
             appendValue(formData, 'title', getValue('report-title'));
             appendValue(formData, 'automation_id', generateAutomationId());
             appendValue(formData, 'occurrence_date', getValue('report-occurrence-date'));
-            appendValue(formData, 'publish_date', getValue('report-publish-date'));
             appendValue(formData, 'abstract', getValue('report-abstract'));
             appendValue(formData, 'classification', getValue('report-classification'));
             appendValue(formData, 'priority', getValue('report-priority'));

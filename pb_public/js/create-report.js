@@ -1,4 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // همیشه صفحه ثبت گزارش را از ابتای صفحه نمایش بده.
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+
+    window.scrollTo(0, 0);
+
     const PB_URL = window.location.origin;
 
     const COLLECTIONS = {
@@ -26,6 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const $id = (id) => document.getElementById(id);
 
     boot();
+    // اگر مرورگر صفحه را از cache/history بازگردانی کرد،
+    // باز هم کاربر را به ابتدای فرم برگردان.
+    window.addEventListener('pageshow', () => {
+        window.scrollTo(0, 0);
+    });
 
     // ۱. تابع جدید بررسی و تازه سازی نشست کاربری در سمت سرور
     async function checkAuthAndRefresh() {
@@ -95,6 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initFormActions();
 
         await initRelationPickers();
+        // پس از کامل شدن بارگذاری فرم و روابط نیز از بالای صفحه شروع کن.
+        requestAnimationFrame(() => {
+            window.scrollTo(0, 0);
+        });
     }
 
 

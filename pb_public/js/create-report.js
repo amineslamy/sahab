@@ -507,13 +507,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- مدیریت انتخاب کیس‌ها (ساختار درختی) ---
+    // --- مدیریت انتخاب کیس‌ها (با فیلتر دقیق و ساختار درختی) ---
     function setupCasesPicker(rawItems) {
         const container = $id('cases-picker-container');
         const dropdown = $id('cases-dropdown');
         if (!container || !dropdown) return;
 
-        // مرتب‌سازی درختی (والد و فرزندان)
+        // ۱. مرتب‌سازی ساختار درختی (والد و فرزندان)
         const parents = rawItems.filter(c => !c.parent_case);
         const children = rawItems.filter(c => c.parent_case);
 
@@ -526,59 +526,81 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // کیس‌های فرزندی که احتمالاً والد متناظر ندارند
+        // کیس‌های فرزندی که احتمالاً والدشان حذف شده
         const orphans = children.filter(c => !parents.some(p => p.id === c.parent_case));
         orphans.forEach(o => orderedCases.push({ ...o, isChild: false }));
 
+        // باز و بسته شدن بازشو
         container.addEventListener('click', (e) => {
             e.stopPropagation();
-            $id('topics-dropdown')?.classList.add('hidden'); // بستن منوی موضوعات
+            $id('topics-dropdown')?.classList.add('hidden');
             dropdown.classList.toggle('hidden');
             if (!dropdown.classList.contains('hidden')) {
-                $id('cases-search-input')?.focus();
+                const searchInput = $id('cases-search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                }
             }
         });
 
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
-        renderCasesList(orderedCases);
+        // رندر اولیه لیست و تگ‌ها
+        renderCasesList(orderedCases, rawItems);
         renderCasesTags(rawItems);
+
+        // ۲. رویداد جستجوی زنده (اصلاح شده)
+        const searchInput = $id('cases-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim().toLowerCase();
+
+                if (!query) {
+                    renderCasesList(orderedCases, rawItems);
+                    return;
+                }
+
+                // فیلتر کردن بر اساس عنوان کیس یا عنوان والد آن
+                const filtered = orderedCases.filter(c => {
+                    const titleMatch = (c.title || '').toLowerCase().includes(query);
+                    const parentMatch = c.parentTitle && c.parentTitle.toLowerCase().includes(query);
+                    return titleMatch || parentMatch;
+                });
+
+                renderCasesList(filtered, rawItems);
+            });
+        }
     }
 
-    function renderCasesList(items) {
+    function renderCasesList(itemsToRender, rawItems) {
         let listContainer = $id('cases-list-container');
         const dropdown = $id('cases-dropdown');
 
+        // اگر کادر جستجو هنوز رندر نشده، آن را ایجاد می‌کنیم
         if (!listContainer) {
             dropdown.innerHTML = `
                 <div class="p-2 border-b border-slate-200 bg-slate-50">
-                    <input type="text" id="cases-search-input" placeholder="جستجو در کیس‌ها و زیرمجموعه‌ها..." class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:border-slate-800">
+                    <input type="text" id="cases-search-input" placeholder="جستجو در کیس‌ها و زیرمجموعه‌ها..." class="w-full px-3 py-2 text-sm font-semibold border rounded-lg focus:outline-none focus:border-slate-800">
                 </div>
                 <div id="cases-list-container" class="max-h-64 overflow-y-auto p-1.5 space-y-1"></div>
             `;
             listContainer = $id('cases-list-container');
-
-            $id('cases-search-input').addEventListener('input', (e) => {
-                const q = e.target.value.trim().toLowerCase();
-                const filtered = items.filter(c =>
-                    (c.title || '').toLowerCase().includes(q) ||
-                    (c.parentTitle && c.parentTitle.toLowerCase().includes(q))
-                );
-                renderCasesList(filtered);
-            });
         }
 
         listContainer.innerHTML = '';
-        if (items.length === 0) {
+
+        if (!itemsToRender || itemsToRender.length === 0) {
             listContainer.innerHTML = '<div class="p-3 text-sm text-slate-400 text-center font-semibold">کیسی یافت نشد</div>';
             return;
         }
 
-        items.forEach(item => {
+        itemsToRender.forEach(item => {
             const isSelected = state.selectedCases.includes(item.id);
             const label = document.createElement('label');
 
             const isChildClass = item.isChild ? 'mr-5 bg-slate-50 border-r-2 border-slate-300 pl-2' : '';
+
+            // استفاده از علامت ↲ برای RTL
             const titleMarkup = item.isChild
                 ? `<span class="text-slate-400 font-bold ml-1">↲</span> <span class="font-bold text-slate-800 text-sm">${item.title}</span> <span class="text-[11px] text-slate-400 font-normal mr-auto">(والد: ${item.parentTitle})</span>`
                 : `<span class="font-black text-slate-900 text-sm">${item.title}</span>`;
@@ -601,8 +623,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const idx = state.selectedCases.indexOf(item.id);
                     if (idx !== -1) state.selectedCases.splice(idx, 1);
                 }
-                renderCasesTags(items);
+                renderCasesTags(rawItems);
             });
+
             listContainer.appendChild(label);
         });
     }

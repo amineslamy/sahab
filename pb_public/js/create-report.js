@@ -95,11 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.pb = new PocketBase(PB_URL);
 
-        // ۴. جایگزین کردن بررسی ساده قبلی با تابع جدید
         const isAuthValid = await checkAuthAndRefresh();
         if (!isAuthValid) {
-            return; // اگر نشست معتبر نبود، تابع checkAuthAndRefresh خودش هدایت به لاگین را انجام می‌دهد.
+            return;
         }
+
+        // --- افزودن این خط برای دریافت داینامیک گزینه‌ها ---
+        await loadDynamicSelectOptions();
 
         initEditor();
         initDatepickers();
@@ -107,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initFormActions();
 
         await initRelationPickers();
-        // پس از کامل شدن بارگذاری فرم و روابط نیز از بالای صفحه شروع کن.
+
         requestAnimationFrame(() => {
             window.scrollTo(0, 0);
         });
@@ -1105,6 +1107,61 @@ document.addEventListener('DOMContentLoaded', () => {
             : 'خطای نامشخصی هنگام ثبت گزارش رخ داد.';
     }
 
+    function loadDynamicSelectOptions() {
+        // مقادیر ثابت استخراج شده از JSON بک‌اند PocketBase
+        const staticOptions = {
+            classification: [
+                "عادی",
+                "محرمانه",
+                "خیلی محرمانه",
+                "سری",
+                "به کلی سری"
+            ],
+            priority: [
+                "عادی",
+                "فوری",
+                "آنی"
+            ],
+            news_type: [
+                "آشکار",
+                "رسمی",
+                "فنی",
+                "سایبری",
+                "منبع",
+                "راوی"
+            ],
+            evaluation: [
+                "صحت دارد",
+                "احتمالا صحت دارد",
+                "در دست بررسی",
+                "صحت ندارد"
+            ]
+        };
+
+        // پر کردن داینامیک منوهای کشویی بر اساس الگوی فرم
+        Object.keys(staticOptions).forEach(fieldName => {
+            const values = staticOptions[fieldName];
+            populateSelectOptions(fieldName, values);
+        });
+    }
+
+    // تابع کمکی برای پر کردن گزینه‌ها
+    function populateSelectOptions(fieldName, values) {
+        const selectEl = document.querySelector(`select[name="${fieldName}"]`);
+        if (!selectEl) return;
+
+        // حفظ گزینه اول (placeholder) و پاک کردن بقیه
+        while (selectEl.options.length > 1) {
+            selectEl.remove(1);
+        }
+
+        values.forEach(val => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = val;
+            selectEl.appendChild(opt);
+        });
+    }
 
     function formatBytes(bytes) {
         if (!bytes) return '۰ بایت';

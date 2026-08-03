@@ -72,9 +72,10 @@
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- ردیف اول: عنوان + تاریخ وقوع رویداد -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-                    <!-- عنوان -->
+                    <!-- عنوان (۲ سهم از ۳) -->
                     <div class="md:col-span-2">
                         <label for="report-title" class="block text-base font-black text-slate-800 mb-2.5">
                             عنوان گزارش / سند
@@ -86,73 +87,7 @@
                             placeholder="مثال: ارزیابی تحلیلی آخرین تحولات میدانی">
                     </div>
 
-                    <!-- طبقه‌بندی -->
-                    <div>
-                        <label for="report-classification" class="block text-base font-black text-slate-800 mb-2.5">
-                            سطح طبقه‌بندی
-                        </label>
-
-                        <select id="report-classification" name="classification"
-                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
-                            <option value="">-- بدون طبقه‌بندی --</option>
-                            <option value="عادی">عادی</option>
-                            <option value="محرمانه">محرمانه</option>
-                            <option value="خیلی محرمانه">خیلی محرمانه</option>
-                            <option value="سری">سری</option>
-                            <option value="به کلی سری">به کلی سری</option>
-                        </select>
-                    </div>
-
-                    <!-- اولویت -->
-                    <div>
-                        <label for="report-priority" class="block text-base font-black text-slate-800 mb-2.5">
-                            اولویت
-                        </label>
-
-                        <select id="report-priority" name="priority"
-                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
-                            <option value="">-- بدون اولویت --</option>
-                            <option value="عادی">عادی</option>
-                            <option value="فوری">فوری</option>
-                            <option value="آنی">آنی</option>
-                        </select>
-                    </div>
-
-                    <!-- نوع خبر -->
-                    <div>
-                        <label for="report-news-type" class="block text-base font-black text-slate-800 mb-2.5">
-                            نوع خبر / سند
-                        </label>
-
-                        <select id="report-news-type" name="news_type"
-                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
-                            <option value="">-- بدون نوع --</option>
-                            <option value="آشکار">آشکار</option>
-                            <option value="رسمی">رسمی</option>
-                            <option value="فنی">فنی</option>
-                            <option value="سایبری">سایبری</option>
-                            <option value="منبع">منبع</option>
-                            <option value="راوی">راوی</option>
-                        </select>
-                    </div>
-
-                    <!-- ارزیابی -->
-                    <div>
-                        <label for="report-evaluation" class="block text-base font-black text-slate-800 mb-2.5">
-                            ارزیابی صحت
-                        </label>
-
-                        <select id="report-evaluation" name="evaluation"
-                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
-                            <option value="">-- بدون ارزیابی --</option>
-                            <option value="صحت دارد">صحت دارد</option>
-                            <option value="احتمالا صحت دارد">احتمالا صحت دارد</option>
-                            <option value="در دست بررسی">در دست بررسی</option>
-                            <option value="صحت ندارد">صحت ندارد</option>
-                        </select>
-                    </div>
-
-                    <!-- تاریخ وقوع -->
+                    <!-- تاریخ وقوع (۱ سهم از ۳) -->
                     <div>
                         <label for="occurrence-date-picker" class="block text-base font-black text-slate-800 mb-2.5">
                             تاریخ وقوع رویداد
@@ -167,6 +102,56 @@
                     </div>
 
                 </div>
+
+                <!-- ردیف دوم: ۴ فیلد انتخابی در یک ردیف ۴‌تایی -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+                    <!-- طبقه‌بندی -->
+                    <div>
+                        <label for="report-classification" class="block text-base font-black text-slate-800 mb-2.5">
+                            سطح طبقه‌بندی
+                        </label>
+                        <select id="report-classification" name="classification"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
+                            <option value="">-- بدون طبقه‌بندی --</option>
+                        </select>
+                    </div>
+
+                    <!-- اولویت -->
+                    <div>
+                        <label for="report-priority" class="block text-base font-black text-slate-800 mb-2.5">
+                            اولویت
+                        </label>
+                        <select id="report-priority" name="priority"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
+                            <option value="">-- بدون اولویت --</option>
+                        </select>
+                    </div>
+
+                    <!-- نوع خبر -->
+                    <div>
+                        <label for="report-news-type" class="block text-base font-black text-slate-800 mb-2.5">
+                            نوع خبر / سند
+                        </label>
+                        <select id="report-news-type" name="news_type"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
+                            <option value="">-- بدون نوع --</option>
+                        </select>
+                    </div>
+
+                    <!-- ارزیابی -->
+                    <div>
+                        <label for="report-evaluation" class="block text-base font-black text-slate-800 mb-2.5">
+                            ارزیابی صحت
+                        </label>
+                        <select id="report-evaluation" name="evaluation"
+                            class="w-full px-5 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 focus:outline-none text-base text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
+                            <option value="">-- بدون ارزیابی --</option>
+                        </select>
+                    </div>
+
+                </div>
+
             </section>
 
             <!-- روابط -->

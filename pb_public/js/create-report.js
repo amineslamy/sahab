@@ -989,11 +989,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // ذخیره کامنت‌های موقتی در صورت وجود
             if (typeof window.savePendingComments === 'function') {
                 await window.savePendingComments(savedReport.id);
-            } clearForm();
+            }
 
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1800);
+            // اگر فرم تازه ایجاد شده است، ID را روی آدرس مرورگر ست می‌کنیم تا به حالت ویرایش تبدیل شود
+            if (!state.reportId && savedReport?.id) {
+                state.reportId = savedReport.id;
+                const newUrl = `${window.location.pathname}?id=${savedReport.id}`;
+                window.history.replaceState({ path: newUrl }, '', newUrl);
+            }
         } catch (err) {
             console.error(err);
 
@@ -1098,7 +1101,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const spinner = $id('btn-spinner') || btn.querySelector('[data-submit-spinner]');
         const text = $id('btn-text') || btn.querySelector('[data-submit-text]');
 
-        if (text) text.textContent = isLoading ? 'در حال ثبت...' : 'ثبت و ذخیره‌سازی نهایی';
+        const defaultText = state.reportId ? 'ویرایش و ذخیره‌سازی نهایی' : 'ثبت و ذخیره‌سازی نهایی';
+        const loadingText = state.reportId ? 'در حال ذخیره‌سازی ویرایش...' : 'در حال ثبت...';
+
+        if (text) text.textContent = isLoading ? loadingText : defaultText;
         if (spinner) spinner.classList.toggle('hidden', !isLoading);
     }
 

@@ -101,6 +101,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateMetadataDisplay(report) {
+        if (!report) return;
+
+        // ۱. تاریخ انتشار (تاریخ ثبت)
+        const publishEl = $id('meta-publish-date');
+        if (publishEl && report.created) {
+            const d = new Date(report.created);
+            publishEl.textContent = d.toLocaleDateString('fa-IR');
+        }
+
+        // ۲. تاریخ به روزرسانی
+        const updatedEl = $id('meta-updated-date');
+        if (updatedEl && report.updated) {
+            const d = new Date(report.updated);
+            updatedEl.textContent = d.toLocaleDateString('fa-IR');
+        }
+
+        // ۳. تاریخ وقوع
+        const occurrenceEl = $id('meta-occurrence-date');
+        if (occurrenceEl) {
+            const rawDate = report.occurrence_date || getValue('report-occurrence-date');
+            if (rawDate) {
+                const d = new Date(rawDate);
+                occurrenceEl.textContent = d.toLocaleDateString('fa-IR');
+            }
+        }
+
+        // ۴. نویسنده گزارش
+        const authorEl = $id('meta-author');
+        if (authorEl) {
+            const authorObj = state.selectedAuthor || report.expand?.author;
+            if (authorObj) {
+                authorEl.textContent = authorObj.name || authorObj.username || 'نامشخص';
+            }
+        }
+
+        // ۵. ثبت کننده
+        const creatorEl = $id('meta-creator');
+        if (creatorEl) {
+            const currentUser = state.pb?.authStore?.record || state.pb?.authStore?.model;
+            const submitterObj = report.expand?.submitter || currentUser;
+            if (submitterObj) {
+                creatorEl.textContent = submitterObj.name || submitterObj.username || 'نامشخص';
+            }
+        }
+
+        // ۶. موضوعات
+        const topicsEl = $id('meta-topics');
+        if (topicsEl) {
+            const topicTitles = state.selectedTopics.map(id => {
+                const topic = state.allTopics.find(t => t.id === id);
+                return topic ? (topic.title || topic.name) : null;
+            }).filter(Boolean);
+            topicsEl.textContent = topicTitles.length > 0 ? topicTitles.join('، ') : 'بدون موضوع';
+        }
+
+        // ۷. کیس‌ها
+        const casesEl = $id('meta-cases');
+        if (casesEl) {
+            const caseTitles = state.selectedCases.map(id => {
+                const caseItem = state.allRawCases.find(c => c.id === id);
+                return caseItem ? caseItem.title : null;
+            }).filter(Boolean);
+            casesEl.textContent = caseTitles.length > 0 ? caseTitles.join('، ') : 'بدون کیس';
+        }
+    }
+
     async function checkAndLoadEditMode() {
         const urlParams = new URLSearchParams(window.location.search);
         const id = urlParams.get('id');
@@ -111,9 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const report = await state.pb.collection(COLLECTIONS.reports).getOne(id, {
-                expand: 'author'
+                expand: 'author,submitter'
             });
-
             // ۱. مقداردهی فیلدهای متنی و انتخابی ساده
             setInputValue('report-title', report.title);
             setInputValue('report-abstract', report.abstract);
@@ -171,6 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.isArray(report.attachments) && report.attachments.length > 0) {
                 renderExistingAttachmentsList(report, report.attachments);
             }
+
+            // ۹. به‌روزرسانی اطلاعات متادیتا هدر
+            updateMetadataDisplay(report);
 
             // تغییر متن دکمه ثبت
             const submitBtnText = $id('btn-text') || document.querySelector('[data-submit-text]');
@@ -991,6 +1060,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof window.savePendingComments === 'function') {
                 await window.savePendingComments(savedReport.id);
             }
+
+            // به‌روزرسانی باکس متادیتا با اطلاعات تازه ثبت شده
+            updateMetadataDisplay(savedReport);
 
             // اگر فرم تازه ایجاد شده است، ID را روی آدرس مرورگر ست می‌کنیم تا به حالت ویرایش تبدیل شود
             if (!state.reportId && savedReport?.id) {

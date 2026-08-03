@@ -224,3 +224,54 @@ body {
 .dropdown-item.child-case:hover {
     background-color: #e2e8f0;
 }
+
+/* ۶. استایل‌های هدر و خلاصه‌اطلاعات متادیتا */
+.report-metadata-header {
+    background-color: #0f172a;
+    color: #ffffff;
+    padding: 14px 24px;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    row-gap: 8px;
+    column-gap: 16px;
+}
+
+.meta-row-primary {
+    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.meta-item {
+    display: flex;
+    items-center: center;
+    gap: 6px;
+}
+
+.meta-item-wide {
+    max-width: 48%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.meta-label {
+    color: #94a3b8;
+}
+
+.meta-value {
+    font-weight: 700;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -38,21 +38,43 @@
     <div id="app-header"></div>
     <!-- کانتینر اصلی دسکتاپ (عرض عریض‌تر max-w-6xl) -->
     <main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300 mx-auto my-6">
-        <!-- هدر با فونت و آیکون‌بندی برجسته -->
-        <header class="bg-slate-900 text-white px-8 py-7 flex flex-row justify-between items-center rounded-t-2xl">
-            <div>
-                <h1 class="text-2xl font-black tracking-tight">
-                    ثبت گزارش / سند جدید
-                </h1>
-                <p class="text-sm text-slate-300 mt-1.5 font-medium">
-                    ثبت اطلاعات ساختاریافته و پیوست مدارک در پایگاه داده سامانه
-                </p>
+        <!-- باکس خلاصه‌اطلاعات متادیتا -->
+        <header class="report-metadata-header">
+            <!-- ردیف اول: زمان‌بندی و هویت‌ها -->
+            <div class="meta-row meta-row-primary">
+                <div class="meta-item">
+                    <span class="meta-label">تاریخ انتشار:</span>
+                    <span id="meta-publish-date" class="meta-value">پس از ثبت</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">تاریخ به روزرسانی:</span>
+                    <span id="meta-updated-date" class="meta-value">پس از ثبت</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">تاریخ وقوع:</span>
+                    <span id="meta-occurrence-date" class="meta-value">پس از ثبت</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">نویسنده گزارش:</span>
+                    <span id="meta-author" class="meta-value">پس از ثبت</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">ثبت کننده:</span>
+                    <span id="meta-creator" class="meta-value">پس از ثبت</span>
+                </div>
             </div>
 
-            <a href="index.html"
-                class="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold px-5 py-3 rounded-xl transition-all duration-200 border border-slate-700 shadow-sm">
-                بازگشت به داشبورد
-            </a>
+            <!-- ردیف دوم: موضوع و کیس -->
+            <div class="meta-row">
+                <div class="meta-item meta-item-wide">
+                    <span class="meta-label">موضوع:</span>
+                    <span id="meta-topics" class="meta-value">پس از ثبت</span>
+                </div>
+                <div class="meta-item meta-item-wide">
+                    <span class="meta-label">کیس:</span>
+                    <span id="meta-cases" class="meta-value">پس از ثبت</span>
+                </div>
+            </div>
         </header>
 
         <!-- فرم اصلی -->

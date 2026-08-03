@@ -6,13 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>داشبورد سامانه مدیریت اخبار سحاب</title>
 
-    <!-- ۱. کامپایلر محلی Tailwind -->
+    <!-- ۱. استایل هدر و Tailwind -->
+    <link rel="stylesheet" href="css/header.css">
     <script src="js/tailwindcss.js"></script>
 
-    <!-- ۲. SDK محلی پاکت‌بیس -->
-    <script src="js/pocketbase.umd.js?v=1"></script>
-
-    <!-- ۳. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
+    <!-- ۲. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
     <style>
         @font-face {
             font-family: 'Vazirmatn';
@@ -46,25 +44,8 @@
 
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- هدر / نوار بالای صفحه -->
-    <header class="bg-indigo-900 text-white shadow-lg py-4 px-6 flex justify-between items-center">
-        <div class="flex items-center space-x-4 space-x-reverse">
-            <h1 class="text-xl font-bold">سامانه آرشیو و تحقیقات</h1>
-            <span class="text-xs bg-indigo-700 px-2.5 py-1 rounded-full text-indigo-200">نسخه ۱.۰ (پرتابل)</span>
-        </div>
-
-        <!-- اطلاعات کاربر لاگین شده -->
-        <div class="flex items-center space-x-6 space-x-reverse">
-            <div class="text-left">
-                <div id="user-name" class="font-semibold text-sm">در حال بارگذاری...</div>
-                <div id="user-role" class="text-xs text-indigo-300">...</div>
-            </div>
-            <button id="logout-btn"
-                class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition duration-200 shadow">
-                خروج از حساب
-            </button>
-        </div>
-    </header>
+    <!-- محل تزریق هدر داینامیک -->
+    <div id="app-header"></div>
 
     <!-- محتوای اصلی داشبورد -->
     <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
@@ -89,10 +70,10 @@
         </div>
     </main>
 
-    
-
-    <!-- فراخوانی اسکریپت اصلی -->
+    <!-- ترتیب صحیح فراخوانی اسکریپت‌ها -->
+    <script src="js/pocketbase.umd.js?v=1"></script>
     <script src="js/main.js?v=2"></script>
+    <script src="js/header.js"></script>
 </body>
 
 </html>

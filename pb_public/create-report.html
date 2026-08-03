@@ -9,7 +9,8 @@
 
     <meta name="theme-color" content="#0f172a">
 
-    <!-- Tailwind محلی -->
+    <!-- CSS هدر و Tailwind -->
+    <link rel="stylesheet" href="css/header.css">
     <script src="js/tailwindcss.js"></script>
 
     <!-- PocketBase SDK محلی -->
@@ -21,7 +22,6 @@
     <!-- Persian Datepicker -->
     <link rel="stylesheet" href="css/persian-datepicker.min.css">
     <script src="js/persian-date.min.js"></script>
-    <script src="js/persian-datepicker.min.js"></script>
 
     <!-- Quill Editor -->
     <link rel="stylesheet" href="css/quill.snow.css">
@@ -30,11 +30,12 @@
     <link rel="stylesheet" href="css/create-report.css">
 </head>
 
-<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col items-center py-10 px-6">
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col">
 
+    <!-- محل تزریق هدر داینامیک -->
+    <div id="app-header"></div>
     <!-- کانتینر اصلی دسکتاپ (عرض عریض‌تر max-w-6xl) -->
-    <main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300">
-
+<main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300 mx-auto my-6">
         <!-- هدر با فونت و آیکون‌بندی برجسته -->
         <header class="bg-slate-900 text-white px-8 py-7 flex flex-row justify-between items-center rounded-t-2xl">
             <div>
@@ -397,9 +398,11 @@
         </span>
     </div>
 
-    <!-- JSها -->
+<!-- اسکریپت‌ها -->
+    <script src="js/persian-datepicker.min.js"></script>
     <script src="js/quill.min.js"></script>
     <script src="js/create-report.js"></script>
+    <script src="js/header.js"></script>
 
 </body>
 

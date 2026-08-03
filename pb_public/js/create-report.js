@@ -197,8 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             console.log("در حال تازه‌سازی نشست و دریافت اطلاعات کاربر...");
-            // درخواست رسمی به سرور برای احراز هویت مجدد توکن
-            const authData = await state.pb.collection('users').authRefresh();
+            // درخواست رسمی به سرور برای احراز هویت مجدد توکن همراه با دریافت اطلاعات دپارتمان متصل
+            const authData = await state.pb.collection('users').authRefresh({ expand: 'department_rel' });
             const currentUser = authData.record || {};
             const departmentId = currentUser.department_rel || currentUser.department || '';
 
@@ -256,8 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const results = await Promise.allSettled([
             state.pb.collection(COLLECTIONS.topics).getFullList({ sort: 'title' }),
             state.pb.collection(COLLECTIONS.cases).getFullList({ sort: 'title' }),
-            // ✅ خط اصلاح شده (در دریافت کاربران):
-            state.pb.collection('users').getFullList({ expand: 'department_rel' })]);
+            state.pb.collection('users').getFullList({ expand: 'department_rel' })
+        ]);
 
         const topicsResult = results[0];
         const casesResult = results[1];
@@ -1034,25 +1034,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateAutomationId() {
         const now = new Date();
 
-        // دریافت کاربر لاگین شده فعلی
-        const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
+        // دریافت کاربر انتخاب‌شده یا کاربر جاری سیستم
+        const targetUser = state.selectedAuthor || state.pb.authStore.record || state.pb.authStore.model || {};
 
-        // کد اداره (از کاربر انتخاب شده یا کاربر لاگین شده)
-        const deptCodeRaw = state.selectedAuthor?.dept_code || currentUser.dept_code || '101';
-        const deptCode = String(deptCodeRaw).padStart(3, '0');
-
-        // کد کاربر (از کاربر انتخاب شده یا کاربر لاگین شده)
-        const userCodeRaw = state.selectedAuthor?.user_code || currentUser.user_code || '001';
+        // ۱. استخراج کد کاربر (۳ رقم)
+        const userCodeRaw = targetUser.user_code || '001';
         const userCode = String(userCodeRaw).padStart(3, '0');
 
-        // تاریخ به شمسی یا میلادی فشرده ۶ رقمی (YYMMDD)
+        // ۲. ساخت بخش تاریخ ۶ رقمی (سال، ماه، روز)
         const yy = String(now.getFullYear()).slice(-2);
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const dd = String(now.getDate()).padStart(2, '0');
-        const ss = String(now.getSeconds()).padStart(2, '0');
 
-        // خروجی کد ۱۴ رقمی کاملاً عددی: [کد اداره ۳ رقم][کد کاربر ۳ رقم][تاریخ ۶ رقم][ثانیه ۲ رقم]
-        return `${deptCode}${userCode}${yy}${mm}${dd}${ss}`;
+        // ۳. ساخت کد یکتای زمانی بر اساس میلی‌ثانیه (۲ رقم جهت یکتایی بالا)
+        const uniqueSuffix = String(now.getMilliseconds() % 100).padStart(2, '0');
+
+        // خروجی کد ۱۱ رقمی عددی: [کد کاربر ۳ رقم][تاریخ ۶ رقم][شناسه یکتا ۲ رقم]
+        return `${userCode}${yy}${mm}${dd}${uniqueSuffix}`;
     }
 
     function clearForm() {

@@ -569,6 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 item.addEventListener('click', () => {
+                    window.allUsersCache = allUsers; // ذخیره کَش لیست کاربران برای دسترسی در تولید اتوماسیون
                     state.selectedAuthor = user;
                     renderAuthorTag();
                     renderAuthorList(grouped, allUsers);
@@ -1037,20 +1038,38 @@ document.addEventListener('DOMContentLoaded', () => {
         // دریافت کاربر انتخاب‌شده یا کاربر جاری سیستم
         const targetUser = state.selectedAuthor || state.pb.authStore.record || state.pb.authStore.model || {};
 
-        // ۱. استخراج کد کاربر (۳ رقم)
+        // ۱. استخراج هوشمند کد اداره
+        let deptCodeRaw = targetUser.dept_code;
+
+        // الف) بررسی از طریق expand
+        if (!deptCodeRaw && targetUser.expand?.department_rel) {
+            deptCodeRaw = targetUser.expand.department_rel.dept_code;
+        }
+
+        // ب) اگر در expand نبود، بر اساس شناسه department_rel در لیست کاربران جستجو کن
+        if (!deptCodeRaw && targetUser.department_rel && Array.isArray(window.allUsersCache)) {
+            const parentDept = window.allUsersCache.find(u => u.id === targetUser.department_rel);
+            if (parentDept) {
+                deptCodeRaw = parentDept.dept_code;
+            }
+        }
+
+        const deptCode = String(deptCodeRaw || '101').padStart(3, '0');
+
+        // ۲. استخراج کد اختصاصی کاربر (۳ رقم)
         const userCodeRaw = targetUser.user_code || '001';
         const userCode = String(userCodeRaw).padStart(3, '0');
 
-        // ۲. ساخت بخش تاریخ ۶ رقمی (سال، ماه، روز)
+        // ۳. ساخت بخش تاریخ ۶ رقمی (سال، ماه، روز)
         const yy = String(now.getFullYear()).slice(-2);
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const dd = String(now.getDate()).padStart(2, '0');
 
-        // ۳. ساخت کد یکتای زمانی بر اساس میلی‌ثانیه (۲ رقم جهت یکتایی بالا)
+        // ۴. ساخت بخش یکتای زمانی (۲ رقم میلی‌ثانیه)
         const uniqueSuffix = String(now.getMilliseconds() % 100).padStart(2, '0');
 
-        // خروجی کد ۱۱ رقمی عددی: [کد کاربر ۳ رقم][تاریخ ۶ رقم][شناسه یکتا ۲ رقم]
-        return `${userCode}${yy}${mm}${dd}${uniqueSuffix}`;
+        // خروجی کد ۱۴ رقمی عددی: [کد اداره ۳ رقم][کد کاربر ۳ رقم][تاریخ ۶ رقم][شناسه یکتا ۲ رقم]
+        return `${deptCode}${userCode}${yy}${mm}${dd}${uniqueSuffix}`;
     }
 
     function clearForm() {

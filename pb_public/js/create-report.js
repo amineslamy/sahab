@@ -33,15 +33,25 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const $id = (id) => document.getElementById(id);
+
     function initEditorsAndPickers() {
         // ۱. راه‌اندازی دیت‌پیکر شمسی روی ورودی متنی
         if (typeof $ !== 'undefined' && $.fn.persianDatepicker) {
             $('#occurrence-date-picker').persianDatepicker({
                 format: 'YYYY/MM/DD',
-                altField: '#report-occurrence-date', // ذخیره تاریخ استاندارد در فیلد هیدن
-                altFormat: 'YYYY-MM-DD HH:mm:ss',
+                autoClose: true,
                 initialValue: false,
-                autoClose: true
+                onSelect: function (unix) {
+                    // تبدیل زمان Unix به فرمت استاندارد UTC برای پاکت‌بیس (YYYY-MM-DD HH:mm:ss.sssZ)
+                    const dateObj = new Date(unix);
+                    const isoDate = dateObj.toISOString();
+
+                    // مقداردهی دقیق به فیلد هیدن
+                    const hiddenInput = document.getElementById('report-occurrence-date');
+                    if (hiddenInput) {
+                        hiddenInput.value = isoDate;
+                    }
+                }
             });
         }
 
@@ -862,12 +872,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const formData = new FormData();
+            // --- دریافت و اعتبارسنجی تاریخ وقوع ---
+            const occurrenceDateVal = getValue('report-occurrence-date');
+            if (!occurrenceDateVal) {
+                showError('لطفاً تاریخ وقوع رویداد را انتخاب کنید.');
+                return;
+            }
 
+            const formData = new FormData();
 
             appendValue(formData, 'title', getValue('report-title'));
             appendValue(formData, 'automation_id', generateAutomationId());
-            appendValue(formData, 'occurrence_date', getValue('report-occurrence-date'));
+            appendValue(formData, 'occurrence_date', occurrenceDateVal); // ارسال دقیق تاریخ آماده‌شده
             appendValue(formData, 'abstract', getValue('report-abstract'));
             appendValue(formData, 'classification', getValue('report-classification'));
             appendValue(formData, 'priority', getValue('report-priority'));
@@ -902,6 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
             state.selectedAttachments.forEach((file) => {
                 formData.append('attachments', file);
             });
+
             console.log('Current user:', currentUser);
             console.log('Department:', currentUser.department_rel);
 

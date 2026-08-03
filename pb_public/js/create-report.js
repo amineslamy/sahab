@@ -104,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateMetadataDisplay(report) {
         if (!report) return;
 
+        // ۰. شناسه اتوماسیون
+        const autoEl = $id('meta-automation-id');
+        if (autoEl && report.automation_id) {
+            autoEl.textContent = report.automation_id;
+        }
+
         // ۱. تاریخ انتشار (تاریخ ثبت)
         const publishEl = $id('meta-publish-date');
         if (publishEl && report.created) {

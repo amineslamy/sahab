@@ -922,7 +922,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Current user:', currentUser);
             console.log('Department:', currentUser.department_rel);
 
-            await state.pb.collection(COLLECTIONS.reports).create(formData);
+            const newReport = await state.pb.collection(COLLECTIONS.reports).create(formData);
+
+            // ذخیره کامنت‌های موقتی در صورت وجود
+            if (typeof window.savePendingComments === 'function') {
+                await window.savePendingComments(newReport.id);
+            }
 
             showToast('گزارش با موفقیت ثبت شد.');
             clearForm();

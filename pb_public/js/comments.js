@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pb: null,
         reportId: null,
         comments: [],
+        pendingComments: [],
         activeReplyId: null
     };
 
@@ -19,13 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             state.reportId = urlParams.get('id');
 
-            if (!state.reportId) {
-                console.warn('شناسه گزارش (reportId) در آدرس صفحه یافت نشد.');
-                return;
+            if (state.reportId) {
+                // لود ابتدایی لیست کامنت‌ها در صورت وجود گزارش
+                await fetchComments();
+            } else {
+                console.warn('شناسه گزارش (reportId) در آدرس صفحه یافت نشد. کامنت‌ها به‌صورت موقت ذخیره خواهند شد.');
             }
-
-            // لود ابتدایی لیست کامنت‌ها
-            await fetchComments();
 
             // اتصال رویداد ثبت کامنت جدید به دکمه مربوطه
             const submitCommentBtn = $id('submit-comment-btn');
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     boot();
 
-    // 1. دریافت لیست کامنت‌های مرتبط با این گزارش
+    // 1. دریافت لیست کامنت‌های مرتبط با این گزارش از پاکت‌بیس
     async function fetchComments() {
         if (!state.reportId) return;
 
@@ -64,14 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = '';
 
-        if (!state.comments || state.comments.length === 0) {
+        const allComments = state.reportId ? state.comments : state.pendingComments;
+
+        if (!allComments || allComments.length === 0) {
             container.innerHTML = '<div class="p-4 text-center text-slate-400 font-semibold text-sm">هنوز نظری ثبت نشده است.</div>';
             return;
         }
 
         // تفکیک کامنت‌های ریشه و زیر-کامنت‌ها (پاسخ‌ها)
-        const roots = state.comments.filter(c => !c.parent);
-        const children = state.comments.filter(c => c.parent);
+        const roots = allComments.filter(c => !c.parent);
+        const children = allComments.filter(c => c.parent);
 
         roots.forEach(root => {
             const rootEl = createCommentCard(root);
@@ -98,15 +100,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.className = `p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-2 ${isChild ? 'bg-slate-50/50' : ''}`;
 
-        const authorName = comment.expand?.author?.name || comment.expand?.author?.username || 'کاربر ناشناس';
+        const authorName = comment.authorName || comment.expand?.author?.name || comment.expand?.author?.username || 'کاربر ناشناس';
         const typeBadge = comment.type ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-md">${comment.type}</span>` : '';
-        const createdDate = new Date(comment.created).toLocaleDateString('fa-IR');
+        
+        let createdDate = 'پیش‌نویس';
+        if (comment.created) {
+            createdDate = new Date(comment.created).toLocaleDateString('fa-IR');
+        }
 
         card.innerHTML = `
             <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                 <div class="flex items-center gap-2">
                     <span class="text-sm font-bold text-slate-900">👤 ${authorName}</span>
                     ${typeBadge}
+                    ${comment.isPending ? '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded-md">ذخیره‌نشده</span>' : ''}
                 </div>
                 <span class="text-xs text-slate-400 font-medium">${createdDate}</span>
             </div>
@@ -144,11 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleCreateComment(e) {
         e.preventDefault();
 
-        if (!state.reportId) {
-            alert('این گزارش هنوز ثبت نشده است. ابتدا فرم اصلی را ثبت و ذخیره کنید، سپس اقدام به ثبت دیدگاه نمایید.');
-            return;
-        }
-
         const currentUser = state.pb.authStore.record || state.pb.authStore.model;
         if (!currentUser) {
             alert('جهت ارسال کامنت ابتدا باید وارد سیستم شوید.');
@@ -168,30 +170,81 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const data = {
-            report: state.reportId,
-            author: currentUser.id,
-            type: type,
-            text: text,
-            parent: parent || null
-        };
+        // اگر گزارش موجود باشد، مستقیم در پاکت‌بیس ثبت می‌شود
+        if (state.reportId) {
+            const data = {
+                report: state.reportId,
+                author: currentUser.id,
+                type: type,
+                text: text,
+                parent: parent || null
+            };
 
-        try {
-            await state.pb.collection(COMMENTS_COLLECTION).create(data);
+            try {
+                await state.pb.collection(COMMENTS_COLLECTION).create(data);
 
-            // ریست کردن فرم
-            if (textInput) textInput.value = '';
-            if (parentInput) parentInput.value = '';
-            state.activeReplyId = null;
+                resetCommentForm();
+                await fetchComments();
+            } catch (err) {
+                console.error('خطا در ثبت کامنت:', err);
+                alert('ثبت کامنت با خطا مواجه شد.');
+            }
+        } else {
+            // اگر گزارش جدید است، در حافظه موقت نگه داشته می‌شود
+            const tempComment = {
+                id: 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                author: currentUser.id,
+                authorName: currentUser.name || currentUser.username || 'کاربر سیستم',
+                type: type,
+                text: text,
+                parent: parent || null,
+                isPending: true
+            };
 
-            const replyNotice = $id('reply-notice');
-            if (replyNotice) replyNotice.classList.add('hidden');
-
-            // دریافت مجدد لیست و به‌روزرسانی نمای کامنت‌ها
-            await fetchComments();
-        } catch (err) {
-            console.error('خطا در ثبت کامنت:', err);
-            alert('ثبت کامنت با خطا مواجه شد.');
+            state.pendingComments.push(tempComment);
+            resetCommentForm();
+            renderCommentsList();
         }
     }
+
+    function resetCommentForm() {
+        const textInput = $id('comment-text');
+        const parentInput = $id('comment-parent-id');
+
+        if (textInput) textInput.value = '';
+        if (parentInput) parentInput.value = '';
+        state.activeReplyId = null;
+
+        const replyNotice = $id('reply-notice');
+        if (replyNotice) replyNotice.classList.add('hidden');
+    }
+
+    // 5. عمومی‌سازی تابع ثبت کامنت‌های موقت پس از ایجاد موفق گزارش
+    window.savePendingComments = async function (newReportId) {
+        if (!state.pendingComments || state.pendingComments.length === 0) return;
+
+        // نقشه‌برداری شناسه والد برای پاسخ‌هایی که به کامنت‌های موقت وابسته هستند
+        const idMapping = {};
+
+        for (const item of state.pendingComments) {
+            const resolvedParent = item.parent && idMapping[item.parent] ? idMapping[item.parent] : (item.parent || null);
+
+            const payload = {
+                report: newReportId,
+                author: item.author,
+                type: item.type,
+                text: item.text,
+                parent: resolvedParent
+            };
+
+            try {
+                const createdRecord = await state.pb.collection(COMMENTS_COLLECTION).create(payload);
+                idMapping[item.id] = createdRecord.id;
+            } catch (err) {
+                console.error('خطا در ذخیره‌سازی کامنت موقت:', err);
+            }
+        }
+
+        state.pendingComments = [];
+    };
 });

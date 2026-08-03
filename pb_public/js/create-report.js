@@ -33,7 +33,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const $id = (id) => document.getElementById(id);
+    function initEditorsAndPickers() {
+        // ۱. راه‌اندازی دیت‌پیکر شمسی روی ورودی متنی
+        if (typeof $ !== 'undefined' && $.fn.persianDatepicker) {
+            $('#occurrence-date-picker').persianDatepicker({
+                format: 'YYYY/MM/DD',
+                altField: '#report-occurrence-date', // ذخیره تاریخ استاندارد در فیلد هیدن
+                altFormat: 'YYYY-MM-DD HH:mm:ss',
+                initialValue: false,
+                autoClose: true
+            });
+        }
 
+        // ۲. راه‌اندازی ادیتور Quill
+        const editorEl = document.getElementById('editor-container') || document.getElementById('report-content');
+        if (editorEl && typeof Quill !== 'undefined' && !state.quill) {
+            state.quill = new Quill(editorEl, {
+                theme: 'snow',
+                placeholder: 'شرح مفصل گزارش یا سند را وارد کنید...'
+            });
+        }
+    }
     boot();
     // اگر مرورگر صفحه را از cache/history بازگردانی کرد،
     // باز هم کاربر را به ابتدای فرم برگردان.
@@ -55,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ۴. 🌟 بخش اصلی: فراخوانی لود موضوعات، کیس‌ها و کارشناسان
             await initRelationPickers();
-
+            initEditorsAndPickers();
             // ۵. راه‌اندازی آپلود فایل‌ها و فرم
             initFileInputs();
             initFormActions();

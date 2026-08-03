@@ -332,8 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
         renderCasesList(orderedCases, rawItems);
-        renderCasesTags(rawItems);
-
+        renderCasesTags(orderedCases, rawItems);
         const searchInput = $id('cases-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -352,89 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderCasesList(itemsToRender, rawItems) {
-        let listContainer = $id('cases-list-container');
-        const dropdown = $id('cases-dropdown');
 
-        if (!listContainer) {
-            dropdown.innerHTML = `
-                <div class="p-2 border-b border-slate-200 bg-slate-50">
-                    <input type="text" id="cases-search-input" placeholder="جستجو در کیس‌ها..." class="w-full px-3 py-2 text-sm font-semibold border rounded-lg focus:outline-none focus:border-slate-800">
-                </div>
-                <div id="cases-list-container" class="max-h-64 overflow-y-auto p-1.5 space-y-1"></div>
-            `;
-            listContainer = $id('cases-list-container');
-        }
-
-        listContainer.innerHTML = '';
-        if (!itemsToRender || itemsToRender.length === 0) {
-            listContainer.innerHTML = '<div class="p-3 text-sm text-slate-400 text-center font-semibold">کیسی یافت نشد</div>';
-            return;
-        }
-
-        itemsToRender.forEach(item => {
-            const isSelected = state.selectedCases.includes(item.id);
-            const label = document.createElement('label');
-
-            const isChildClass = item.isChild ? 'mr-5 bg-slate-50 border-r-2 border-slate-300 pl-2' : '';
-            const titleMarkup = item.isChild
-                ? `<span class="text-slate-400 font-bold ml-1">↲</span> <span class="font-bold text-slate-800 text-sm">${item.title}</span> <span class="text-[11px] text-slate-400 font-normal mr-auto">(والد: ${item.parentTitle})</span>`
-                : `<span class="font-black text-slate-900 text-sm">${item.title}</span>`;
-
-            label.className = `flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition hover:bg-slate-100 ${isChildClass} ${isSelected ? 'bg-slate-100' : ''}`;
-            label.innerHTML = `
-                <div class="flex items-center gap-1.5 w-full">${titleMarkup}</div>
-                <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-slate-900 shrink-0">
-            `;
-
-            label.querySelector('input').addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    if (state.selectedCases.length >= LIMITS.relationMax) {
-                        showError(`حداکثر ${LIMITS.relationMax} مورد قابل انتخاب است.`);
-                        e.target.checked = false;
-                        return;
-                    }
-                    state.selectedCases.push(item.id);
-                } else {
-                    const idx = state.selectedCases.indexOf(item.id);
-                    if (idx !== -1) state.selectedCases.splice(idx, 1);
-                }
-                renderCasesTags(rawItems);
-            });
-
-            listContainer.appendChild(label);
-        });
-    }
-
-    function renderCasesTags(allItems) {
-        const container = $id('cases-picker-container');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (state.selectedCases.length === 0) {
-            container.innerHTML = '<span class="text-slate-400 text-sm font-medium pr-1">انتخاب کیس‌ها...</span>';
-            return;
-        }
-
-        state.selectedCases.forEach(id => {
-            const item = allItems.find(c => c.id === id);
-            if (!item) return;
-            const tag = document.createElement('span');
-            tag.className = 'bg-slate-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1.5';
-            tag.innerHTML = `
-                <span>${item.title}</span>
-                <button type="button" class="text-slate-300 hover:text-red-400 font-bold text-sm">&times;</button>
-            `;
-            tag.querySelector('button').addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = state.selectedCases.indexOf(id);
-                if (idx !== -1) state.selectedCases.splice(idx, 1);
-                renderCasesTags(allItems);
-                renderCasesList(allItems);
-            });
-            container.appendChild(tag);
-        });
-    }
 
     // --- مدیریت انتخاب کارشناسان (ساختار درختی: دپارتمان ↲ کارشناس) ---
     function setupAuthorPicker(users) {
@@ -634,14 +551,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const idx = state.selectedCases.indexOf(item.id);
                     if (idx !== -1) state.selectedCases.splice(idx, 1);
                 }
-                renderCasesTags(rawItems);
+                renderCasesTags(itemsToRender, rawItems);
             });
 
             listContainer.appendChild(label);
         });
     }
 
-    function renderCasesTags(allItems) {
+    function renderCasesTags(orderedCases, rawItems) {
         const container = $id('cases-picker-container');
         if (!container) return;
         container.innerHTML = '';
@@ -651,8 +568,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const rawList = Array.isArray(rawItems) ? rawItems : [];
+        const orderedList = Array.isArray(orderedCases) ? orderedCases : rawList;
+
         state.selectedCases.forEach(id => {
-            const item = allItems.find(c => c.id === id);
+            const item = rawList.find(c => c.id === id) || orderedList.find(c => c.id === id);
             if (!item) return;
             const tag = document.createElement('span');
             tag.className = 'bg-slate-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1.5';
@@ -664,8 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 const idx = state.selectedCases.indexOf(id);
                 if (idx !== -1) state.selectedCases.splice(idx, 1);
-                renderCasesTags(allItems);
-                renderCasesList(allItems);
+                renderCasesTags(orderedList, rawList);
+                renderCasesList(orderedList, rawList);
             });
             container.appendChild(tag);
         });
@@ -902,10 +822,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('author', authorId);
                 formData.append('submitter', currentUser.id);
                 formData.append('department', departmentId);
-            }
-
-            if (currentUser.department_rel) {
-                formData.append('department', currentUser.department_rel);
             }
 
             state.selectedCases.forEach((id) => formData.append('cases_rel', id));

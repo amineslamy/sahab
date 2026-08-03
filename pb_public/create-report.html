@@ -289,6 +289,68 @@
 
             </section>
 
+            <!-- کامنت‌ها و ملاحظات -->
+            <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
+
+                <div class="border-b border-slate-300 pb-4">
+                    <h2 class="text-lg font-black text-slate-900">
+                        ملاحظات و دیدگاه‌ها
+                    </h2>
+                    <p class="text-sm text-slate-600 mt-1">
+                        ثبت و مشاهده کامنت‌ها، نظریات و ملاحظات مرتبط با این گزارش.
+                    </p>
+                </div>
+
+                <!-- فرم ثبت کامنت -->
+                <div id="comment-form-container"
+                    class="bg-white p-5 rounded-xl border border-slate-300 space-y-4 shadow-sm">
+                    <div id="reply-notice"
+                        class="hidden text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                    </div>
+
+                    <form id="comment-form" class="space-y-4" novalidate>
+                        <input type="hidden" id="comment-parent-id" value="">
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-1">
+                                <label for="comment-type" class="block text-sm font-bold text-slate-800 mb-1.5">
+                                    نوع دیدگاه
+                                </label>
+                                <select id="comment-type"
+                                    class="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm text-slate-900 font-semibold bg-white cursor-pointer shadow-sm">
+                                    <option value="کامنت عمومی">کامنت عمومی</option>
+                                    <option value="ملاحظه">ملاحظه</option>
+                                    <option value="نظریه">نظریه</option>
+                                    <option value="پاسخ">پاسخ</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <label for="comment-text" class="block text-sm font-bold text-slate-800 mb-1.5">
+                                    متن دیدگاه / ملاحظه
+                                </label>
+                                <textarea id="comment-text" rows="2" required
+                                    placeholder="متن نظر یا ملاحظه خود را بنویسید..."
+                                    class="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none text-sm text-slate-900 font-semibold shadow-sm"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold transition-all shadow-md">
+                                ثبت دیدگاه
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- فهرست کامنت‌ها -->
+                <div id="comments-container" class="space-y-4 pt-2">
+                    <!-- کامنت‌ها توسط js/comments.js تزریق می‌شوند -->
+                </div>
+
+            </section>
+
             <!-- فایل‌ها -->
             <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
@@ -429,6 +491,7 @@
     <script src="js/persian-datepicker.min.js"></script>
     <script src="js/quill.min.js"></script>
     <script src="js/create-report.js"></script>
+    <script src="js/comments.js"></script>
     <script src="js/header.js"></script>
 
 </body>

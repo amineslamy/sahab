@@ -164,19 +164,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let html = '<div class="divide-y divide-slate-100 text-right">';
             records.forEach(rec => {
-                const badgeColor = rec.classification_level === 'secret' ? 'bg-red-100 text-red-700' :
-                    rec.classification_level === 'confidential' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700';
+                const classificationVal = rec.classification || rec.classification_level || 'عادی';
+                const badgeColor = classificationVal === 'سری' || classificationVal === 'secret' ? 'bg-red-100 text-red-700' :
+                    classificationVal === 'محرمانه' || classificationVal === 'confidential' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700';
+
+                const automationId = rec.automation_id || rec.automation_no || '---';
 
                 html += `
                     <div class="p-4 hover:bg-slate-50 flex justify-between items-center transition">
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="font-bold text-slate-800 text-base">${rec.title || 'بدون عنوان'}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded ${badgeColor}">${rec.classification_level || 'عادی'}</span>
+                                <a href="create-report.html?id=${rec.id}" class="font-bold text-slate-800 hover:text-indigo-600 text-base transition duration-150 underline-offset-4 hover:underline">
+                                    ${rec.title || 'بدون عنوان'}
+                                </a>
+                                <span class="text-[10px] px-2 py-0.5 rounded ${badgeColor}">${classificationVal}</span>
                             </div>
                             <div class="text-xs text-slate-500 space-x-3 space-x-reverse">
-                                <span>شماره: ${rec.automation_no || '---'}</span> | 
-                                <span>تاریخ: ${new Date(rec.created).toLocaleDateString('fa-IR')}</span>
+                                <span>شماره اتوماسیون: ${automationId}</span> | 
+                                <span>تاریخ ایجاد: ${new Date(rec.created).toLocaleDateString('fa-IR')}</span>
                             </div>
                         </div>
                     </div>

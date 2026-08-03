@@ -29,7 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedTopics: [],
         selectedCases: [],
         selectedAuthor: null, // 👈 کارشناس انتخاب‌شده
-        allAuthorsList: []    // 👈 ذخیره لیست کارشناسان
+        allAuthorsList: [],   // 👈 ذخیره لیست کارشناسان
+        allRawCases: [],      // 👈 ذخیره لیست خام کیس‌ها
+        allOrderedCases: [],  // 👈 ذخیره لیست مرتب‌شده کیس‌ها
+        allTopics: [],        // 👈 ذخیره لیست موضوعات
+        reportId: null        // 👈 شناسه گزارش در حالت ویرایش
     };
 
     const $id = (id) => document.getElementById(id);
@@ -89,8 +93,98 @@ document.addEventListener('DOMContentLoaded', () => {
             // ۵. راه‌اندازی آپلود فایل‌ها و فرم
             initFileInputs();
             initFormActions();
+
+            // ۶. بررسی وجود ID در آدرس و بارگذاری گزارش جهت مشاهده/ویرایش
+            await checkAndLoadEditMode();
         } catch (err) {
             console.error('خطا در اجرای اولیه برنامه (boot):', err);
+        }
+    }
+
+    async function checkAndLoadEditMode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const id = urlParams.get('id');
+        if (!id) return;
+
+        state.reportId = id;
+        console.log("شناسه گزارش برای ویرایش/مشاهده دریافت شد:", id);
+
+        try {
+            const report = await state.pb.collection(COLLECTIONS.reports).getOne(id, {
+                expand: 'author'
+            });
+
+            // ۱. مقداردهی فیلدهای متنی و انتخابی ساده
+            setInputValue('report-title', report.title);
+            setInputValue('report-abstract', report.abstract);
+            setInputValue('report-classification', report.classification);
+            setInputValue('report-priority', report.priority);
+            setInputValue('report-news-type', report.news_type);
+            setInputValue('report-evaluation', report.evaluation);
+
+            // ۲. مقداردهی تاریخ وقوع
+            if (report.occurrence_date) {
+                const hiddenInput = $id('report-occurrence-date');
+                if (hiddenInput) hiddenInput.value = report.occurrence_date;
+
+                const dateObj = new Date(report.occurrence_date);
+                const formattedFa = dateObj.toLocaleDateString('fa-IR');
+                setInputValue('occurrence-date-picker', formattedFa);
+            }
+
+            // ۳. مقداردهی ادیتور Quill
+            if (state.quill && report.content) {
+                state.quill.clipboard.dangerouslyPasteHTML(report.content);
+            }
+
+            // ۴. مقداردهی موضوعات انتخاب شده
+            if (Array.isArray(report.topics_rel)) {
+                state.selectedTopics = [...report.topics_rel];
+                renderTopicsTags(state.allTopics);
+                renderTopicsList(state.allTopics);
+            }
+
+            // ۵. مقداردهی کیس‌های انتخاب شده
+            if (Array.isArray(report.cases_rel)) {
+                state.selectedCases = [...report.cases_rel];
+                renderCasesTags(state.allOrderedCases, state.allRawCases);
+                renderCasesList(state.allOrderedCases, state.allRawCases);
+            }
+
+            // ۶. مقداردهی کارشناس/نویسنده
+            if (report.author && state.allAuthorsList.length > 0) {
+                const authorObj = state.allAuthorsList.find(u => u.id === report.author);
+                if (authorObj) {
+                    state.selectedAuthor = authorObj;
+                    renderAuthorTag();
+                    renderAuthorList(groupUsersByDepartment(state.allAuthorsList), state.allAuthorsList);
+                }
+            }
+
+            // ۷. نمایش تصویر شاخص قبلی در صورت وجود
+            if (report.cover_image) {
+                const coverUrl = state.pb.files.getUrl(report, report.cover_image);
+                renderExistingCoverPreview(coverUrl, report.cover_image);
+            }
+
+            // ۸. نمایش فایل‌های پیوست قبلی در صورت وجود
+            if (Array.isArray(report.attachments) && report.attachments.length > 0) {
+                renderExistingAttachmentsList(report, report.attachments);
+            }
+
+            // تغییر متن دکمه ثبت
+            const submitBtnText = $id('btn-text') || document.querySelector('[data-submit-text]');
+            if (submitBtnText) submitBtnText.textContent = 'ویرایش و ذخیره‌سازی نهایی';
+        } catch (err) {
+            console.error("خطا در بارگذاری اطلاعات گزارش برای ویرایش:", err);
+            showError("عدم امکان دریافت اطلاعات گزارش مورد نظر.");
+        }
+    }
+
+    function setInputValue(id, value) {
+        const el = $id(id) || document.querySelector(`select[name="${id}"]`);
+        if (el && value !== undefined && value !== null) {
+            el.value = value;
         }
     }
 
@@ -171,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ۱. راه اندازی موضوعات
         if (topicsResult.status === 'fulfilled') {
+            state.allTopics = topicsResult.value;
             setupTopicsPicker(topicsResult.value);
         } else {
             console.error('خطا در بارگذاری موضوعات:', topicsResult.reason);
@@ -318,6 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const orphans = children.filter(c => !parents.some(p => p.id === c.parent_case));
         orphans.forEach(o => orderedCases.push({ ...o, isChild: false }));
+
+        state.allRawCases = rawItems;
+        state.allOrderedCases = orderedCases;
 
         container.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -741,6 +839,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderExistingCoverPreview(fileUrl, fileName) {
+        const previewContainer = $id('cover-preview-container');
+        const previewImg = $id('cover-preview-img');
+        const filenameText = $id('cover-filename');
+        const filesizeText = $id('cover-filesize');
+
+        if (previewImg) previewImg.src = fileUrl;
+        if (filenameText) filenameText.textContent = fileName || 'تصویر شاخص قبلی';
+        if (filesizeText) filesizeText.textContent = 'ذخیره شده در سرور';
+        if (previewContainer) previewContainer.classList.remove('hidden');
+    }
+
+    function renderExistingAttachmentsList(report, attachmentNames) {
+        const listContainer = $id('attachments-list');
+        if (!listContainer) return;
+
+        attachmentNames.forEach((fileName) => {
+            const fileUrl = state.pb.files.getUrl(report, fileName);
+            const item = document.createElement('div');
+            item.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-3 text-xs';
+
+            const info = document.createElement('div');
+            info.className = 'min-w-0 flex items-center gap-2';
+
+            const link = document.createElement('a');
+            link.href = fileUrl;
+            link.target = '_blank';
+            link.className = 'font-semibold text-indigo-600 hover:underline truncate';
+            link.textContent = `📎 ${fileName}`;
+
+            const badge = document.createElement('span');
+            badge.className = 'text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded shrink-0';
+            badge.textContent = 'فایل موجود';
+
+            info.appendChild(link);
+            info.appendChild(badge);
+            item.appendChild(info);
+            listContainer.appendChild(item);
+        });
+    }
+
     function initFormActions() {
         const form = $id('create-report-form');
         const cancelBtn = $id('cancel-btn');
@@ -838,15 +977,19 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Current user:', currentUser);
             console.log('Department:', currentUser.department_rel);
 
-            const newReport = await state.pb.collection(COLLECTIONS.reports).create(formData);
+            let savedReport;
+            if (state.reportId) {
+                savedReport = await state.pb.collection(COLLECTIONS.reports).update(state.reportId, formData);
+                showToast('گزارش با موفقیت ویرایش شد.');
+            } else {
+                savedReport = await state.pb.collection(COLLECTIONS.reports).create(formData);
+                showToast('گزارش با موفقیت ثبت شد.');
+            }
 
             // ذخیره کامنت‌های موقتی در صورت وجود
             if (typeof window.savePendingComments === 'function') {
-                await window.savePendingComments(newReport.id);
-            }
-
-            showToast('گزارش با موفقیت ثبت شد.');
-            clearForm();
+                await window.savePendingComments(savedReport.id);
+            } clearForm();
 
             setTimeout(() => {
                 window.location.href = 'index.html';

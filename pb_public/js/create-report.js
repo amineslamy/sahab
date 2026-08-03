@@ -79,11 +79,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     }
 
-    // ۳. گوش دادن به تغییر وضعیت تب مرورگر (مثلا بازگشت از Sleep یا فعال شدن مجدد تب)
-    document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible' && state.pb) {
-            console.log("تب فعال شد. در حال بررسی مجدد اعتبار نشست...");
-            await checkAuthAndRefresh();
+    let lastAuthCheck = Date.now();
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            const fifteenMinutes = 15 * 60 * 1000;
+
+            // فقط اگر بیش از ۱۵ دقیقه از آخرین بررسی گذشته بود
+            if (Date.now() - lastAuthCheck > fifteenMinutes) {
+                lastAuthCheck = Date.now();
+
+                // بررسی اعتبار توکن پکت‌بیس
+                if (!pb.authStore.isValid) {
+                    console.warn("نشست منقضی شده است. در حال تلاش برای رفرش...");
+                    pb.collection('users').authRefresh().catch(() => {
+                        alert("نشست کاری شما منقضی شده است. لطفاً مجدداً وارد شوید.");
+                        window.location.href = '/login.html'; // یا مسیر لاگین شما
+                    });
+                }
+            }
         }
     });
 
@@ -189,118 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const casesResult = results[1];
         const errors = [];
 
-        //     // مدیریت لود موضوعات
-        //     if (topicsResult.status === 'fulfilled') {
-        //         setupPicker({
-        //             containerId: 'topics-picker-container',
-        //             dropdownId: 'topics-dropdown',
-        //             items: topicsResult.value,
-        //             selectedList: state.selectedTopics,
-        //             placeholder: 'انتخاب موضوعات...',
-        //             maxLimit: LIMITS.relationMax
-        //         });
-        //     } else {
-        //         console.error('Topics loading error:', topicsResult.reason);
-        //         setPickerLoadError('topics-picker-container', 'خطا در بارگذاری موضوعات');
-        //         errors.push(getCollectionLoadError('موضوعات', topicsResult.reason));
-        //     }
-
-        //     // مدیریت لود کیس‌ها
-        //     if (casesResult.status === 'fulfilled') {
-        //         setupPicker({
-        //             containerId: 'cases-picker-container',
-        //             dropdownId: 'cases-dropdown',
-        //             items: casesResult.value,
-        //             selectedList: state.selectedCases,
-        //             placeholder: 'انتخاب کیس‌ها...',
-        //             maxLimit: LIMITS.relationMax
-        //         });
-        //     } else {
-        //         console.error('Cases loading error:', casesResult.reason);
-        //         setPickerLoadError('cases-picker-container', 'خطا در بارگذاری کیس‌ها');
-        //         errors.push(getCollectionLoadError('کیس‌ها', casesResult.reason));
-        //     }
-
-        //     if (errors.length > 0) {
-        //         showError(errors.join(' | '));
-        //     }
-        // }
-
-        // function setPickerLoadError(containerId, message) {
-        //     const container = $id(containerId);
-        //     if (!container) return;
-        //     container.innerHTML = `<span class="text-red-500 text-xs font-semibold select-none pr-2">${message}</span>`;
-        // }
-
-        // function getCollectionLoadError(label, error) {
-        //     const status = error?.status || error?.response?.code || 0;
-        //     if (status === 401) return `نشست کاربری برای دریافت ${label} نامعتبر است.`;
-        //     if (status === 403) return `مجوز خواندن ${label} صادر نشده است (Rules بررسی شود).`;
-        //     if (status === 404) return `کالکشن ${label} یافت نشد.`;
-        //     return `خطایی در دریافت ${label} رخ داد.`;
-        // }
-
-        // function setupPicker(config) {
-        //     const container = $id(config.containerId);
-        //     const dropdown = $id(config.dropdownId);
-
-        //     if (!container || !dropdown) return;
-
-        //     const closeDropdown = () => dropdown.classList.add('hidden');
-
-        //     document.addEventListener('click', closeDropdown);
-
-        //     container.addEventListener('click', (event) => {
-        //         event.stopPropagation();
-        //         dropdown.classList.toggle('hidden');
-        //         renderDropdown();
-        //     });
-
-        //     dropdown.addEventListener('click', (event) => {
-        //         event.stopPropagation();
-        //     });
-
-        //     renderSelected();
-
-        //     function renderSelected() {
-        //         container.innerHTML = '';
-
-        //         if (config.selectedList.length === 0) {
-        //             const placeholder = document.createElement('span');
-        //             placeholder.className = 'text-slate-400 text-xs select-none pr-2';
-        //             placeholder.textContent = config.placeholder;
-        //             container.appendChild(placeholder);
-        //             return;
-        //         }
-
-        //         config.selectedList.forEach((id) => {
-        //             const item = config.items.find((record) => record.id === id);
-        //             if (!item) return;
-
-        //             const tag = document.createElement('span');
-        //             tag.className = 'bg-slate-200 text-slate-800 text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5';
-
-        //             const label = document.createElement('span');
-        //             label.textContent = item.title || item.name || item.id;
-
-        //             const removeBtn = document.createElement('button');
-        //             removeBtn.type = 'button';
-        //             removeBtn.className = 'text-slate-500 hover:text-slate-800 font-bold';
-        //             removeBtn.textContent = '×';
-
-        //             removeBtn.addEventListener('click', (event) => {
-        //                 event.stopPropagation();
-        //                 const index = config.selectedList.indexOf(id);
-        //                 if (index !== -1) config.selectedList.splice(index, 1);
-        //                 renderSelected();
-        //                 renderDropdown();
-        //             });
-
-        //             tag.appendChild(label);
-        //             tag.appendChild(removeBtn);
-        //             container.appendChild(tag);
-        //         });
-        //     }
 
         function renderDropdown() {
             dropdown.innerHTML = '';
@@ -916,7 +818,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1800);
         } catch (err) {
             console.error(err);
-            showError(getPocketBaseErrorMessage(err));
+
+            // مدیریت اختصاصی انقضای نشست کاربری (خطای 401 یا نامعتبر بودن توکن)
+            const isAuthError = err?.status === 401 || !state.pb.authStore.isValid;
+
+            if (isAuthError) {
+                showError('نشست کاربری شما منقضی شده است. لطفاً مجدداً وارد شوید.');
+                setTimeout(() => {
+                    window.location.href = 'login.html'; // یا مسیر صفحه لاگین پروژه
+                }, 2000);
+            } else {
+                showError(getPocketBaseErrorMessage(err));
+            }
         } finally {
             setSubmitLoading(false);
         }
@@ -1172,10 +1085,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// بررسی مجدد اعتبار نشست زمانی که کاربر دوباره به تب مرورگر برمی‌گردد
-document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState === 'visible') {
-        console.log("تب فعال شد. در حال بررسی مجدد اعتبار نشست...");
-        await checkAuthAndRefresh();
-    }
-});
+

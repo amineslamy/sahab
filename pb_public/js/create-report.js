@@ -1041,12 +1041,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // ۱. استخراج هوشمند کد اداره
         let deptCodeRaw = targetUser.dept_code;
 
-        // الف) بررسی از طریق expand
         if (!deptCodeRaw && targetUser.expand?.department_rel) {
             deptCodeRaw = targetUser.expand.department_rel.dept_code;
         }
 
-        // ب) اگر در expand نبود، بر اساس شناسه department_rel در لیست کاربران جستجو کن
         if (!deptCodeRaw && targetUser.department_rel && Array.isArray(window.allUsersCache)) {
             const parentDept = window.allUsersCache.find(u => u.id === targetUser.department_rel);
             if (parentDept) {
@@ -1060,16 +1058,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const userCodeRaw = targetUser.user_code || '001';
         const userCode = String(userCodeRaw).padStart(3, '0');
 
-        // ۳. ساخت بخش تاریخ ۶ رقمی (سال، ماه، روز)
-        const yy = String(now.getFullYear()).slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
+        // ۳. ساخت بخش تاریخ ۶ رقمی شمسی با کتابخانه persian-date
+        let shamsiDateStr = '';
+        if (typeof persianDate !== 'undefined') {
+            const pd = new persianDate(now);
+            pd.toLocale('en'); // تنظیم نمایش اعداد به لاتین/انگلیسی
+            const yy = String(pd.year()).slice(-2);
+            const mm = String(pd.month()).padStart(2, '0');
+            const dd = String(pd.date()).padStart(2, '0');
+            shamsiDateStr = `${yy}${mm}${dd}`;
+        } else {
+            // پشتیبان در صورت عدم بارگیری کتابخانه
+            const yy = String(now.getFullYear()).slice(-2);
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            shamsiDateStr = `${yy}${mm}${dd}`;
+        }
 
-        // ۴. ساخت بخش یکتای زمانی (۲ رقم میلی‌ثانیه)
-        const uniqueSuffix = String(now.getMilliseconds() % 100).padStart(2, '0');
-
-        // خروجی کد ۱۴ رقمی عددی: [کد اداره ۳ رقم][کد کاربر ۳ رقم][تاریخ ۶ رقم][شناسه یکتا ۲ رقم]
-        return `${deptCode}${userCode}${yy}${mm}${dd}${uniqueSuffix}`;
+        // ۴. ساخت شناسه یکتای 3 رقمی بر اساس میلی‌ثانیه جهت جلوگیری از تکرار در ثبت‌های همزمان
+        const uniqueSuffix = String(now.getMilliseconds() % 1000).padStart(3, '0');
+        // خروجی کد ۱۴ رقمی عددی: [کد اداره ۳ رقم][کد کاربر ۳ رقم][تاریخ شمسی ۶ رقم][شناسه یکتا ۲ رقم]
+        return `${deptCode}${userCode}${shamsiDateStr}${uniqueSuffix}`;
     }
 
     function clearForm() {

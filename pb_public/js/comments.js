@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function boot() {
         try {
             state.pb = new PocketBase(PB_URL);
-            
+
             // استخراج پارامتر ID گزارش از پارامترهای آدرس صفحه
             const urlParams = new URLSearchParams(window.location.search);
             state.reportId = urlParams.get('id');
@@ -27,10 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // لود ابتدایی لیست کامنت‌ها
             await fetchComments();
 
-            // اتصال رویداد ثبت کامنت جدید
-            const commentForm = $id('comment-form');
-            if (commentForm) {
-                commentForm.addEventListener('submit', handleCreateComment);
+            // اتصال رویداد ثبت کامنت جدید به دکمه مربوطه
+            const submitCommentBtn = $id('submit-comment-btn');
+            if (submitCommentBtn) {
+                submitCommentBtn.addEventListener('click', handleCreateComment);
             }
         } catch (err) {
             console.error('خطا در راه‌اندازی ماژول کامنت‌ها:', err);
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (subComments.length > 0) {
                 const subContainer = document.createElement('div');
                 subContainer.className = 'mr-6 mt-3 space-y-3 border-r-2 border-slate-300 pr-4';
-                
+
                 subComments.forEach(child => {
                     const childEl = createCommentCard(child, true);
                     subContainer.appendChild(childEl);
@@ -144,6 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleCreateComment(e) {
         e.preventDefault();
 
+        if (!state.reportId) {
+            alert('این گزارش هنوز ثبت نشده است. ابتدا فرم اصلی را ثبت و ذخیره کنید، سپس اقدام به ثبت دیدگاه نمایید.');
+            return;
+        }
+
         const currentUser = state.pb.authStore.record || state.pb.authStore.model;
         if (!currentUser) {
             alert('جهت ارسال کامنت ابتدا باید وارد سیستم شوید.');
@@ -173,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             await state.pb.collection(COMMENTS_COLLECTION).create(data);
-            
+
             // ریست کردن فرم
             if (textInput) textInput.value = '';
             if (parentInput) parentInput.value = '';

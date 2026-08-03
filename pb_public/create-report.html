@@ -308,7 +308,7 @@
                         class="hidden text-xs font-bold text-amber-700 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
                     </div>
 
-                    <form id="comment-form" class="space-y-4" novalidate>
+                    <div id="comment-form" class="space-y-4">
                         <input type="hidden" id="comment-parent-id" value="">
 
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -336,12 +336,12 @@
                         </div>
 
                         <div class="flex justify-end">
-                            <button type="submit"
+                            <button type="button" id="submit-comment-btn"
                                 class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold transition-all shadow-md">
                                 ثبت دیدگاه
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
 
                 <!-- فهرست کامنت‌ها -->

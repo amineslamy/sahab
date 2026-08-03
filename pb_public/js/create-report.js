@@ -132,8 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const results = await Promise.allSettled([
             state.pb.collection(COLLECTIONS.topics).getFullList({ sort: 'title' }),
             state.pb.collection(COLLECTIONS.cases).getFullList({ sort: 'title' }),
-            state.pb.collection('users').getFullList({ expand: 'department_rel', sort: 'name' })
-        ]);
+            // ✅ خط اصلاح شده (در دریافت کاربران):
+            state.pb.collection('users').getFullList({ expand: 'department_rel' })]);
 
         const topicsResult = results[0];
         const casesResult = results[1];
@@ -456,11 +456,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function groupUsersByDepartment(users) {
         const groups = {};
+
         users.forEach(u => {
-            const deptName = u.expand?.department_rel?.name || u.expand?.department_rel?.title || 'سایر دپارتمان‌ها';
-            if (!groups[deptName]) groups[deptName] = [];
-            groups[deptName].push(u);
+            // ۱. اول سعی می‌کنیم از expand نام اداره را بگیریم
+            let deptName = u.expand?.department_rel?.name ||
+                u.expand?.department_rel?.title ||
+                u.expand?.department_rel?.username;
+
+            // ۲. اگر expand خالی بود، ID اداره را می‌خوانیم
+            const deptId = u.department_rel || u.department;
+
+            // ۳. اگر ID داشتیم، توی همین لیست users دنبال کاربرِ اداره می‌گردیم
+            if (!deptName && deptId) {
+                const parentDeptUser = users.find(item => item.id === deptId);
+                if (parentDeptUser) {
+                    deptName = parentDeptUser.name || parentDeptUser.title || parentDeptUser.username;
+                }
+            }
+
+            // ۴. اگر هیچ‌کدام نبود، می‌رود در سایر اداره‌ها
+            const finalGroup = deptName || 'سایر اداره‌ها';
+
+            if (!groups[finalGroup]) groups[finalGroup] = [];
+            groups[finalGroup].push(u);
         });
+
         return groups;
     }
 
@@ -483,11 +503,15 @@ document.addEventListener('DOMContentLoaded', () => {
             listContainer.appendChild(deptHeader);
 
             grouped[deptName].forEach(user => {
+                const displayName = user.name || user.username || 'بدون نام';
+
+                // اگر نام کاربر با نام اداره یکی باشد، خودش را درون زیرمجموعه خودش رندر نکن
+                if (displayName === deptName) return;
+
                 const isSelected = state.selectedAuthor && state.selectedAuthor.id === user.id;
                 const item = document.createElement('div');
                 item.className = `flex items-center justify-between p-2 mr-3 rounded-lg cursor-pointer transition hover:bg-slate-100 border-r-2 border-slate-300 ${isSelected ? 'bg-slate-100 font-bold' : ''}`;
 
-                const displayName = user.name || user.username || 'بدون نام';
                 const userCode = user.user_code ? ` (کد: ${user.user_code})` : '';
 
                 item.innerHTML = `
@@ -528,27 +552,6 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(tag);
     }
 
-    // // ۲. رویداد جستجوی زنده (اصلاح شده)
-    // const searchInput = $id('cases-search-input');
-    // if (searchInput) {
-    //     searchInput.addEventListener('input', (e) => {
-    //         const query = e.target.value.trim().toLowerCase();
-
-    //         if (!query) {
-    //             renderCasesList(orderedCases, rawItems);
-    //             return;
-    //         }
-
-    //         // فیلتر کردن بر اساس عنوان کیس یا عنوان والد آن
-    //         const filtered = orderedCases.filter(c => {
-    //             const titleMatch = (c.title || '').toLowerCase().includes(query);
-    //             const parentMatch = c.parentTitle && c.parentTitle.toLowerCase().includes(query);
-    //             return titleMatch || parentMatch;
-    //         });
-
-    //         renderCasesList(filtered, rawItems);
-    //     });
-    //}
 
     function renderCasesList(itemsToRender, rawItems) {
         let listContainer = $id('cases-list-container');

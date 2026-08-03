@@ -32,6 +32,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (submitCommentBtn) {
                 submitCommentBtn.addEventListener('click', handleCreateComment);
             }
+
+            // تنظیم خودکار ارتفاع تکست‌آریا بر اساس محتوا
+            const commentTextarea = $id('comment-text');
+            if (commentTextarea) {
+                commentTextarea.style.overflowY = 'hidden';
+                commentTextarea.addEventListener('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = this.scrollHeight + 'px';
+                });
+            }
         } catch (err) {
             console.error('خطا در راه‌اندازی ماژول کامنت‌ها:', err);
         }
@@ -102,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const authorName = comment.authorName || comment.expand?.author?.name || comment.expand?.author?.username || 'کاربر ناشناس';
         const typeBadge = comment.type ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-md">${comment.type}</span>` : '';
-        
+
         let createdDate = 'پیش‌نویس';
         if (comment.created) {
             createdDate = new Date(comment.created).toLocaleDateString('fa-IR');
@@ -211,14 +221,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const textInput = $id('comment-text');
         const parentInput = $id('comment-parent-id');
 
-        if (textInput) textInput.value = '';
+        if (textInput) {
+            textInput.value = '';
+            textInput.style.height = 'auto';
+        }
         if (parentInput) parentInput.value = '';
         state.activeReplyId = null;
 
         const replyNotice = $id('reply-notice');
         if (replyNotice) replyNotice.classList.add('hidden');
     }
-
     // 5. عمومی‌سازی تابع ثبت کامنت‌های موقت پس از ایجاد موفق گزارش
     window.savePendingComments = async function (newReportId) {
         if (!state.pendingComments || state.pendingComments.length === 0) return;

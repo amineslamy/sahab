@@ -35,7 +35,7 @@
     <!-- محل تزریق هدر داینامیک -->
     <div id="app-header"></div>
     <!-- کانتینر اصلی دسکتاپ (عرض عریض‌تر max-w-6xl) -->
-<main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300 mx-auto my-6">
+    <main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300 mx-auto my-6">
         <!-- هدر با فونت و آیکون‌بندی برجسته -->
         <header class="bg-slate-900 text-white px-8 py-7 flex flex-row justify-between items-center rounded-t-2xl">
             <div>
@@ -156,7 +156,6 @@
             </section>
 
             <!-- روابط -->
-            <!-- روابط -->
             <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
                 <div class="border-b border-slate-300 pb-4">
@@ -164,11 +163,11 @@
                         روابط و دسته‌بندی‌ها
                     </h2>
                     <p class="text-sm text-slate-600 mt-1">
-                        حداقل یک موضوع و یک کیس مرتبط انتخاب کنید.
+                        حداقل یک موضوع و یک کیس مرتبط انتخاب کنید. کارشناس مربوطه نیز قابل تغییر است.
                     </p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                     <!-- موضوعات -->
                     <div class="relative">
@@ -220,6 +219,32 @@
                                     class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800">
                             </div>
                             <div id="cases-list-container" class="max-h-72 overflow-y-auto p-1.5 space-y-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- کارشناس (نویسنده) -->
+                    <div class="relative">
+                        <label for="author-picker-container" class="block text-base font-black text-slate-800 mb-2.5">
+                            کارشناس مربوطه
+                            <span class="text-red-600">*</span>
+                        </label>
+
+                        <div id="author-picker-container" tabindex="0" role="combobox" aria-haspopup="listbox"
+                            aria-expanded="false" aria-controls="author-dropdown"
+                            class="custom-multiselect-container border-2 border-slate-300 rounded-xl p-3 bg-white min-h-[56px] cursor-pointer flex flex-wrap gap-2 items-center focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm">
+                            <span class="text-slate-500 text-sm font-medium select-none pr-2">
+                                در حال بارگذاری لیست کارشناسان...
+                            </span>
+                        </div>
+
+                        <!-- منوی آبشاری کارشناسان به همراه جستجو -->
+                        <div id="author-dropdown" role="listbox"
+                            class="hidden absolute z-30 w-full bg-white border-2 border-slate-300 rounded-xl shadow-2xl mt-2 overflow-hidden">
+                            <div class="p-2.5 border-b border-slate-200 bg-slate-50">
+                                <input type="text" id="author-search-input" placeholder="جستجوی کارشناس..."
+                                    class="w-full px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800">
+                            </div>
+                            <div id="author-list-container" class="max-h-64 overflow-y-auto p-1.5 space-y-1"></div>
                         </div>
                     </div>
 
@@ -398,7 +423,7 @@
         </span>
     </div>
 
-<!-- اسکریپت‌ها -->
+    <!-- اسکریپت‌ها -->
     <script src="js/persian-datepicker.min.js"></script>
     <script src="js/quill.min.js"></script>
     <script src="js/create-report.js"></script>

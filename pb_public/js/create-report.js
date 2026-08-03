@@ -27,7 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedCoverFile: null,
         selectedAttachments: [],
         selectedTopics: [],
-        selectedCases: []
+        selectedCases: [],
+        selectedAuthor: null, // 👈 کارشناس انتخاب‌شده
+        allAuthorsList: []    // 👈 ذخیره لیست کارشناسان
     };
 
     const $id = (id) => document.getElementById(id);
@@ -38,6 +40,29 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pageshow', () => {
         window.scrollTo(0, 0);
     });
+
+    async function boot() {
+        try {
+            // ۱. مقداردهی اولیه پاکت‌بیس
+            state.pb = new PocketBase(PB_URL);
+
+            // ۲. بررسی نشست و توکن کاربر
+            const isAuthValid = await checkAuthAndRefresh();
+            if (!isAuthValid) return;
+
+            // ۳. لود کردن دراپ‌داون‌های ثابت (طبقه‌بندی، اولویت و...)
+            loadDynamicSelectOptions();
+
+            // ۴. 🌟 بخش اصلی: فراخوانی لود موضوعات، کیس‌ها و کارشناسان
+            await initRelationPickers();
+
+            // ۵. راه‌اندازی آپلود فایل‌ها و فرم
+            initFileInputs();
+            initFormActions();
+        } catch (err) {
+            console.error('خطا در اجرای اولیه برنامه (boot):', err);
+        }
+    }
 
     // ۱. تابع جدید بررسی و تازه سازی نشست کاربری در سمت سرور
     async function checkAuthAndRefresh() {
@@ -81,188 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastAuthCheck = Date.now();
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            const fifteenMinutes = 15 * 60 * 1000;
-
-            // فقط اگر بیش از ۱۵ دقیقه از آخرین بررسی گذشته بود
-            if (Date.now() - lastAuthCheck > fifteenMinutes) {
-                lastAuthCheck = Date.now();
-
-                // بررسی اعتبار توکن پکت‌بیس
-                if (!pb.authStore.isValid) {
-                    console.warn("نشست منقضی شده است. در حال تلاش برای رفرش...");
-                    pb.collection('users').authRefresh().catch(() => {
-                        alert("نشست کاری شما منقضی شده است. لطفاً مجدداً وارد شوید.");
-                        window.location.href = '/login.html'; // یا مسیر لاگین شما
-                    });
-                }
-            }
-        }
-    });
-
-    async function boot() {
-        if (!window.PocketBase) {
-            showError('کتابخانه PocketBase بارگذاری نشده است.');
-            return;
-        }
-
-        state.pb = new PocketBase(PB_URL);
-
-        const isAuthValid = await checkAuthAndRefresh();
-        if (!isAuthValid) {
-            return;
-        }
-
-        // --- افزودن این خط برای دریافت داینامیک گزینه‌ها ---
-        await loadDynamicSelectOptions();
-
-        initEditor();
-        initDatepickers();
-        initFileInputs();
-        initFormActions();
-
-        await initRelationPickers();
-
-        requestAnimationFrame(() => {
-            window.scrollTo(0, 0);
-        });
-    }
-
-
-    function initEditor() {
-        const editorEl = $id('editor-container');
-        if (!editorEl) return;
-
-        if (!window.Quill) {
-            showError('ویرایشگر متن بارگذاری نشده است. فایل Quill یا CDN آن را بررسی کنید.');
-            return;
-        }
-
-        state.quill = new Quill('#editor-container', {
-            theme: 'snow',
-            placeholder: 'متن کامل گزارش، تحلیل یا ارزیابی را در این بخش وارد نمایید...',
-            modules: {
-                toolbar: [
-                    [{ header: [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ color: [] }, { background: [] }],
-                    [{ list: 'ordered' }, { list: 'bullet' }],
-                    [{ align: [] }],
-                    ['link', 'blockquote', 'code-block'],
-                    ['clean']
-                ]
-            }
-        });
-
-        state.quill.root.setAttribute('dir', 'rtl');
-        state.quill.root.style.textAlign = 'right';
-        state.quill.format('direction', 'rtl');
-        state.quill.format('align', 'right');
-    }
-
-    function initDatepickers() {
-        if (!window.jQuery || !jQuery.fn || !jQuery.fn.persianDatepicker || !window.persianDate) {
-            showError('تقویم شمسی بارگذاری نشده است. ترتیب لود jQuery، persian-date و persian-datepicker را بررسی کنید.');
-            return;
-        }
-
-        setupDatepicker('occurrence-date-picker', 'report-occurrence-date');
-        setupDatepicker('publish-date-picker', 'report-publish-date');
-    }
-
-    function setupDatepicker(visibleInputId, hiddenInputId) {
-        const visibleInput = $id(visibleInputId);
-        const hiddenInput = $id(hiddenInputId);
-
-        if (!visibleInput || !hiddenInput) return;
-
-        jQuery(`#${visibleInputId}`).persianDatepicker({
-            format: 'YYYY/MM/DD',
-            autoClose: true,
-            initialValue: false,
-            observer: true,
-            onSelect: function (unixTimestamp) {
-                const normalizedTimestamp = Number(unixTimestamp) < 10000000000
-                    ? Number(unixTimestamp) * 1000
-                    : Number(unixTimestamp);
-
-                const gregorianDate = new persianDate(normalizedTimestamp).toDate();
-                hiddenInput.value = gregorianDate.toISOString();
-            }
-        });
-    }
-
-    async function initRelationPickers() {
-        const results = await Promise.allSettled([
-            state.pb.collection(COLLECTIONS.topics).getFullList({ sort: 'title' }),
-            state.pb.collection(COLLECTIONS.cases).getFullList({ sort: 'title' })
-        ]);
-
-        const topicsResult = results[0];
-        const casesResult = results[1];
-        const errors = [];
-
-
-        function renderDropdown() {
-            dropdown.innerHTML = '';
-
-            if (!config.items.length) {
-                dropdown.innerHTML = '<div class="p-3 text-xs text-slate-400 text-center">آیتمی یافت نشد.</div>';
-                return;
-            }
-
-            config.items.forEach((item) => {
-                const isSelected = config.selectedList.includes(item.id);
-
-                const option = document.createElement('button');
-                option.type = 'button';
-                option.className = `w-full p-3 text-xs cursor-pointer hover:bg-slate-100 flex justify-between items-center transition ${isSelected ? 'bg-slate-50 font-bold text-slate-800' : 'text-slate-700'
-                    }`;
-
-                const label = document.createElement('span');
-                label.textContent = item.title || item.name || item.id;
-
-                const check = document.createElement('span');
-                check.className = 'text-emerald-600 font-bold';
-                check.textContent = isSelected ? '✓' : '';
-
-                option.appendChild(label);
-                option.appendChild(check);
-
-                option.addEventListener('click', () => {
-                    const index = config.selectedList.indexOf(item.id);
-
-                    if (index !== -1) {
-                        config.selectedList.splice(index, 1);
-                    } else {
-                        if (config.selectedList.length >= config.maxLimit) {
-                            showError(`حداکثر ${config.maxLimit} مورد قابل انتخاب است.`);
-                            return;
-                        }
-
-                        config.selectedList.push(item.id);
-                    }
-
-                    renderSelected();
-                    renderDropdown();
-                });
-
-                dropdown.appendChild(option);
-            });
-        }
-    }
-
-    // ==========================================
-    // کد اصلاح‌شده: مدیریت پیشرفته موضوعات و کیس‌ها
-    // ==========================================
-
     // بسته‌شدن هوشمند منوها با کلیک روی بیرون کادر (Outside Click)
     document.addEventListener('click', (event) => {
         const topicsPicker = $id('topics-picker-container');
         const topicsDropdown = $id('topics-dropdown');
         const casesPicker = $id('cases-picker-container');
         const casesDropdown = $id('cases-dropdown');
+        const authorPicker = $id('author-picker-container');
+        const authorDropdown = $id('author-dropdown');
 
         if (topicsPicker && topicsDropdown && !topicsPicker.contains(event.target) && !topicsDropdown.contains(event.target)) {
             topicsDropdown.classList.add('hidden');
@@ -271,29 +122,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (casesPicker && casesDropdown && !casesPicker.contains(event.target) && !casesDropdown.contains(event.target)) {
             casesDropdown.classList.add('hidden');
         }
+
+        if (authorPicker && authorDropdown && !authorPicker.contains(event.target) && !authorDropdown.contains(event.target)) {
+            authorDropdown.classList.add('hidden');
+        }
     });
 
     async function initRelationPickers() {
         const results = await Promise.allSettled([
             state.pb.collection(COLLECTIONS.topics).getFullList({ sort: 'title' }),
-            state.pb.collection(COLLECTIONS.cases).getFullList({ sort: 'title' })
+            state.pb.collection(COLLECTIONS.cases).getFullList({ sort: 'title' }),
+            state.pb.collection('users').getFullList({ expand: 'department_rel', sort: 'name' })
         ]);
 
         const topicsResult = results[0];
         const casesResult = results[1];
+        const usersResult = results[2];
 
         // ۱. راه اندازی موضوعات
         if (topicsResult.status === 'fulfilled') {
             setupTopicsPicker(topicsResult.value);
         } else {
-            setPickerLoadError('topics-picker-container', 'خطا در بارگذاری موضوعات');
+            console.error('خطا در بارگذاری موضوعات:', topicsResult.reason);
         }
 
         // ۲. راه اندازی کیس‌ها (با ساختار درختی والد-فرزند)
         if (casesResult.status === 'fulfilled') {
             setupCasesPicker(casesResult.value);
         } else {
-            setPickerLoadError('cases-picker-container', 'خطا در بارگذاری کیس‌ها');
+            console.error('خطا در بارگذاری کیس‌ها:', casesResult.reason);
+        }
+
+        // ۳. راه اندازی کارشناسان (با ساختار دپارتمان ↲ کارشناس)
+        if (usersResult.status === 'fulfilled') {
+            setupAuthorPicker(usersResult.value);
+        } else {
+            console.error('خطا در بارگذاری کارشناسان:', usersResult.reason);
         }
     }
 
@@ -305,7 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.addEventListener('click', (e) => {
             e.stopPropagation();
-            $id('cases-dropdown')?.classList.add('hidden'); // بستن منوی کیس
+            $id('cases-dropdown')?.classList.add('hidden');
+            $id('author-dropdown')?.classList.add('hidden');
             dropdown.classList.toggle('hidden');
             if (!dropdown.classList.contains('hidden')) {
                 $id('topics-search-input')?.focus();
@@ -317,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTopicsList(items);
         renderTopicsTags(items);
 
-        // جستجوی زنده در موضوعات
         const searchInput = $id('topics-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -332,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let listContainer = $id('topics-list-container');
         const dropdown = $id('topics-dropdown');
 
-        // اگر کادر جستجو و لیست در HTML نباشد، خودکار تولید می‌شود
         if (!listContainer) {
             dropdown.innerHTML = `
                 <div class="p-2 border-b border-slate-200 bg-slate-50">
@@ -341,12 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="topics-list-container" class="max-h-60 overflow-y-auto p-1.5 space-y-1"></div>
             `;
             listContainer = $id('topics-list-container');
-
-            $id('topics-search-input').addEventListener('input', (e) => {
-                const q = e.target.value.trim().toLowerCase();
-                const filtered = items.filter(t => (t.title || t.name).toLowerCase().includes(q));
-                renderTopicsList(filtered);
-            });
         }
 
         listContainer.innerHTML = '';
@@ -411,13 +268,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- مدیریت انتخاب کیس‌ها (با فیلتر دقیق و ساختار درختی) ---
+    // --- مدیریت انتخاب کیس‌ها (ساختار درختی والد-فرزند) ---
     function setupCasesPicker(rawItems) {
         const container = $id('cases-picker-container');
         const dropdown = $id('cases-dropdown');
         if (!container || !dropdown) return;
 
-        // ۱. مرتب‌سازی ساختار درختی (والد و فرزندان)
         const parents = rawItems.filter(c => !c.parent_case);
         const children = rawItems.filter(c => c.parent_case);
 
@@ -430,51 +286,269 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // کیس‌های فرزندی که احتمالاً والدشان حذف شده
         const orphans = children.filter(c => !parents.some(p => p.id === c.parent_case));
         orphans.forEach(o => orderedCases.push({ ...o, isChild: false }));
 
-        // باز و بسته شدن بازشو
         container.addEventListener('click', (e) => {
             e.stopPropagation();
             $id('topics-dropdown')?.classList.add('hidden');
+            $id('author-dropdown')?.classList.add('hidden');
             dropdown.classList.toggle('hidden');
             if (!dropdown.classList.contains('hidden')) {
-                const searchInput = $id('cases-search-input');
-                if (searchInput) {
-                    searchInput.focus();
-                }
+                $id('cases-search-input')?.focus();
             }
         });
 
         dropdown.addEventListener('click', (e) => e.stopPropagation());
 
-        // رندر اولیه لیست و تگ‌ها
         renderCasesList(orderedCases, rawItems);
         renderCasesTags(rawItems);
 
-        // ۲. رویداد جستجوی زنده (اصلاح شده)
         const searchInput = $id('cases-search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.trim().toLowerCase();
-
                 if (!query) {
                     renderCasesList(orderedCases, rawItems);
                     return;
                 }
-
-                // فیلتر کردن بر اساس عنوان کیس یا عنوان والد آن
                 const filtered = orderedCases.filter(c => {
                     const titleMatch = (c.title || '').toLowerCase().includes(query);
                     const parentMatch = c.parentTitle && c.parentTitle.toLowerCase().includes(query);
                     return titleMatch || parentMatch;
                 });
-
                 renderCasesList(filtered, rawItems);
             });
         }
     }
+
+    function renderCasesList(itemsToRender, rawItems) {
+        let listContainer = $id('cases-list-container');
+        const dropdown = $id('cases-dropdown');
+
+        if (!listContainer) {
+            dropdown.innerHTML = `
+                <div class="p-2 border-b border-slate-200 bg-slate-50">
+                    <input type="text" id="cases-search-input" placeholder="جستجو در کیس‌ها..." class="w-full px-3 py-2 text-sm font-semibold border rounded-lg focus:outline-none focus:border-slate-800">
+                </div>
+                <div id="cases-list-container" class="max-h-64 overflow-y-auto p-1.5 space-y-1"></div>
+            `;
+            listContainer = $id('cases-list-container');
+        }
+
+        listContainer.innerHTML = '';
+        if (!itemsToRender || itemsToRender.length === 0) {
+            listContainer.innerHTML = '<div class="p-3 text-sm text-slate-400 text-center font-semibold">کیسی یافت نشد</div>';
+            return;
+        }
+
+        itemsToRender.forEach(item => {
+            const isSelected = state.selectedCases.includes(item.id);
+            const label = document.createElement('label');
+
+            const isChildClass = item.isChild ? 'mr-5 bg-slate-50 border-r-2 border-slate-300 pl-2' : '';
+            const titleMarkup = item.isChild
+                ? `<span class="text-slate-400 font-bold ml-1">↲</span> <span class="font-bold text-slate-800 text-sm">${item.title}</span> <span class="text-[11px] text-slate-400 font-normal mr-auto">(والد: ${item.parentTitle})</span>`
+                : `<span class="font-black text-slate-900 text-sm">${item.title}</span>`;
+
+            label.className = `flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition hover:bg-slate-100 ${isChildClass} ${isSelected ? 'bg-slate-100' : ''}`;
+            label.innerHTML = `
+                <div class="flex items-center gap-1.5 w-full">${titleMarkup}</div>
+                <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-4 h-4 accent-slate-900 shrink-0">
+            `;
+
+            label.querySelector('input').addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (state.selectedCases.length >= LIMITS.relationMax) {
+                        showError(`حداکثر ${LIMITS.relationMax} مورد قابل انتخاب است.`);
+                        e.target.checked = false;
+                        return;
+                    }
+                    state.selectedCases.push(item.id);
+                } else {
+                    const idx = state.selectedCases.indexOf(item.id);
+                    if (idx !== -1) state.selectedCases.splice(idx, 1);
+                }
+                renderCasesTags(rawItems);
+            });
+
+            listContainer.appendChild(label);
+        });
+    }
+
+    function renderCasesTags(allItems) {
+        const container = $id('cases-picker-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (state.selectedCases.length === 0) {
+            container.innerHTML = '<span class="text-slate-400 text-sm font-medium pr-1">انتخاب کیس‌ها...</span>';
+            return;
+        }
+
+        state.selectedCases.forEach(id => {
+            const item = allItems.find(c => c.id === id);
+            if (!item) return;
+            const tag = document.createElement('span');
+            tag.className = 'bg-slate-800 text-white text-xs font-bold px-2.5 py-1.5 rounded-md flex items-center gap-1.5';
+            tag.innerHTML = `
+                <span>${item.title}</span>
+                <button type="button" class="text-slate-300 hover:text-red-400 font-bold text-sm">&times;</button>
+            `;
+            tag.querySelector('button').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = state.selectedCases.indexOf(id);
+                if (idx !== -1) state.selectedCases.splice(idx, 1);
+                renderCasesTags(allItems);
+                renderCasesList(allItems);
+            });
+            container.appendChild(tag);
+        });
+    }
+
+    // --- مدیریت انتخاب کارشناسان (ساختار درختی: دپارتمان ↲ کارشناس) ---
+    function setupAuthorPicker(users) {
+        const container = $id('author-picker-container');
+        const dropdown = $id('author-dropdown');
+        if (!container || !dropdown) return;
+
+        state.allAuthorsList = users;
+
+        // کاربر جاری به عنوان پیش‌فرض ست می‌شود
+        const currentUser = state.pb.authStore.record || state.pb.authStore.model;
+        if (currentUser && !state.selectedAuthor) {
+            const activeUserInList = users.find(u => u.id === currentUser.id);
+            state.selectedAuthor = activeUserInList || currentUser;
+        }
+
+        // گروه بندی کارشناسان بر اساس دپارتمان
+        const grouped = groupUsersByDepartment(users);
+
+        container.addEventListener('click', (e) => {
+            e.stopPropagation();
+            $id('topics-dropdown')?.classList.add('hidden');
+            $id('cases-dropdown')?.classList.add('hidden');
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                $id('author-search-input')?.focus();
+            }
+        });
+
+        dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+        renderAuthorList(grouped, users);
+        renderAuthorTag();
+
+        const searchInput = $id('author-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.trim().toLowerCase();
+                const filtered = users.filter(u => {
+                    const nameMatch = (u.name || u.username || '').toLowerCase().includes(query);
+                    const deptName = u.expand?.department_rel?.name || '';
+                    const deptMatch = deptName.toLowerCase().includes(query);
+                    return nameMatch || deptMatch;
+                });
+                renderAuthorList(groupUsersByDepartment(filtered), users);
+            });
+        }
+    }
+
+    function groupUsersByDepartment(users) {
+        const groups = {};
+        users.forEach(u => {
+            const deptName = u.expand?.department_rel?.name || u.expand?.department_rel?.title || 'سایر دپارتمان‌ها';
+            if (!groups[deptName]) groups[deptName] = [];
+            groups[deptName].push(u);
+        });
+        return groups;
+    }
+
+    function renderAuthorList(grouped, allUsers) {
+        let listContainer = $id('author-list-container');
+        if (!listContainer) return;
+
+        listContainer.innerHTML = '';
+        const groupNames = Object.keys(grouped);
+
+        if (groupNames.length === 0) {
+            listContainer.innerHTML = '<div class="p-3 text-sm text-slate-400 text-center font-semibold">کارشناسی یافت نشد</div>';
+            return;
+        }
+
+        groupNames.forEach(deptName => {
+            const deptHeader = document.createElement('div');
+            deptHeader.className = 'px-2 py-1.5 text-xs font-black text-slate-500 bg-slate-100 rounded-md mt-1 mb-1';
+            deptHeader.textContent = `📁 ${deptName}`;
+            listContainer.appendChild(deptHeader);
+
+            grouped[deptName].forEach(user => {
+                const isSelected = state.selectedAuthor && state.selectedAuthor.id === user.id;
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 mr-3 rounded-lg cursor-pointer transition hover:bg-slate-100 border-r-2 border-slate-300 ${isSelected ? 'bg-slate-100 font-bold' : ''}`;
+
+                const displayName = user.name || user.username || 'بدون نام';
+                const userCode = user.user_code ? ` (کد: ${user.user_code})` : '';
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-1.5 text-sm text-slate-800">
+                        <span class="text-slate-400 font-bold">↲</span>
+                        <span>${displayName}</span>
+                        <span class="text-xs text-slate-400 font-normal">${userCode}</span>
+                    </div>
+                    ${isSelected ? '<span class="text-xs font-bold text-emerald-600">✓ انتخاب شده</span>' : ''}
+                `;
+
+                item.addEventListener('click', () => {
+                    state.selectedAuthor = user;
+                    renderAuthorTag();
+                    renderAuthorList(grouped, allUsers);
+                    $id('author-dropdown')?.classList.add('hidden');
+                });
+
+                listContainer.appendChild(item);
+            });
+        });
+    }
+
+    function renderAuthorTag() {
+        const container = $id('author-picker-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!state.selectedAuthor) {
+            container.innerHTML = '<span class="text-slate-400 text-sm font-medium pr-1">انتخاب کارشناس...</span>';
+            return;
+        }
+
+        const authorName = state.selectedAuthor.name || state.selectedAuthor.username || 'کاربر سیستم';
+        const tag = document.createElement('span');
+        tag.className = 'bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-md flex items-center gap-2';
+        tag.innerHTML = `<span>👤 ${authorName}</span>`;
+        container.appendChild(tag);
+    }
+
+    // // ۲. رویداد جستجوی زنده (اصلاح شده)
+    // const searchInput = $id('cases-search-input');
+    // if (searchInput) {
+    //     searchInput.addEventListener('input', (e) => {
+    //         const query = e.target.value.trim().toLowerCase();
+
+    //         if (!query) {
+    //             renderCasesList(orderedCases, rawItems);
+    //             return;
+    //         }
+
+    //         // فیلتر کردن بر اساس عنوان کیس یا عنوان والد آن
+    //         const filtered = orderedCases.filter(c => {
+    //             const titleMatch = (c.title || '').toLowerCase().includes(query);
+    //             const parentMatch = c.parentTitle && c.parentTitle.toLowerCase().includes(query);
+    //             return titleMatch || parentMatch;
+    //         });
+
+    //         renderCasesList(filtered, rawItems);
+    //     });
+    //}
 
     function renderCasesList(itemsToRender, rawItems) {
         let listContainer = $id('cases-list-container');
@@ -785,10 +859,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (currentUser.id) {
-                formData.append('author', currentUser.id);
+                const authorId = state.selectedAuthor?.id || currentUser.id;
+                formData.append('author', authorId);
                 formData.append('submitter', currentUser.id);
                 formData.append('department', departmentId);
-
             }
 
             if (currentUser.department_rel) {
@@ -853,15 +927,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateAutomationId() {
         const now = new Date();
 
-        const yyyy = now.getFullYear();
+        // دریافت کاربر لاگین شده فعلی
+        const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
+
+        // کد اداره (از کاربر انتخاب شده یا کاربر لاگین شده)
+        const deptCodeRaw = state.selectedAuthor?.dept_code || currentUser.dept_code || '101';
+        const deptCode = String(deptCodeRaw).padStart(3, '0');
+
+        // کد کاربر (از کاربر انتخاب شده یا کاربر لاگین شده)
+        const userCodeRaw = state.selectedAuthor?.user_code || currentUser.user_code || '001';
+        const userCode = String(userCodeRaw).padStart(3, '0');
+
+        // تاریخ به شمسی یا میلادی فشرده ۶ رقمی (YYMMDD)
+        const yy = String(now.getFullYear()).slice(-2);
         const mm = String(now.getMonth() + 1).padStart(2, '0');
         const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mi = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
-        const random = Math.random().toString(36).slice(2, 6).toUpperCase();
 
-        return `REP-${yyyy}${mm}${dd}-${hh}${mi}${ss}-${random}`;
+        // خروجی کد ۱۴ رقمی کاملاً عددی: [کد اداره ۳ رقم][کد کاربر ۳ رقم][تاریخ ۶ رقم][ثانیه ۲ رقم]
+        return `${deptCode}${userCode}${yy}${mm}${dd}${ss}`;
     }
 
     function clearForm() {

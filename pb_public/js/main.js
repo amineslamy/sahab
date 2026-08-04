@@ -704,9 +704,11 @@ async function openDetailModal(id) {
             coverImageHtml = `
                 <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
                     <span class="text-slate-500 block mb-2">تصویر شاخص (کاور):</span>
-                    <a href="${coverUrl}" target="_blank" class="inline-block">
-                        <img src="${coverUrl}" alt="تصویر شاخص" class="max-h-64 rounded-lg border border-slate-200 object-cover shadow-sm hover:opacity-90 transition">
-                    </a>
+                    <div class="flex justify-center items-center w-full">
+                        <a href="${coverUrl}" target="_blank" class="inline-block max-w-full">
+                            <img src="${coverUrl}" alt="تصویر شاخص" class="max-h-48 max-w-full object-contain rounded-lg border border-slate-200 shadow-sm hover:opacity-90 transition mx-auto">
+                        </a>
+                    </div>
                 </div>
             `;
         } else {

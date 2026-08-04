@@ -379,7 +379,7 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: [hasImg, noImg],
         labels: ['دارای تصویر', 'بدون تصویر'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#f59e0b', '#cbd5e1']
+        colors: ['#f59e0b', '#94a3b8']
     });
 
     // کیس‌ها

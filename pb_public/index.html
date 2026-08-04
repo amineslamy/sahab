@@ -59,10 +59,10 @@
     <!-- ۱. هدر سراسری سامانه سحاب -->
     <div id="app-header"></div>
 
-    <!-- ۲. نوار تب‌های اصلی -->
+    <!-- ۲. نوار تب‌های اصلی (تنها ۲ تب اصلی) -->
     <div class="flex justify-center my-4">
         <div
-            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-2xl w-full justify-between">
+            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-md w-full justify-between">
             <button onclick="switchTab('tab-overview')" id="btn-tab-overview"
                 class="tab-btn active flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
                 📊 خلاصه عملیاتی
@@ -70,10 +70,6 @@
             <button onclick="switchTab('tab-analytics')" id="btn-tab-analytics"
                 class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
                 📈 تحلیل و آمار گزارش‌ها
-            </button>
-            <button onclick="switchTab('tab-search')" id="btn-tab-search"
-                class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
-                🔍 جستجو و فیلتر پیشرفته
             </button>
         </div>
     </div>
@@ -112,7 +108,7 @@
             </div>
         </div>
 
-        <!-- ردیف دوم: جدول جامع آخرین اخبار ثبت‌شده -->
+        <!-- ردیف دوم: جدول جامع آخرین اخبار ثبت‌شده به همراه آکاردئون فیلتر پیشرفته -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div
                 class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
@@ -122,8 +118,13 @@
                         ویرایش</p>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="toggleAdvancedFilterAccordion()"
+                        class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5">
+                        🔍 جستجو و فیلتر پیشرفته
+                    </button>
+
+                    <label class="text-xs font-bold text-slate-600 flex items-center gap-1.5 mr-2">
                         نمایش:
                         <select id="per-page-select" onchange="changePerPage(this.value)"
                             class="border border-slate-300 rounded-lg text-xs p-1.5 bg-white font-bold text-slate-700 outline-none">
@@ -138,6 +139,94 @@
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
                         + ثبت گزارش جدید
                     </a>
+                </div>
+            </div>
+
+            <!-- پنل کشویی (آکاردئون) فیلترهای پیشرفته -->
+            <div id="advanced-filter-accordion" class="hidden border-b border-slate-200 bg-slate-50 p-5 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <h4 class="font-black text-slate-800 text-sm">تنظیم فیلترهای ترکیبی</h4>
+                    <span class="text-xs text-slate-500">پس از تغییر موارد، روی «اعمال فیلتر» کلیک کنید</span>
+                </div>
+
+                <!-- جستجوی کلی -->
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-1">جستجوی عمومی (کلیدواژه/عنوان/اتوماسیون/خلاصه):</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="global-search-input"
+                            placeholder="کلیدواژه، عنوان، شماره اتوماسیون یا خلاصه خبر را وارد کنید..."
+                            class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-indigo-600 bg-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-bold">
+                    <div>
+                        <label class="block text-slate-600 mb-1">موضوع:</label>
+                        <select id="adv-filter-topic" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موضوعات</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">کیس:</label>
+                        <select id="adv-filter-case" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه کیس‌ها</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">طبقه‌بندی:</label>
+                        <select id="adv-filter-classification" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="عادی">عادی</option>
+                            <option value="محرمانه">محرمانه</option>
+                            <option value="خیلی محرمانه">خیلی محرمانه</option>
+                            <option value="سری">سری</option>
+                            <option value="به کلی سری">به کلی سری</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">اولویت:</label>
+                        <select id="adv-filter-priority" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="عادی">عادی</option>
+                            <option value="فوری">فوری</option>
+                            <option value="آنی">آنی</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">نوع خبر:</label>
+                        <select id="adv-filter-news-type" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="آشکار">آشکار</option>
+                            <option value="رسمی">رسمی</option>
+                            <option value="فنی">فنی</option>
+                            <option value="سایبری">سایبری</option>
+                            <option value="منبع">منبع</option>
+                            <option value="راوی">راوی</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">ارزیابی صحت:</label>
+                        <select id="adv-filter-evaluation" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="صحت دارد">صحت دارد</option>
+                            <option value="احتمالا صحت دارد">احتمالا صحت دارد</option>
+                            <option value="در دست بررسی">در دست بررسی</option>
+                            <option value="صحت ندارد">صحت ندارد</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">نویسنده:</label>
+                        <select id="adv-filter-author" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه کاربران</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 border-t border-slate-200 pt-3">
+                    <button onclick="resetAdvancedFilters()"
+                        class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition">حذف فیلترها (ریست)</button>
+                    <button onclick="applyAdvancedFilters()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl text-xs font-black transition">اعمال فیلترها</button>
                 </div>
             </div>
 
@@ -276,106 +365,6 @@
                     <h4 class="font-black text-slate-700 text-xs mb-2">روند زمانی بر اساس «تاریخ وقوع»</h4>
                     <div id="chart-occurrence-timeline" class="min-h-[260px]"></div>
                 </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ==================== تب سوم: جستجو و فیلتر پیشرفته ==================== -->
-    <div id="tab-search" class="tab-content hidden space-y-6">
-
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <h3 class="font-black text-slate-800 text-base">جستجوی عمومی در کل سامانه</h3>
-            <div class="flex gap-2">
-                <input type="text" id="global-search-input"
-                    placeholder="کلیدواژه، عنوان، شماره اتوماسیون یا خلاصه خبر را وارد کنید..."
-                    class="flex-1 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-indigo-600">
-                <button onclick="executeGlobalSearch()"
-                    class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-black text-xs hover:bg-indigo-700">جستجو</button>
-            </div>
-        </div>
-
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <h3 class="font-black text-slate-800 text-base border-b border-slate-100 pb-3">فیلترهای ترکیبی پیشرفته</h3>
-
-            <div class="space-y-3">
-                <h4 class="text-xs font-black text-indigo-700">فیلترهای مربوط به گزارش‌ها (Reports)</h4>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold">
-                    <div>
-                        <label class="block text-slate-600 mb-1">موضوع:</label>
-                        <select id="adv-filter-topic" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه موضوعات</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">کیس:</label>
-                        <select id="adv-filter-case" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه کیس‌ها</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">طبقه‌بندی:</label>
-                        <select id="adv-filter-classification" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه موارد</option>
-                            <option value="عادی">عادی</option>
-                            <option value="محرمانه">محرمانه</option>
-                            <option value="خیلی محرمانه">خیلی محرمانه</option>
-                            <option value="سری">سری</option>
-                            <option value="به کلی سری">به کلی سری</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">اولویت:</label>
-                        <select id="adv-filter-priority" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه موارد</option>
-                            <option value="عادی">عادی</option>
-                            <option value="فوری">فوری</option>
-                            <option value="آنی">آنی</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">نوع خبر:</label>
-                        <select id="adv-filter-news-type" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه موارد</option>
-                            <option value="آشکار">آشکار</option>
-                            <option value="رسمی">رسمی</option>
-                            <option value="فنی">فنی</option>
-                            <option value="سایبری">سایبری</option>
-                            <option value="منبع">منبع</option>
-                            <option value="راوی">راوی</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-600 mb-1">ارزیابی صحت:</label>
-                        <select id="adv-filter-evaluation" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه موارد</option>
-                            <option value="صحت دارد">صحت دارد</option>
-                            <option value="احتمالا صحت دارد">احتمالا صحت دارد</option>
-                            <option value="در دست بررسی">در دست بررسی</option>
-                            <option value="صحت ندارد">صحت ندارد</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-3 border-t border-slate-100 pt-4">
-                <h4 class="text-xs font-black text-purple-700">فیلترهای مربوط به کاربران (Users)</h4>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold">
-                    <div>
-                        <label class="block text-slate-600 mb-1">نویسنده:</label>
-                        <select id="adv-filter-author" class="border p-2 rounded-lg w-full bg-white">
-                            <option value="">همه کاربران</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                <button onclick="resetAdvancedFilters()"
-                    class="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold">پاکسازی فیلترها</button>
-                <button onclick="applyAdvancedFilters()"
-                    class="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black hover:bg-indigo-700">اعمال
-                    فیلترهای تخصصی</button>
             </div>
         </div>
 

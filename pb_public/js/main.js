@@ -506,45 +506,64 @@ function populateSearchDropdowns() {
     }
 }
 
-function executeGlobalSearch() {
-    const query = document.getElementById('global-search-input').value.trim();
-    if (!query) {
-        currentFilterQuery = "";
-    } else {
-        currentFilterQuery = `title ~ "${query}" || automation_id ~ "${query}" || abstract ~ "${query}"`;
+// باز و بسته کردن آکاردئون فیلتر پیشرفته
+function toggleAdvancedFilterAccordion() {
+    const accordion = document.getElementById('advanced-filter-accordion');
+    if (accordion) {
+        accordion.classList.toggle('hidden');
     }
-    currentPage = 1;
-    switchTab('tab-overview');
-    loadReportsTable();
 }
 
 function applyAdvancedFilters() {
     const filters = [];
 
-    const topic = document.getElementById('adv-filter-topic').value;
+    // ۱. بررسی جستجوی متنی عمومی
+    const globalQuery = document.getElementById('global-search-input')?.value.trim();
+    if (globalQuery) {
+        filters.push(`(title ~ "${globalQuery}" || automation_id ~ "${globalQuery}" || abstract ~ "${globalQuery}")`);
+    }
+
+    // ۲. بررسی انتخاب‌های دراپ‌داون
+    const topic = document.getElementById('adv-filter-topic')?.value;
     if (topic) filters.push(`topics_rel ~ "${topic}"`);
 
-    const kase = document.getElementById('adv-filter-case').value;
+    const kase = document.getElementById('adv-filter-case')?.value;
     if (kase) filters.push(`cases_rel ~ "${kase}"`);
 
-    const classification = document.getElementById('adv-filter-classification').value;
+    const classification = document.getElementById('adv-filter-classification')?.value;
     if (classification) filters.push(`classification = "${classification}"`);
 
-    const priority = document.getElementById('adv-filter-priority').value;
+    const priority = document.getElementById('adv-filter-priority')?.value;
     if (priority) filters.push(`priority = "${priority}"`);
 
-    const newsType = document.getElementById('adv-filter-news-type').value;
+    const newsType = document.getElementById('adv-filter-news-type')?.value;
     if (newsType) filters.push(`news_type = "${newsType}"`);
 
-    const evaluation = document.getElementById('adv-filter-evaluation').value;
+    const evaluation = document.getElementById('adv-filter-evaluation')?.value;
     if (evaluation) filters.push(`evaluation = "${evaluation}"`);
 
-    const author = document.getElementById('adv-filter-author').value;
+    const author = document.getElementById('adv-filter-author')?.value;
     if (author) filters.push(`author = "${author}"`);
 
     currentFilterQuery = filters.join(' && ');
     currentPage = 1;
-    switchTab('tab-overview');
+    loadReportsTable();
+}
+
+function resetAdvancedFilters() {
+    const globalInput = document.getElementById('global-search-input');
+    if (globalInput) globalInput.value = "";
+    
+    if (document.getElementById('adv-filter-topic')) document.getElementById('adv-filter-topic').value = "";
+    if (document.getElementById('adv-filter-case')) document.getElementById('adv-filter-case').value = "";
+    if (document.getElementById('adv-filter-classification')) document.getElementById('adv-filter-classification').value = "";
+    if (document.getElementById('adv-filter-priority')) document.getElementById('adv-filter-priority').value = "";
+    if (document.getElementById('adv-filter-news-type')) document.getElementById('adv-filter-news-type').value = "";
+    if (document.getElementById('adv-filter-evaluation')) document.getElementById('adv-filter-evaluation').value = "";
+    if (document.getElementById('adv-filter-author')) document.getElementById('adv-filter-author').value = "";
+    
+    currentFilterQuery = "";
+    currentPage = 1;
     loadReportsTable();
 }
 

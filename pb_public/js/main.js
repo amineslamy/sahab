@@ -33,6 +33,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAnalyticsCharts();
     loadReportsTable();
     populateSearchDropdowns();
+
+    // راه‌اندازی تقویم شمسی
+    if (window.$ && $.fn.persianDatepicker) {
+        $('#filter-date-from').persianDatepicker({
+            format: 'YYYY/MM/DD',
+            autoClose: true,
+            initialValue: false,
+            onSelect: function (unix) {
+                const dateObj = new Date(unix);
+                const isoDate = dateObj.toISOString().split('T')[0];
+                $('#filter-date-from').data('iso', isoDate);
+            }
+        });
+
+        $('#filter-date-to').persianDatepicker({
+            format: 'YYYY/MM/DD',
+            autoClose: true,
+            initialValue: false,
+            onSelect: function (unix) {
+                const dateObj = new Date(unix);
+                const isoDate = dateObj.toISOString().split('T')[0];
+                $('#filter-date-to').data('iso', isoDate);
+            }
+        });
+    }
 });
 
 function switchTab(tabId) {
@@ -113,15 +138,15 @@ async function loadReportsTable() {
             const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
             const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
             // خواندن نام نویسنده در مودال
-        const authorName = exp.author 
-            ? (exp.author.name || exp.author.username || '---') 
-            : '---';
+            const authorName = exp.author
+                ? (exp.author.name || exp.author.username || '---')
+                : '---';
 
-        // خواندن نام اداره در مودال (صرفاً از روی ادارهٔ متصل به نویسنده)
-        const deptObj = exp.author?.expand?.department_rel;
-        const deptName = deptObj 
-            ? (deptObj.name || deptObj.username || '---') 
-            : '---';
+            // خواندن نام اداره در مودال (صرفاً از روی ادارهٔ متصل به نویسنده)
+            const deptObj = exp.author?.expand?.department_rel;
+            const deptName = deptObj
+                ? (deptObj.name || deptObj.username || '---')
+                : '---';
 
             html += `
                 <tr class="hover:bg-slate-50 transition">
@@ -367,16 +392,32 @@ function renderAnalyticsCharts(reportsData = allReports) {
 }
 
 function applyAnalyticsDateFilter() {
-    const fromVal = document.getElementById('filter-date-from').value.trim();
-    const toVal = document.getElementById('filter-date-to').value.trim();
+    const $fromInput = $('#filter-date-from');
+    const $toInput = $('#filter-date-to');
+
+    // اگر فیلد خالی شود، مقدار iso پاک می‌شود
+    if (!$fromInput.val().trim()) $fromInput.data('iso', null);
+    if (!$toInput.val().trim()) $toInput.data('iso', null);
+
+    const fromIso = $fromInput.data('iso');
+    const toIso = $toInput.data('iso');
 
     let filtered = allReports;
-    if (fromVal) {
-        filtered = filtered.filter(r => r.created >= fromVal);
+
+    if (fromIso) {
+        filtered = filtered.filter(r => {
+            const rDate = r.created ? r.created.split('T')[0] : '';
+            return rDate >= fromIso;
+        });
     }
-    if (toVal) {
-        filtered = filtered.filter(r => r.created <= toVal);
+
+    if (toIso) {
+        filtered = filtered.filter(r => {
+            const rDate = r.created ? r.created.split('T')[0] : '';
+            return rDate <= toIso;
+        });
     }
+
     renderAnalyticsCharts(filtered);
 }
 
@@ -463,15 +504,15 @@ async function openDetailModal(id) {
         const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
         const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
         // خواندن نام نویسنده
-            const authorName = exp.author 
-                ? (exp.author.name || exp.author.username || '---') 
-                : '---';
+        const authorName = exp.author
+            ? (exp.author.name || exp.author.username || '---')
+            : '---';
 
-            // خواندن نام اداره (صرفاً از روی ادارهٔ متصل به نویسنده)
-            const deptObj = exp.author?.expand?.department_rel;
-            const deptName = deptObj 
-                ? (deptObj.name || deptObj.username || '---') 
-                : '---';
+        // خواندن نام اداره (صرفاً از روی ادارهٔ متصل به نویسنده)
+        const deptObj = exp.author?.expand?.department_rel;
+        const deptName = deptObj
+            ? (deptObj.name || deptObj.username || '---')
+            : '---';
 
         const modalContainer = document.getElementById('modal-content-container');
         modalContainer.innerHTML = `

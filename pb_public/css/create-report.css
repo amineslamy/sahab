@@ -100,7 +100,7 @@ body {
 .ql-toolbar.ql-snow {
     position: sticky;
     top: 60px; /* این عدد برابر است با ارتفاع هدر اصلی سایت */
-    z-index: 999;
+    z-index: 40;
     background-color: #ffffff;
 }
 
@@ -225,53 +225,57 @@ body {
     background-color: #e2e8f0;
 }
 
-/* ۶. استایل‌های هدر و خلاصه‌اطلاعات متادیتا */
-.report-metadata-header {
-    background-color: #0f172a;
-    color: #ffffff;
-    padding: 14px 24px;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    border-bottom: 1px solid #1e293b;
-    font-size: 0.875rem;
-    font-weight: 500;
+/* ۶. استایل‌های جدید هدر متادیتا (کارت‌های روشن و گرد) */
+.report-metadata-header-new {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 12px;
 }
 
-.meta-row {
+.meta-card {
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 14px;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    row-gap: 8px;
-    column-gap: 16px;
+    justify-content: center;
+    text-align: center;
+    min-width: 0;
 }
 
-.meta-row-primary {
-    border-bottom: 1px solid rgba(30, 41, 59, 0.8);
-    padding-bottom: 8px;
-    margin-bottom: 8px;
-}
-
-.meta-item {
+.meta-card-header {
     display: flex;
-    items-center: center;
+    align-items: center;
+    justify-content: center;
     gap: 6px;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 700;
 }
 
-.meta-item-wide {
-    max-width: 48%;
+.meta-card-value {
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-top: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 }
 
-.meta-label {
-    color: #94a3b8;
-}
-
-.meta-value {
-    font-weight: 700;
-    color: #e2e8f0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* ۷. استایل نوار اکشن ثابت پایین صفحه */
+.sticky-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    padding: 12px 24px;
 }

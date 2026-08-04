@@ -38,52 +38,99 @@
     <div id="app-header"></div>
     <!-- کانتینر اصلی دسکتاپ (عرض عریض‌تر max-w-6xl) -->
     <main class="w-full max-w-6xl bg-white rounded-2xl shadow-xl border border-slate-300 mx-auto my-6">
-        <!-- باکس خلاصه‌اطلاعات متادیتا -->
-        <header class="report-metadata-header">
-            <!-- ردیف اول: زمان‌بندی و هویت‌ها -->
-            <div class="meta-row meta-row-primary">
-                <div class="meta-item">
-                    <span class="meta-label">شناسه خبر:</span>
-                    <span id="meta-automation-id" class="meta-value">پس از ثبت</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">انتشار:</span>
-                    <span id="meta-publish-date" class="meta-value">پس از ثبت</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">به روزرسانی:</span>
-                    <span id="meta-updated-date" class="meta-value">پس از ثبت</span>
-                </div>
-                <div class="meta-item">
-                    <span class="meta-label">وقوع:</span>
-                    <span id="meta-occurrence-date" class="meta-value">پس از ثبت</span>
-                </div>
-                
-            </div>
+        <!-- باکس خلاصه‌اطلاعات متادیتا (طرح کارت‌های روشن) -->
+        <header class="report-metadata-header-new mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
 
-            <!-- ردیف دوم: موضوع و کیس -->
-            <div class="meta-row">
-                <div class="meta-item meta-item-wide">
-                    <span class="meta-label">موضوع:</span>
-                    <span id="meta-topics" class="meta-value">پس از ثبت</span>
+                <!-- شناسه خبر -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+                        <span>شناسه خبر</span>
+                    </div>
+                    <span id="meta-automation-id" class="meta-card-value">پس از ثبت</span>
                 </div>
-                <div class="meta-item meta-item-wide">
-                    <span class="meta-label">کیس:</span>
-                    <span id="meta-cases" class="meta-value">پس از ثبت</span>
+
+                <!-- تاریخ انتشار -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>تاریخ انتشار</span>
+                    </div>
+                    <span id="meta-publish-date" class="meta-card-value">پس از ثبت</span>
                 </div>
-                <div class="meta-item">
-                    <span class="meta-label">کارشناس:</span>
-                    <span id="meta-author" class="meta-value">پس از ثبت</span>
+
+                <!-- به‌روزرسانی -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>به‌روزرسانی</span>
+                    </div>
+                    <span id="meta-updated-date" class="meta-card-value">پس از ثبت</span>
                 </div>
-                <div class="meta-item">
-                    <span class="meta-label">ثبت کننده:</span>
-                    <span id="meta-creator" class="meta-value">پس از ثبت</span>
+
+                <!-- وقوع -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>وقوع</span>
+                    </div>
+                    <span id="meta-occurrence-date" class="meta-card-value">پس از ثبت</span>
                 </div>
+
+                <!-- موضوع -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h7" />
+                        </svg>
+                        <span>موضوع</span>
+                    </div>
+                    <span id="meta-topics" class="meta-card-value">پس از ثبت</span>
+                </div>
+
+                <!-- کیس -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <span>کیس</span>
+                    </div>
+                    <span id="meta-cases" class="meta-card-value">پس از ثبت</span>
+                </div>
+
+                <!-- کارشناس -->
+                <div class="meta-card">
+                    <div class="meta-card-header">
+                        <svg class="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>کارشناس</span>
+                    </div>
+                    <span id="meta-author" class="meta-card-value">پس از ثبت</span>
+                </div>
+
             </div>
         </header>
 
         <!-- فرم اصلی -->
-        <form id="create-report-form" class="p-8 space-y-10" novalidate autocomplete="off">
+        <form id="create-report-form" class="p-8 pb-24 space-y-10" novalidate autocomplete="off">
 
             <!-- پیام خطا -->
             <div id="error-alert" role="alert" aria-live="assertive"
@@ -93,7 +140,7 @@
             <!-- اطلاعات پایه -->
             <section class="bg-slate-50/80 p-7 rounded-2xl border border-slate-200 space-y-7 shadow-sm">
 
-                                <!-- ردیف اول: عنوان + تاریخ وقوع رویداد -->
+                <!-- ردیف اول: عنوان + تاریخ وقوع رویداد -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
                     <!-- عنوان (۲ سهم از ۳) -->
@@ -467,26 +514,37 @@
                 </div>
             </section>
 
-            <!-- دکمه‌های عملیاتی درشت -->
-            <div class="flex items-center justify-end gap-4 pt-8 border-t-2 border-slate-200">
+            <!-- نوار شناور پایین صفحه (راست‌چین: وضعیت پیش‌نویس | چپ‌چین: دکمه‌ها) -->
+            <div class="sticky-bottom-bar flex items-center justify-between">
+                <!-- وضعیت پیش‌نویس (سمت راست صفحه) -->
+                <div class="flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+                    <span>پیش‌نویس ذخیره‌نشده</span>
+                </div>
 
-                <a href="index.html"
-                    class="px-8 py-4 rounded-xl border-2 border-slate-300 text-slate-700 hover:bg-slate-200 text-base font-bold transition-all text-center">
-                    انصراف
-                </a>
+                <!-- دکمه‌های عملیاتی (سمت چپ صفحه) -->
+                <div class="flex items-center gap-3">
+                    <a href="index.html"
+                        class="px-5 py-2.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-semibold transition-all text-center">
+                        انصراف
+                    </a>
 
-                <button type="submit" id="submit-btn"
-                    class="px-10 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-base font-black transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
+                    <button type="submit" id="submit-btn"
+                        class="px-6 py-2.5 rounded-full bg-[#111827] hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer">
 
-                    <span id="btn-spinner" data-submit-spinner
-                        class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
-                        aria-hidden="true"></span>
+                        <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
 
-                    <span id="btn-text" data-submit-text>
-                        ثبت و ذخیره‌سازی نهایی گزارش
-                    </span>
-                </button>
+                        <span id="btn-spinner" data-submit-spinner
+                            class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                            aria-hidden="true"></span>
 
+                        <span id="btn-text" data-submit-text>
+                            ویرایش و ذخیره‌سازی نهایی
+                        </span>
+                    </button>
+                </div>
             </div>
 
         </form>

@@ -156,7 +156,7 @@ async function loadReportsTable() {
         }
 
         let html = '';
-        result.items.forEach(rec => {
+        result.items.forEach((rec, index) => {
             const exp = rec.expand || {};
             const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
             const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
@@ -169,9 +169,13 @@ async function loadReportsTable() {
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
+            // رنگ زمینه یکدست و یکی در میان برای هر کارت خبر (بدون هاور)
+            const isEven = index % 2 === 0;
+            const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
+
             html += `
                 <!-- سطر اصلی خبر -->
-                <tr class="hover:bg-slate-50/80 transition border-t border-slate-200">
+                <tr class="${bgRow} border-t-2 border-slate-300">
                     <td class="p-3 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
                     <td class="p-3"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded inline-block">${topicTitles}</span></td>
                     <td class="p-3" rowspan="2"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded inline-block">${caseTitles}</span></td>
@@ -179,23 +183,23 @@ async function loadReportsTable() {
                     <td class="p-3 text-slate-600">${formatDateToFa(rec.created)}</td>
                     <td class="p-3 text-center" rowspan="2">
                         <div class="flex flex-col gap-1.5 justify-center items-center">
-                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg transition w-full">جزئیات</button>
-                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black px-3 py-1.5 rounded-lg transition w-full text-center">ویرایش</a>
+                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg transition w-full">جزئیات</button>
+                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-black px-3 py-1.5 rounded-lg transition w-full text-center">ویرایش</a>
                         </div>
                     </td>
                 </tr>
                 <!-- سطر مکمل (اطلاعات تکمیلی زیر هر خبر) -->
-                <tr class="bg-slate-50/40 hover:bg-slate-50/80 transition border-b border-slate-200 text-slate-500 text-xs">
-                    <td class="px-3 pb-2 pt-0">
-                        <span class="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">اتوماسیون: ${rec.automation_id || '---'}</span>
+                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-xs">
+                    <td class="px-3 pb-3 pt-0">
+                        <span class="font-mono text-slate-600 bg-slate-200/60 px-1.5 py-0.5 rounded">اتوماسیون: ${rec.automation_id || '---'}</span>
                     </td>
-                    <td class="px-3 pb-2 pt-0">
+                    <td class="px-3 pb-3 pt-0">
                         <span>نوع خبر: <strong>${rec.news_type || '---'}</strong></span>
                     </td>
-                    <td class="px-3 pb-2 pt-0">
+                    <td class="px-3 pb-3 pt-0">
                         <span>تاریخ وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
                     </td>
-                    <td class="px-3 pb-2 pt-0">
+                    <td class="px-3 pb-3 pt-0">
                         <span class="text-slate-400">بروزرسانی: ${formatDateToFa(rec.updated)}</span>
                     </td>
                 </tr>

@@ -644,23 +644,58 @@ function resetAdvancedFilters() {
 // ------------------- مودال جزئیات -------------------
 async function openDetailModal(id) {
     try {
-        const report = await pb.collection('reports').getOne(id, {
-            expand: 'cases_rel,topics_rel,author.department_rel,department,submitter'
-        });
+        const [report, comments] = await Promise.all([
+            pb.collection('reports').getOne(id, {
+                expand: 'cases_rel,topics_rel,author.department_rel,department,submitter'
+            }),
+            pb.collection('comments').getFullList({
+                filter: `report = "${id}"`,
+                sort: 'created',
+                expand: 'author'
+            })
+        ]);
 
         const exp = report.expand || {};
         const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
         const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
-        // خواندن نام نویسنده
         const authorName = exp.author
             ? (exp.author.name || exp.author.username || '---')
             : '---';
 
-        // خواندن نام اداره (صرفاً از روی ادارهٔ متصل به نویسنده)
         const deptObj = exp.author?.expand?.department_rel;
         const deptName = deptObj
             ? (deptObj.name || deptObj.username || '---')
             : '---';
+
+        // ساخت HTML برای بخش کامنت‌ها، نظریه‌ها و ملاحظات
+        let commentsHtml = '';
+        if (comments && comments.length > 0) {
+            commentsHtml = comments.map(c => {
+                const cAuthor = c.expand?.author ? (c.expand.author.name || c.expand.author.username) : 'کاربر نامشخص';
+                const cType = c.type || 'کامنت عمومی';
+                
+                // استایل‌دهی بر اساس نوع (ملاحظه، نظریه، پاسخ، کامنت)
+                let badgeStyle = 'bg-slate-200 text-slate-800';
+                if (cType === 'ملاحظه') badgeStyle = 'bg-amber-100 text-amber-800 border border-amber-300';
+                else if (cType === 'نظریه') badgeStyle = 'bg-indigo-100 text-indigo-800 border border-indigo-300';
+                else if (cType === 'پاسخ') badgeStyle = 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+
+                return `
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="font-black text-slate-800">${cAuthor}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold ${badgeStyle}">${cType}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-medium">${formatDateToFa(c.created)}</span>
+                        </div>
+                        <div class="text-slate-700 text-xs leading-relaxed overflow-x-auto">${c.text || ''}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            commentsHtml = `<p class="text-slate-400 text-xs italic">هیچ کامنت، نظریه یا ملاحظه‌ای برای این خبر ثبت نشده است.</p>`;
+        }
 
         const modalContainer = document.getElementById('modal-content-container');
         modalContainer.innerHTML = `
@@ -674,6 +709,14 @@ async function openDetailModal(id) {
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">تاریخ وقوع:</span><strong class="text-slate-900 font-bold">${formatDateToFa(report.occurrence_date)}</strong></div>
             <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">چکیده:</span><p class="text-slate-800 leading-relaxed mt-1">${report.abstract || 'بدون چکیده'}</p></div>
             <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">متن کامل:</span><div class="text-slate-800 leading-relaxed mt-1 overflow-x-auto">${report.content || 'بدون متن'}</div></div>
+            
+            <!-- بخش جدید کامنت‌ها، نظریه‌ها و ملاحظات -->
+            <div class="col-span-2 bg-slate-100/70 p-4 rounded-xl space-y-3 border border-slate-200">
+                <h4 class="font-black text-slate-800 text-xs border-b border-slate-200 pb-2">💬 کامنت‌ها، نظریه‌ها و ملاحظات ثبت‌شده:</h4>
+                <div class="space-y-2">
+                    ${commentsHtml}
+                </div>
+            </div>
         `;
 
         document.getElementById('modal-edit-link').href = `create-report.html?id=${report.id}`;

@@ -149,7 +149,7 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="11" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
             return;
@@ -160,32 +160,43 @@ async function loadReportsTable() {
             const exp = rec.expand || {};
             const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
             const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
-            // خواندن نام نویسنده در مودال
             const authorName = exp.author
                 ? (exp.author.name || exp.author.username || '---')
                 : '---';
 
-            // خواندن نام اداره در مودال (صرفاً از روی ادارهٔ متصل به نویسنده)
             const deptObj = exp.author?.expand?.department_rel;
             const deptName = deptObj
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
             html += `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3.5 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
-                    <td class="p-3.5 font-mono text-slate-500">${rec.automation_id || '---'}</td>
-                    <td class="p-3.5"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded">${topicTitles}</span></td>
-                    <td class="p-3.5"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded">${caseTitles}</span></td>
-                    <td class="p-3.5">${rec.news_type || '---'}</td>
-                    <td class="p-3.5 font-semibold">${authorName}</td>
-                    <td class="p-3.5">${deptName}</td>
-                    <td class="p-3.5">${formatDateToFa(rec.occurrence_date)}</td>
-                    <td class="p-3.5">${formatDateToFa(rec.created)}</td>
-                    <td class="p-3.5">${formatDateToFa(rec.updated)}</td>
-                    <td class="p-3.5 text-center flex gap-2 justify-center">
-                        <button onclick="openDetailModal('${rec.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-black px-2.5 py-1 rounded-lg transition">جزئیات</button>
-                        <a href="create-report.html?id=${rec.id}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-black px-2.5 py-1 rounded-lg transition">ویرایش</a>
+                <!-- سطر اصلی خبر -->
+                <tr class="hover:bg-slate-50/80 transition border-t border-slate-200">
+                    <td class="p-3 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
+                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded inline-block">${topicTitles}</span></td>
+                    <td class="p-3" rowspan="2"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded inline-block">${caseTitles}</span></td>
+                    <td class="p-3 font-semibold text-slate-700">${authorName} <span class="text-xs text-slate-400">(${deptName})</span></td>
+                    <td class="p-3 text-slate-600">${formatDateToFa(rec.created)}</td>
+                    <td class="p-3 text-center" rowspan="2">
+                        <div class="flex flex-col gap-1.5 justify-center items-center">
+                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg transition w-full">جزئیات</button>
+                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black px-3 py-1.5 rounded-lg transition w-full text-center">ویرایش</a>
+                        </div>
+                    </td>
+                </tr>
+                <!-- سطر مکمل (اطلاعات تکمیلی زیر هر خبر) -->
+                <tr class="bg-slate-50/40 hover:bg-slate-50/80 transition border-b border-slate-200 text-slate-500 text-xs">
+                    <td class="px-3 pb-2 pt-0">
+                        <span class="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">اتوماسیون: ${rec.automation_id || '---'}</span>
+                    </td>
+                    <td class="px-3 pb-2 pt-0">
+                        <span>نوع خبر: <strong>${rec.news_type || '---'}</strong></span>
+                    </td>
+                    <td class="px-3 pb-2 pt-0">
+                        <span>تاریخ وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
+                    </td>
+                    <td class="px-3 pb-2 pt-0">
+                        <span class="text-slate-400">بروزرسانی: ${formatDateToFa(rec.updated)}</span>
                     </td>
                 </tr>
             `;

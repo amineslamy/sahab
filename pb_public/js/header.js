@@ -28,7 +28,7 @@ async function renderGlobalHeader() {
 
             <nav class="navbar-menu">
                 <a href="index.html" class="nav-item ${isCurrentPage('index.html') ? 'active' : ''}">پیشخوان</a>
-                <a href="create-report.html" class="nav-item ${isCurrentPage('create-report.html') ? 'active' : ''}">افزودن| ویرایش خبر</a>
+                <a href="create-report.html" class="nav-item ${isCurrentPage('create-report.html') ? 'active' : ''}">افزودن | ویرایش خبر</a>
             </nav>
 
             <div class="navbar-user-profile">

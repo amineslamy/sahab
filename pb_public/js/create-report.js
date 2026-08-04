@@ -46,9 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 autoClose: true,
                 initialValue: false,
                 onSelect: function (unix) {
-                    // تبدیل زمان Unix به فرمت استاندارد UTC برای پاکت‌بیس (YYYY-MM-DD HH:mm:ss.sssZ)
-                    const dateObj = new Date(unix);
-                    const isoDate = dateObj.toISOString();
+                    // استخراج تاریخ میلادی معادل بر اساس Timestamp شمسی انتخاب‌شده
+                    const pDate = new persianDate(unix);
+                    const gDate = pDate.toDate();
+                    const isoDate = gDate.toISOString();
 
                     // مقداردهی دقیق به فیلد هیدن
                     const hiddenInput = document.getElementById('report-occurrence-date');
@@ -199,9 +200,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hiddenInput = $id('report-occurrence-date');
                 if (hiddenInput) hiddenInput.value = report.occurrence_date;
 
-                const dateObj = new Date(report.occurrence_date);
-                const formattedFa = dateObj.toLocaleDateString('fa-IR');
-                setInputValue('occurrence-date-picker', formattedFa);
+                if (typeof persianDate !== 'undefined') {
+                    const gDate = new Date(report.occurrence_date);
+                    const pDate = new persianDate(gDate);
+                    pDate.toLocale('en');
+                    const formattedFa = `${pDate.year()}/${String(pDate.month()).padStart(2, '0')}/${String(pDate.date()).padStart(2, '0')}`;
+                    setInputValue('occurrence-date-picker', formattedFa);
+                } else {
+                    const dateObj = new Date(report.occurrence_date);
+                    setInputValue('occurrence-date-picker', dateObj.toLocaleDateString('fa-IR'));
+                }
             }
 
             // ۳. مقداردهی ادیتور Quill

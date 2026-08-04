@@ -8,6 +8,31 @@ let currentPage = 1;
 let perPage = 10;
 let currentFilterQuery = "";
 
+// تابع کمکی برای ساخت فیلتر بر اساس نقش کاربر
+function getRoleBasedFilter() {
+    const user = pb.authStore.model;
+    if (!user) return "id = ''"; // در صورت عدم وجود کاربر، هیچ داده‌ای برنگردد
+
+    const role = user.role;
+
+    // ادمین‌ها و مدیر کل به همه گزارش‌ها دسترسی دارند
+    if (role === 'admin_site' || role === 'admin_general') {
+        return "";
+    }
+
+    // اداره: گزارش‌های خودش + اخبار کارشناسان زیرمجموعه‌اش
+    if (role === 'department') {
+        return `(author = "${user.id}" || author.department_rel = "${user.id}")`;
+    }
+
+    // کارشناس: فقط گزارش‌های خودش
+    if (role === 'expert') {
+        return `author = "${user.id}"`;
+    }
+
+    // نقش پیش‌فرض/ناشناخته
+    return `author = "${user.id}"`;
+}
 const chartFont = 'Vazirmatn, sans-serif';
 if (window.Apex) {
     window.Apex = {
@@ -113,10 +138,12 @@ function formatDateToFa(dateStr) {
 
 async function loadAllBaseData() {
     try {
+        const roleFilter = getRoleBasedFilter();
         const [reports, topics, cases, users] = await Promise.all([
             pb.collection('reports').getFullList({
                 sort: '-created',
-                expand: 'cases_rel,topics_rel,author.department_rel,department,submitter'
+                expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
+                filter: roleFilter
             }),
             pb.collection('topics').getFullList(),
             pb.collection('cases').getFullList(),
@@ -150,10 +177,17 @@ async function loadReportsTable() {
     if (!tbody) return;
 
     try {
+        const roleFilter = getRoleBasedFilter();
+        let finalFilter = roleFilter;
+
+        if (currentFilterQuery) {
+            finalFilter = roleFilter ? `(${roleFilter}) && (${currentFilterQuery})` : currentFilterQuery;
+        }
+
         const result = await pb.collection('reports').getList(currentPage, perPage, {
             sort: '-created',
             expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
-            filter: currentFilterQuery
+            filter: finalFilter
         });
 
         if (result.items.length === 0) {

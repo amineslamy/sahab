@@ -697,6 +697,56 @@ async function openDetailModal(id) {
             commentsHtml = `<p class="text-slate-400 text-xs italic">هیچ کامنت، نظریه یا ملاحظه‌ای برای این خبر ثبت نشده است.</p>`;
         }
 
+        // ساخت HTML مربوط به تصویر شاخص (cover_image)
+        let coverImageHtml = '';
+        if (report.cover_image) {
+            const coverUrl = pb.files.getUrl(report, report.cover_image);
+            coverImageHtml = `
+                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 block mb-2">تصویر شاخص (کاور):</span>
+                    <a href="${coverUrl}" target="_blank" class="inline-block">
+                        <img src="${coverUrl}" alt="تصویر شاخص" class="max-h-64 rounded-lg border border-slate-200 object-cover shadow-sm hover:opacity-90 transition">
+                    </a>
+                </div>
+            `;
+        } else {
+            coverImageHtml = `
+                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 block">تصویر شاخص (کاور):</span>
+                    <p class="text-slate-400 italic mt-1">بدون تصویر شاخص</p>
+                </div>
+            `;
+        }
+
+        // ساخت HTML مربوط به فایل‌های پیوست (attachments)
+        let attachmentsHtml = '';
+        if (report.attachments && Array.isArray(report.attachments) && report.attachments.length > 0) {
+            const fileItems = report.attachments.map(file => {
+                const fileUrl = pb.files.getUrl(report, file);
+                return `
+                    <li>
+                        <a href="${fileUrl}" target="_blank" download class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline inline-flex items-center gap-1">
+                            📎 ${file}
+                        </a>
+                    </li>
+                `;
+            }).join('');
+
+            attachmentsHtml = `
+                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 block mb-2">فایل‌های پیوست:</span>
+                    <ul class="space-y-1 text-xs">${fileItems}</ul>
+                </div>
+            `;
+        } else {
+            attachmentsHtml = `
+                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
+                    <span class="text-slate-500 block">فایل‌های پیوست:</span>
+                    <p class="text-slate-400 italic mt-1">بدون فایل پیوست</p>
+                </div>
+            `;
+        }
+
         const modalContainer = document.getElementById('modal-content-container');
         modalContainer.innerHTML = `
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">عنوان:</span><strong class="text-slate-900 font-bold">${report.title || '---'}</strong></div>
@@ -707,16 +757,21 @@ async function openDetailModal(id) {
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">طبقه‌بندی / اولویت:</span><strong class="text-slate-900 font-bold">${report.classification || '---'} / ${report.priority || '---'}</strong></div>
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نویسنده / اداره:</span><strong class="text-slate-900 font-bold">${authorName} - ${deptName}</strong></div>
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">تاریخ وقوع:</span><strong class="text-slate-900 font-bold">${formatDateToFa(report.occurrence_date)}</strong></div>
+            ${coverImageHtml}     
+
+
             <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">چکیده:</span><p class="text-slate-800 leading-relaxed mt-1">${report.abstract || 'بدون چکیده'}</p></div>
             <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">متن کامل:</span><div class="text-slate-800 leading-relaxed mt-1 overflow-x-auto">${report.content || 'بدون متن'}</div></div>
-            
-            <!-- بخش جدید کامنت‌ها، نظریه‌ها و ملاحظات -->
+         
+            <!-- بخش کامنت‌ها، نظریه‌ها و ملاحظات -->
             <div class="col-span-2 bg-slate-100/70 p-4 rounded-xl space-y-3 border border-slate-200">
                 <h4 class="font-black text-slate-800 text-xs border-b border-slate-200 pb-2">💬 کامنت‌ها، نظریه‌ها و ملاحظات ثبت‌شده:</h4>
                 <div class="space-y-2">
                     ${commentsHtml}
                 </div>
             </div>
+
+            ${attachmentsHtml} 
         `;
 
         document.getElementById('modal-edit-link').href = `create-report.html?id=${report.id}`;

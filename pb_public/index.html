@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>داشبورد سامانه مدیریت اخبار سحاب</title>
 
-    <!-- ۱. استایل هدر و Tailwind -->
+    <!-- ۱. استایل هدر و Tailwind محلی -->
     <link rel="stylesheet" href="css/header.css">
     <script src="js/tailwindcss.js"></script>
 
@@ -36,43 +36,349 @@
             font-display: swap;
         }
 
-        body {
-            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+        * {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif !important;
+        }
+
+        .tab-btn {
+            position: relative;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .tab-btn.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
 
-    <!-- محل تزریق هدر داینامیک -->
+    <!-- ۱. هدر سراسری سامانه سحاب -->
     <div id="app-header"></div>
 
-    <!-- محتوای اصلی داشبورد -->
-    <main class="flex-1 p-6 max-w-7xl w-full mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-slate-800">آخرین گزارش‌ها و اخبار ثبت شده</h2>
-            <button id="open-modal-btn" type="button"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition font-medium flex items-center gap-2 shadow cursor-pointer">
-                <span>+ ثبت گزارش جدید</span>
+    <!-- ۲. نوار تب‌های اصلی -->
+    <div class="flex justify-center my-4">
+        <div class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-2xl w-full justify-between">
+            <button onclick="switchTab('tab-overview')" id="btn-tab-overview" class="tab-btn active flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
+                📊 خلاصه عملیاتی
+            </button>
+            <button onclick="switchTab('tab-analytics')" id="btn-tab-analytics" class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
+                📈 تحلیل و آمار گزارش‌ها
+            </button>
+            <button onclick="switchTab('tab-search')" id="btn-tab-search" class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
+                🔍 جستجو و فیلتر پیشرفته
             </button>
         </div>
+    </div>
 
-        <!-- باکس نمایش لیست اخبار/گزارش‌ها -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <span class="text-sm font-medium text-slate-600">جدول اطلاعات</span>
-                <span id="reports-count" class="text-xs bg-slate-200 px-2 py-1 rounded text-slate-700">۰ مورد</span>
+    <!-- ==================== تب اول: خلاصه عملیاتی ==================== -->
+    <div id="tab-overview" class="tab-content space-y-6">
+
+        <!-- ردیف اول: نمودارهای خلاصه موضوعات و کیس‌ها -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-slate-800 text-base">توزیع موضوعی اخبار سامانه</h3>
+                    <div class="group relative cursor-pointer">
+                        <span class="bg-indigo-100 border border-indigo-200 text-indigo-800 text-xs font-black px-3 py-1.5 rounded-xl shadow-sm">
+                            مجموع کل اخبار: <strong id="stat-total-reports-1" class="text-sm font-black text-indigo-950">۰</strong>
+                        </span>
+                    </div>
+                </div>
+                <div id="chart-topics" class="min-h-[260px]"></div>
             </div>
 
-            <div id="reports-container" class="p-8 text-center text-slate-500">
-                در حال دریافت اطلاعات از دیتابیس...
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-slate-800 text-base">اخبار مربوط به کیس‌ها</h3>
+                    <div class="group relative cursor-pointer">
+                        <span class="bg-purple-100 border border-purple-200 text-purple-800 text-xs font-black px-3 py-1.5 rounded-xl shadow-sm">
+                            کیس‌های فعال: <strong id="stat-active-cases" class="text-sm font-black text-purple-950">۰</strong>
+                        </span>
+                    </div>
+                </div>
+                <div id="chart-cases" class="min-h-[260px]"></div>
             </div>
         </div>
-    </main>
 
-    <!-- ترتیب صحیح فراخوانی اسکریپت‌ها -->
+        <!-- ردیف دوم: جدول جامع آخرین اخبار ثبت‌شده -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                <div>
+                    <h3 class="font-black text-slate-800 text-lg">آخرین اخبار و گزارش‌های ثبت شده</h3>
+                    <p class="text-xs text-slate-500 mt-1">لیست عملیاتی گزارش‌ها به همراه جزئیات کامل و دسترسی سریع به ویرایش</p>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                        نمایش:
+                        <select id="per-page-select" onchange="changePerPage(this.value)" class="border border-slate-300 rounded-lg text-xs p-1.5 bg-white font-bold text-slate-700 outline-none">
+                            <option value="10" selected>۱۰ مورد</option>
+                            <option value="25">۲۵ مورد</option>
+                            <option value="50">۵۰ مورد</option>
+                            <option value="100">۱۰۰ مورد</option>
+                        </select>
+                    </label>
+
+                    <a href="create-report.html" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
+                        + ثبت گزارش جدید
+                    </a>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs text-slate-700 whitespace-nowrap">
+                    <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="p-3.5">عنوان</th>
+                            <th class="p-3.5">شماره اتوماسیون</th>
+                            <th class="p-3.5">موضوع</th>
+                            <th class="p-3.5">کیس</th>
+                            <th class="p-3.5">نوع خبر</th>
+                            <th class="p-3.5">نویسنده</th>
+                            <th class="p-3.5">اداره</th>
+                            <th class="p-3.5">تاریخ وقوع</th>
+                            <th class="p-3.5">تاریخ انتشار</th>
+                            <th class="p-3.5">تاریخ به‌روزرسانی</th>
+                            <th class="p-3.5 text-center">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-reports-body" class="divide-y divide-slate-100 font-medium">
+                        <tr>
+                            <td colspan="11" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/30 text-xs font-bold text-slate-600">
+                <span id="pagination-info">صفحه ۱ (در حال دریافت...)</span>
+                <div id="pagination-controls" class="flex gap-1"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== تب دوم: تحلیل و آمار گزارش‌ها ==================== -->
+    <div id="tab-analytics" class="tab-content hidden space-y-6">
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="font-black text-slate-800 text-base">تنظیم بازه زمانی تحلیل آمار گزارش‌ها</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">نمودارهای این صفحه بر اساس بازه تاریخ ثبت به روزرسانی می‌شوند</p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-inner">
+                    <span>از تاریخ ثبت:</span>
+                    <input type="text" id="filter-date-from" placeholder="YYYY-MM-DD" class="border border-slate-300 rounded-lg px-2.5 py-1 text-center font-bold bg-white text-indigo-900 outline-none w-32 focus:border-indigo-500">
+                    <span>تا:</span>
+                    <input type="text" id="filter-date-to" placeholder="YYYY-MM-DD" class="border border-slate-300 rounded-lg px-2.5 py-1 text-center font-bold bg-white text-indigo-900 outline-none w-32 focus:border-indigo-500">
+                    <button onclick="applyAnalyticsDateFilter()" class="bg-indigo-600 text-white px-4 py-1 rounded-lg font-black hover:bg-indigo-700 transition-all shadow-sm">اعمال فیلتر</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-black text-slate-800 text-base">روند زمانی انتشار اخبار در سامانه</h3>
+            </div>
+            <div id="chart-timeline" class="min-h-[280px]"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-black text-slate-800 text-base">عملکرد و فعالیت کاربران در انتشار اخبار</h3>
+            </div>
+            <div id="chart-user-performance" class="min-h-[320px]"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="font-black text-slate-800 text-base">تحلیل تفکیکی نوع اخبار</h3>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">اخبار به تفکیک اداره (department)</h4>
+                    <div id="chart-department" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">وضعیت داشتن چکیده</h4>
+                    <div id="chart-has-summary" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">وضعیت تصویر پیوست</h4>
+                    <div id="chart-has-image" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">توزیع کیس‌ها (cases_rel)</h4>
+                    <div id="chart-analytics-cases" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">توزیع موضوعات (topics_rel)</h4>
+                    <div id="chart-analytics-topics" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">تفکیک کاربران ثبت‌کننده (submitter)</h4>
+                    <div id="chart-analytics-creators" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">طبقه‌بندی (classification)</h4>
+                    <div id="chart-classification" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">اولویت (priority)</h4>
+                    <div id="chart-priority" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">نوع خبر (news_type)</h4>
+                    <div id="chart-news-type" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">ارزیابی خبر (evaluation)</h4>
+                    <div id="chart-evaluation" class="min-h-[250px]"></div>
+                </div>
+
+                <div class="col-span-1 lg:col-span-2 border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
+                    <h4 class="font-black text-slate-700 text-xs mb-2">روند زمانی بر اساس «تاریخ وقوع»</h4>
+                    <div id="chart-occurrence-timeline" class="min-h-[260px]"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== تب سوم: جستجو و فیلتر پیشرفته ==================== -->
+    <div id="tab-search" class="tab-content hidden space-y-6">
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="font-black text-slate-800 text-base">جستجوی عمومی در کل سامانه</h3>
+            <div class="flex gap-2">
+                <input type="text" id="global-search-input" placeholder="کلیدواژه، عنوان، شماره اتوماسیون یا خلاصه خبر را وارد کنید..." class="flex-1 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-indigo-600">
+                <button onclick="executeGlobalSearch()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-black text-xs hover:bg-indigo-700">جستجو</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+            <h3 class="font-black text-slate-800 text-base border-b border-slate-100 pb-3">فیلترهای ترکیبی پیشرفته</h3>
+
+            <div class="space-y-3">
+                <h4 class="text-xs font-black text-indigo-700">فیلترهای مربوط به گزارش‌ها (Reports)</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold">
+                    <div>
+                        <label class="block text-slate-600 mb-1">موضوع:</label>
+                        <select id="adv-filter-topic" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موضوعات</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">کیس:</label>
+                        <select id="adv-filter-case" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه کیس‌ها</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">طبقه‌بندی:</label>
+                        <select id="adv-filter-classification" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="عادی">عادی</option>
+                            <option value="محرمانه">محرمانه</option>
+                            <option value="خیلی محرمانه">خیلی محرمانه</option>
+                            <option value="سری">سری</option>
+                            <option value="به کلی سری">به کلی سری</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">اولویت:</label>
+                        <select id="adv-filter-priority" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="عادی">عادی</option>
+                            <option value="فوری">فوری</option>
+                            <option value="آنی">آنی</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">نوع خبر:</label>
+                        <select id="adv-filter-news-type" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="آشکار">آشکار</option>
+                            <option value="رسمی">رسمی</option>
+                            <option value="فنی">فنی</option>
+                            <option value="سایبری">سایبری</option>
+                            <option value="منبع">منبع</option>
+                            <option value="راوی">راوی</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">ارزیابی صحت:</label>
+                        <select id="adv-filter-evaluation" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه موارد</option>
+                            <option value="صحت دارد">صحت دارد</option>
+                            <option value="احتمالا صحت دارد">احتمالا صحت دارد</option>
+                            <option value="در دست بررسی">در دست بررسی</option>
+                            <option value="صحت ندارد">صحت ندارد</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3 border-t border-slate-100 pt-4">
+                <h4 class="text-xs font-black text-purple-700">فیلترهای مربوط به کاربران (Users)</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold">
+                    <div>
+                        <label class="block text-slate-600 mb-1">نویسنده:</label>
+                        <select id="adv-filter-author" class="border p-2 rounded-lg w-full bg-white">
+                            <option value="">همه کاربران</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+                <button onclick="resetAdvancedFilters()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold">پاکسازی فیلترها</button>
+                <button onclick="applyAdvancedFilters()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black hover:bg-indigo-700">اعمال فیلترهای تخصصی</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==================== مودال پیش‌نمایش کامل جزئیات خبر ==================== -->
+    <div id="detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-3xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-black text-slate-800 text-base">پیش‌نمایش کامل تمامی فیلدهای خبر</h3>
+                <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 font-black text-lg">✕</button>
+            </div>
+
+            <div id="modal-content-container" class="grid grid-cols-2 gap-4 text-xs">
+                <!-- محتوای dynamic مودال اینجا بارگذاری می‌شود -->
+            </div>
+
+            <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                <button onclick="closeDetailModal()" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold">بستن</button>
+                <a id="modal-edit-link" href="#" class="bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-black hover:bg-indigo-700">ویرایش خبر</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- اسکریپت‌های محلی سیستم -->
     <script src="js/pocketbase.umd.js?v=1"></script>
-    <script src="js/main.js?v=2"></script>
+    <script src="js/persian-date.min.js"></script>
+    <script src="js/apexcharts.min.js"></script>
+    <script src="js/main.js?v=3"></script>
     <script src="js/header.js"></script>
 </body>
 

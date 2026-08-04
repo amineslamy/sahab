@@ -1,6 +1,7 @@
-// مطمئن شویم متغیر pb تعریف شده است
-const pb = window.pb || (window.state && window.state.pb) || new PocketBase('http://127.0.0.1:8090');
-// header.js - مدیریت یکپارچه هدر در تمام صفحات
+// اطمینان از مقداردهی pb در صورت عدم وجود
+if (typeof pb === 'undefined') {
+    window.pb = (window.state && window.state.pb) || new PocketBase('http://127.0.0.1:8090');
+}// header.js - مدیریت یکپارچه هدر در تمام صفحات
 async function renderGlobalHeader() {
     const headerContainer = document.getElementById('app-header');
     if (!headerContainer) return;

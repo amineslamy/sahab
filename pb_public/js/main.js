@@ -253,21 +253,49 @@ function renderOverviewCharts() {
     });
 }
 
+// تابع کمکی تبدیل تاریخ میلادی (YYYY-MM-DD یا ISO) به فرمت شمسی کوتاه (YY/MM/DD)
+function convertIsoToFaShort(dateStr) {
+    if (!dateStr || dateStr === 'نامشخص') return 'نامشخص';
+    try {
+        const cleanDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+        if (window.persianDate) {
+            const parts = cleanDate.split('-');
+            if (parts.length === 3) {
+                // ساخت شیء تاریخ استاندارد JS از روی ورودی میلادی
+                const gDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                // تبدیل صحیح تاریخ میلادی به شمسی
+                const pd = new window.persianDate(gDate);
+                return pd.format('YY/MM/DD');
+            }
+        }
+        const d = new Date(cleanDate);
+        return d.toLocaleDateString('fa-IR');
+    } catch {
+        return dateStr;
+    }
+}
+
 function renderAnalyticsCharts(reportsData = allReports) {
-    // روند زمانی انتشار
+    // ۱. روند زمانی انتشار (تجمیع بر اساس روز + تبدیل به تاریخ شمسی کوتاه)
     const datesMap = {};
     reportsData.forEach(r => {
-        const d = r.created ? r.created.split('T')[0] : 'نامشخص';
-        datesMap[d] = (datesMap[d] || 0) + 1;
+        if (r.created) {
+            const rawDay = r.created.includes('T') ? r.created.split('T')[0] : r.created.split(' ')[0];
+            datesMap[rawDay] = (datesMap[rawDay] || 0) + 1;
+        }
     });
-    const sortedDates = Object.keys(datesMap).sort();
+
+    const sortedRawDates = Object.keys(datesMap).sort();
+    const timelineCategories = sortedRawDates.map(d => convertIsoToFaShort(d));
+    const timelineValues = sortedRawDates.map(d => datesMap[d]);
+
     renderChart("#chart-timeline", {
-        series: [{ name: 'تعداد اخبار', data: sortedDates.map(k => datesMap[k]) }],
+        series: [{ name: 'تعداد اخبار', data: timelineValues }],
         chart: { type: 'area', height: 260, toolbar: { show: false } },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#06b6d4'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
-        xaxis: { categories: sortedDates }
+        xaxis: { categories: timelineCategories }
     });
 
     // عملکرد کاربران
@@ -397,20 +425,26 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#10b981', '#f59e0b', '#3b82f6', '#f43f5e']
     });
 
-    // روند زمانی تاریخ وقوع
+    // ۲. روند زمانی تاریخ وقوع (تجمیع بر اساس روز + تبدیل به تاریخ شمسی کوتاه)
     const occMap = {};
     reportsData.forEach(r => {
-        const d = r.occurrence_date ? r.occurrence_date.split('T')[0] : 'نامشخص';
-        occMap[d] = (occMap[d] || 0) + 1;
+        if (r.occurrence_date) {
+            const rawDay = r.occurrence_date.includes('T') ? r.occurrence_date.split('T')[0] : r.occurrence_date.split(' ')[0];
+            occMap[rawDay] = (occMap[rawDay] || 0) + 1;
+        }
     });
-    const sortedOcc = Object.keys(occMap).sort();
+
+    const sortedRawOcc = Object.keys(occMap).sort();
+    const occCategories = sortedRawOcc.map(d => convertIsoToFaShort(d));
+    const occValues = sortedRawOcc.map(d => occMap[d]);
+
     renderChart("#chart-occurrence-timeline", {
-        series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: sortedOcc.map(k => occMap[k]) }],
+        series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
         chart: { type: 'area', height: 260, toolbar: { show: false } },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#0284c7'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
-        xaxis: { categories: sortedOcc }
+        xaxis: { categories: occCategories }
     });
 }
 

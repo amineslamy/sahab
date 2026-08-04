@@ -221,6 +221,13 @@ function renderChart(elementSelector, options) {
     chartInstances[elementSelector] = chart;
 }
 
+// پالت رنگی گسترده (۱۵ رنگ هماهنگ و متمایز)
+const extendedPalette = [
+    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4', 
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b'
+];
+
 function renderOverviewCharts() {
     // ۱. نمودار موضوعات
     const topicCounts = {};
@@ -234,7 +241,7 @@ function renderOverviewCharts() {
         series: Object.values(topicCounts).length ? Object.values(topicCounts) : [1],
         labels: Object.keys(topicCounts).length ? Object.keys(topicCounts) : ['بدون داده'],
         chart: { type: 'donut', height: 260 },
-        colors: ['#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4']
+        colors: extendedPalette
     });
 
     // ۲. نمودار کیس‌ها
@@ -249,7 +256,7 @@ function renderOverviewCharts() {
         series: Object.values(caseCounts).length ? Object.values(caseCounts) : [1],
         labels: Object.keys(caseCounts).length ? Object.keys(caseCounts) : ['بدون داده'],
         chart: { type: 'donut', height: 260 },
-        colors: ['#f97316', '#8b5cf6', '#06b6d4', '#10b981']
+        colors: extendedPalette
     });
 }
 
@@ -356,7 +363,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(caseMap).length ? Object.values(caseMap) : [1],
         labels: Object.keys(caseMap).length ? Object.keys(caseMap) : ['بدون کیس'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#8b5cf6', '#06b6d4', '#f97316', '#a855f7']
+        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', 
+    '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#3b82f6', '#84cc16', '#d97706', '#64748b']
     });
 
     // موضوعات
@@ -368,7 +377,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(topicMap).length ? Object.values(topicMap) : [1],
         labels: Object.keys(topicMap).length ? Object.keys(topicMap) : ['بدون موضوع'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#6366f1', '#10b981', '#ec4899', '#eab308']
+        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', 
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
     });
 
     // ثبت کننده
@@ -392,7 +403,7 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(classMap),
         labels: Object.keys(classMap),
         chart: { type: 'donut', height: 250 },
-        colors: ['#64748b', '#f59e0b', '#f97316', '#ef4444', '#991b1b']
+        colors: ['#10b981', '#8b5cf6', '#3b82f6', '#f97316', '#ec4899', '#cde73a']
     });
 
     // اولویت
@@ -402,7 +413,7 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(prioMap),
         labels: Object.keys(prioMap),
         chart: { type: 'donut', height: 250 },
-        colors: ['#3b82f6', '#f59e0b', '#ef4444']
+        colors: ['#3b82f6', '#f59e0b', '#ef4444', '#de48ec']
     });
 
     // نوع خبر
@@ -422,7 +433,7 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(evalMap),
         labels: Object.keys(evalMap),
         chart: { type: 'donut', height: 250 },
-        colors: ['#10b981', '#f59e0b', '#3b82f6', '#f43f5e']
+        colors: ['#10b981', '#f59e0b', '#3b82f6', '#f43f5e', '#bb48ec']
     });
 
     // ۲. روند زمانی تاریخ وقوع (تجمیع بر اساس روز + تبدیل به تاریخ شمسی کوتاه)

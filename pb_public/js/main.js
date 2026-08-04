@@ -239,11 +239,12 @@ function renderAnalyticsCharts(reportsData = allReports) {
     // تفکیک اداره
     const deptMap = {};
     reportsData.forEach(r => {
-        const dName = r.expand?.department?.name || r.expand?.department?.username || 'تعریف نشده';
+        const deptObj = r.expand?.author?.expand?.department_rel;
+        const dName = deptObj ? (deptObj.name || deptObj.username || 'تعریف‌نشده') : 'تعریف‌نشده';
         deptMap[dName] = (deptMap[dName] || 0) + 1;
     });
     renderChart("#chart-department", {
-        series: [{ name: 'تعداد اخبار', data: Object.values(deptMap) }],
+        series: [{ name: 'تعداد اخبار به تفکیک اداره', data: Object.values(deptMap) }],
         chart: { type: 'bar', height: 250, toolbar: { show: false } },
         plotOptions: { bar: { borderRadius: 5, horizontal: true } },
         colors: ['#3b82f6'],

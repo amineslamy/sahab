@@ -321,7 +321,12 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-timeline", {
         series: [{ name: 'تعداد اخبار', data: timelineValues }],
-        chart: { type: 'area', height: 260, toolbar: { show: false } },
+        chart: { 
+            type: 'area', 
+            height: 260, 
+            toolbar: { show: false },
+            zoom: { enabled: false }
+        },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#06b6d4'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
@@ -474,7 +479,12 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-occurrence-timeline", {
         series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
-        chart: { type: 'area', height: 260, toolbar: { show: false } },
+        chart: { 
+            type: 'area', 
+            height: 260, 
+            toolbar: { show: false },
+            zoom: { enabled: false }
+        },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#0284c7'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },

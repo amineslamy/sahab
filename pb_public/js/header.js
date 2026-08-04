@@ -24,7 +24,7 @@ async function renderGlobalHeader() {
     const userRole = roleTitles[rawRole] || rawRole || 'کاربر سیستم';
     const avatarUrl = user?.avatar
         ? pb.files.getUrl(user, user.avatar)
-        : 'assets/images/default-avatar.png'; // مسیر آواتار پیش‌فرض شما
+        : 'images/default-avatar.png'; // مسیر آواتار پیش‌فرض شما
 
     // ساختار HTML هدر
     headerContainer.innerHTML = `

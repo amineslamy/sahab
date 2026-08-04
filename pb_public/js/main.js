@@ -60,7 +60,7 @@ async function loadAllBaseData() {
         const [reports, topics, cases, users] = await Promise.all([
             pb.collection('reports').getFullList({
                 sort: '-created',
-                expand: 'cases_rel,topics_rel,author,department,submitter'
+                expand: 'cases_rel,topics_rel,author.department_rel,department,submitter'
             }),
             pb.collection('topics').getFullList(),
             pb.collection('cases').getFullList(),
@@ -96,7 +96,7 @@ async function loadReportsTable() {
     try {
         const result = await pb.collection('reports').getList(currentPage, perPage, {
             sort: '-created',
-            expand: 'cases_rel,topics_rel,author,department,submitter',
+            expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
             filter: currentFilterQuery
         });
 
@@ -112,8 +112,16 @@ async function loadReportsTable() {
             const exp = rec.expand || {};
             const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
             const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
-            const authorName = exp.author ? (exp.author.name || exp.author.username || '---') : '---';
-            const deptName = exp.department ? (exp.department.name || exp.department.username || '---') : '---';
+            // خواندن نام نویسنده در مودال
+        const authorName = exp.author 
+            ? (exp.author.name || exp.author.username || '---') 
+            : '---';
+
+        // خواندن نام اداره در مودال (صرفاً از روی ادارهٔ متصل به نویسنده)
+        const deptObj = exp.author?.expand?.department_rel;
+        const deptName = deptObj 
+            ? (deptObj.name || deptObj.username || '---') 
+            : '---';
 
             html += `
                 <tr class="hover:bg-slate-50 transition">
@@ -447,14 +455,22 @@ function resetAdvancedFilters() {
 async function openDetailModal(id) {
     try {
         const report = await pb.collection('reports').getOne(id, {
-            expand: 'cases_rel,topics_rel,author,department,submitter'
+            expand: 'cases_rel,topics_rel,author.department_rel,department,submitter'
         });
 
         const exp = report.expand || {};
         const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
         const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
-        const authorName = exp.author ? (exp.author.name || exp.author.username || '---') : '---';
-        const deptName = exp.department ? (exp.department.name || exp.department.username || '---') : '---';
+        // خواندن نام نویسنده
+            const authorName = exp.author 
+                ? (exp.author.name || exp.author.username || '---') 
+                : '---';
+
+            // خواندن نام اداره (صرفاً از روی ادارهٔ متصل به نویسنده)
+            const deptObj = exp.author?.expand?.department_rel;
+            const deptName = deptObj 
+                ? (deptObj.name || deptObj.username || '---') 
+                : '---';
 
         const modalContainer = document.getElementById('modal-content-container');
         modalContainer.innerHTML = `

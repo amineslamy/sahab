@@ -34,29 +34,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadReportsTable();
     populateSearchDropdowns();
 
-    // راه‌اندازی تقویم شمسی
-    if (window.$ && $.fn.persianDatepicker) {
-        $('#filter-date-from').persianDatepicker({
-            format: 'YYYY/MM/DD',
-            autoClose: true,
-            initialValue: false,
-            onSelect: function (unix) {
-                const dateObj = new Date(unix);
-                const isoDate = dateObj.toISOString().split('T')[0];
-                $('#filter-date-from').data('iso', isoDate);
-            }
-        });
+    // راه‌اندازی تقویم شمسی با تنظیم پیش‌فرض ۳۰ روز گذشته
+    if (window.$ && $.fn.persianDatepicker && window.persianDate) {
+        const pdTo = new persianDate(); // تاریخ امروز (شمسی)
+        const pdFrom = new persianDate().subtract('days', 30); // ۳۰ روز قبل (شمسی)
 
-        $('#filter-date-to').persianDatepicker({
+        // ۱. استخراج تاریخ ISO میلادی جهت فیلتر نمودارها
+        const isoTo = pdTo.toDate().toISOString().split('T')[0];
+        const isoFrom = pdFrom.toDate().toISOString().split('T')[0];
+
+        const $dateFrom = $('#filter-date-from');
+        const $dateTo = $('#filter-date-to');
+
+        // ۲. ذخیره مقادیر اولیه ISO در ویژگی data
+        $dateFrom.data('iso', isoFrom);
+        $dateTo.data('iso', isoTo);
+
+        // ۳. راه‌اندازی دیت‌پیکر «از»
+        $dateFrom.persianDatepicker({
             format: 'YYYY/MM/DD',
             autoClose: true,
             initialValue: false,
             onSelect: function (unix) {
                 const dateObj = new Date(unix);
                 const isoDate = dateObj.toISOString().split('T')[0];
-                $('#filter-date-to').data('iso', isoDate);
+                $dateFrom.data('iso', isoDate);
             }
         });
+        // مقداردهی ظاهری فیلد «از» با فرمت شمسی
+        $dateFrom.val(pdFrom.format('YYYY/MM/DD'));
+
+        // ۴. راه‌اندازی دیت‌پیکر «تا»
+        $dateTo.persianDatepicker({
+            format: 'YYYY/MM/DD',
+            autoClose: true,
+            initialValue: false,
+            onSelect: function (unix) {
+                const dateObj = new Date(unix);
+                const isoDate = dateObj.toISOString().split('T')[0];
+                $dateTo.data('iso', isoDate);
+            }
+        });
+        // مقداردهی ظاهری فیلد «تا» با فرمت شمسی
+        $dateTo.val(pdTo.format('YYYY/MM/DD'));
+
+        // ۵. اعمال فیلتر بر روی نمودارها بر اساس بازه اولیه ۳۰ روزه
+        applyAnalyticsDateFilter();
     }
 });
 

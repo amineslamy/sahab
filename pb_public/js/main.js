@@ -36,12 +36,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // راه‌اندازی تقویم شمسی با تنظیم پیش‌فرض ۳۰ روز گذشته
     if (window.$ && $.fn.persianDatepicker && window.persianDate) {
+        // تابع کمکی برای استخراج تاریخ میلادی بدون تغییر منطقه زمانی (Timezone Shift)
+        const formatLocalDateToIso = (d) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         const pdTo = new persianDate(); // تاریخ امروز (شمسی)
         const pdFrom = new persianDate().subtract('days', 30); // ۳۰ روز قبل (شمسی)
 
-        // ۱. استخراج تاریخ ISO میلادی جهت فیلتر نمودارها
-        const isoTo = pdTo.toDate().toISOString().split('T')[0];
-        const isoFrom = pdFrom.toDate().toISOString().split('T')[0];
+        // ۱. استخراج تاریخ ISO میلادی محلی جهت فیلتر نمودارها
+        const isoTo = formatLocalDateToIso(pdTo.toDate());
+        const isoFrom = formatLocalDateToIso(pdFrom.toDate());
 
         const $dateFrom = $('#filter-date-from');
         const $dateTo = $('#filter-date-to');
@@ -56,8 +64,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             autoClose: true,
             initialValue: false,
             onSelect: function (unix) {
-                const dateObj = new Date(unix);
-                const isoDate = dateObj.toISOString().split('T')[0];
+                const pd = new persianDate(unix);
+                const isoDate = formatLocalDateToIso(pd.toDate());
                 $dateFrom.data('iso', isoDate);
             }
         });
@@ -70,8 +78,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             autoClose: true,
             initialValue: false,
             onSelect: function (unix) {
-                const dateObj = new Date(unix);
-                const isoDate = dateObj.toISOString().split('T')[0];
+                const pd = new persianDate(unix);
+                const isoDate = formatLocalDateToIso(pd.toDate());
                 $dateTo.data('iso', isoDate);
             }
         });
@@ -478,32 +486,70 @@ function applyAnalyticsDateFilter() {
     const $fromInput = $('#filter-date-from');
     const $toInput = $('#filter-date-to');
 
-    // اگر فیلد خالی شود، مقدار iso پاک می‌شود
-    if (!$fromInput.val().trim()) $fromInput.data('iso', null);
-    if (!$toInput.val().trim()) $toInput.data('iso', null);
+    const fromVal = $fromInput.val() ? $fromInput.val().trim() : '';
+    const toVal = $toInput.val() ? $toInput.val().trim() : '';
 
-    const fromIso = $fromInput.data('iso');
-    const toIso = $toInput.data('iso');
+    let fromStr = $fromInput.data('iso');
+    let toStr = $toInput.data('iso');
+
+    // اگر مقدار iso وجود نداشت، سعی می‌کنیم از روی متن ورودی شمسی تبدیل کنیم
+    if (!fromStr && fromVal && window.persianDate) {
+        try {
+            const p = fromVal.split('/');
+            if (p.length === 3) {
+                const pd = new persianDate([parseInt(p[0]), parseInt(p[1]), parseInt(p[2])]);
+                const d = pd.toDate();
+                fromStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+        } catch (e) {}
+    }
+
+    if (!toStr && toVal && window.persianDate) {
+        try {
+            const p = toVal.split('/');
+            if (p.length === 3) {
+                const pd = new persianDate([parseInt(p[0]), parseInt(p[1]), parseInt(p[2])]);
+                const d = pd.toDate();
+                toStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+        } catch (e) {}
+    }
 
     let filtered = allReports;
 
-    if (fromIso) {
+    if (fromStr) {
         filtered = filtered.filter(r => {
-            const rDate = r.created ? r.created.split('T')[0] : '';
-            return rDate >= fromIso;
+            if (!r.created) return false;
+            const rDate = r.created.includes('T') ? r.created.split('T')[0] : r.created.split(' ')[0];
+            return rDate >= fromStr;
         });
     }
 
-    if (toIso) {
-        filtered = filtered.filter(r => {
-            const rDate = r.created ? r.created.split('T')[0] : '';
-            return rDate <= toIso;
-        });
+    if (toStr) {
+        // برای شامل شدن کامل روز «تا»، از مقایسه تاریخ یا اضافه کردن ۱ روز به انتهای بازه استفاده می‌کنیم
+        try {
+            const parts = toStr.split('-');
+            const endDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            endDate.setDate(endDate.getDate() + 1);
+            
+            const nextDayStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+            filtered = filtered.filter(r => {
+                if (!r.created) return false;
+                const rDate = r.created.includes('T') ? r.created.split('T')[0] : r.created.split(' ')[0];
+                return rDate < nextDayStr;
+            });
+        } catch (e) {
+            filtered = filtered.filter(r => {
+                if (!r.created) return false;
+                const rDate = r.created.includes('T') ? r.created.split('T')[0] : r.created.split(' ')[0];
+                return rDate <= toStr;
+            });
+        }
     }
 
     renderAnalyticsCharts(filtered);
 }
-
 // ------------------- جستجو و فیلتر پیشرفته -------------------
 function populateSearchDropdowns() {
     const topicSel = document.getElementById('adv-filter-topic');

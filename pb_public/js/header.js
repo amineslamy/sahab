@@ -10,9 +10,18 @@ async function renderGlobalHeader() {
     // (با فرض اینکه pb در پروژه شما به صورت سراسری تعریف شده است)
     const user = pb.authStore.model;
 
-    // اطلاعات پیش‌فرض در صورت عدم وجود
+    // نقشه‌برداری نقش‌های PocketBase به عناوین فارسی
+    const roleTitles = {
+        'expert': 'کارشناس',
+        'department': 'اداره',
+        'admin_site': 'ادمین',
+        'admin_general': 'مدیر کل'
+    };
+
+    // دریافت اطلاعات کاربر جاری از PocketBase
+    const rawRole = user?.role_name || user?.role;
     const userName = user?.name || user?.username || 'کاربر مهمان';
-    const userRole = user?.role_name || user?.role || 'کاربر سیستم';
+    const userRole = roleTitles[rawRole] || rawRole || 'کاربر سیستم';
     const avatarUrl = user?.avatar
         ? pb.files.getUrl(user, user.avatar)
         : 'assets/images/default-avatar.png'; // مسیر آواتار پیش‌فرض شما

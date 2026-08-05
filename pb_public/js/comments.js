@@ -188,9 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 author: currentUser.id,
                 type: type,
                 text: text,
-                version: 0
+                version: 1
             };
-
             // ارسال فیلد parent فقط در صورت وجود مقدار معتبر
             if (parent) {
                 data.parent = parent;
@@ -205,7 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('خطا در ثبت کامنت (جزئیات):', err?.data || err);
                 alert('ثبت کامنت با خطا مواجه شد.');
             }
-        }
         } else {
             // اگر گزارش جدید است، در حافظه موقت نگه داشته می‌شود
             const tempComment = {
@@ -215,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: type,
                 text: text,
                 parent: parent || null,
-                version: 0,
+                version: 1,
                 isPending: true
             };
 
@@ -255,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: item.type,
                 text: item.text,
                 parent: resolvedParent,
-                version: item.version ?? 0
+                version: item.version || 1
             };
 
             try {

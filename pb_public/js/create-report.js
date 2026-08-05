@@ -542,11 +542,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.allAuthorsList = users;
 
-        // کاربر جاری به عنوان پیش‌فرض ست می‌شود
+        // بررسی نقش کاربر جاری: تنها اگر کارشناس باشد اسمش به صورت پیش‌فرض انتخاب می‌شود
         const currentUser = state.pb.authStore.record || state.pb.authStore.model;
         if (currentUser && !state.selectedAuthor) {
-            const activeUserInList = users.find(u => u.id === currentUser.id);
-            state.selectedAuthor = activeUserInList || currentUser;
+            const userRole = currentUser.role || currentUser.expand?.role?.name || '';
+            if (userRole === 'expert') {
+                const activeUserInList = users.find(u => u.id === currentUser.id);
+                state.selectedAuthor = activeUserInList || currentUser;
+            } else {
+                state.selectedAuthor = null;
+            }
         }
 
         // گروه بندی کارشناسان بر اساس دپارتمان

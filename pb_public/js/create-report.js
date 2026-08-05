@@ -1068,9 +1068,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let savedReport;
             if (state.reportId) {
+                // دریافت ورژن فعلی گزارش و افزایش ۱ واحدی آن (در صورتی که ورژن قبلی موجود نباشد حداقل ۱ در نظر گرفته می‌شود)
+                const currentReport = await state.pb.collection(COLLECTIONS.reports).getOne(state.reportId);
+                const currentVersion = (typeof currentReport.version === 'number' && currentReport.version > 0) ? currentReport.version : 1;
+                formData.append('version', currentVersion + 1);
+
                 savedReport = await state.pb.collection(COLLECTIONS.reports).update(state.reportId, formData);
                 showToast('گزارش با موفقیت ویرایش شد.');
             } else {
+                // هنگام ثبت اولیه مقدار ورژن ۱ قرار داده می‌شود تا خطای Required پاکت‌بیس رخ ندهد
+                formData.append('version', 1);
+
                 savedReport = await state.pb.collection(COLLECTIONS.reports).create(formData);
                 showToast('گزارش با موفقیت ثبت شد.');
             }

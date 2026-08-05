@@ -172,8 +172,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentInput = $id('comment-parent-id');
 
         const text = textInput ? textInput.value.trim() : '';
-        const type = typeSelect ? typeSelect.value : 'کامنت عمومی';
-        const parent = parentInput ? parentInput.value : null;
+        // اطمینان از قرارگیری یکی از مقادیر مجاز اسکیما
+        const type = (typeSelect && typeSelect.value) ? typeSelect.value : 'کامنت عمومی';
+        const parent = parentInput && parentInput.value.trim() !== '' ? parentInput.value : null;
 
         if (!text) {
             alert('متن کامنت نمی‌تواند خالی باشد.');
@@ -187,8 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 author: currentUser.id,
                 type: type,
                 text: text,
-                parent: parent || null
+                version: 0
             };
+
+            // ارسال فیلد parent فقط در صورت وجود مقدار معتبر
+            if (parent) {
+                data.parent = parent;
+            }
 
             try {
                 await state.pb.collection(COMMENTS_COLLECTION).create(data);
@@ -196,9 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetCommentForm();
                 await fetchComments();
             } catch (err) {
-                console.error('خطا در ثبت کامنت:', err);
+                console.error('خطا در ثبت کامنت (جزئیات):', err?.data || err);
                 alert('ثبت کامنت با خطا مواجه شد.');
             }
+        }
         } else {
             // اگر گزارش جدید است، در حافظه موقت نگه داشته می‌شود
             const tempComment = {
@@ -208,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: type,
                 text: text,
                 parent: parent || null,
+                version: 0,
                 isPending: true
             };
 
@@ -246,7 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 author: item.author,
                 type: item.type,
                 text: item.text,
-                parent: resolvedParent
+                parent: resolvedParent,
+                version: item.version ?? 0
             };
 
             try {

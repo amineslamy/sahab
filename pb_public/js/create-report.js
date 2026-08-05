@@ -1030,7 +1030,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
 
             appendValue(formData, 'title', getValue('report-title'));
-            appendValue(formData, 'automation_id', generateAutomationId());
+
+            // تولید automation_id فقط در ثبت اولیه انجام می‌شود
+            if (!state.reportId) {
+                appendValue(formData, 'automation_id', generateAutomationId());
+            }
+
             appendValue(formData, 'occurrence_date', occurrenceDateVal); // ارسال دقیق تاریخ آماده‌شده
             appendValue(formData, 'abstract', getValue('report-abstract'));
             appendValue(formData, 'classification', getValue('report-classification'));
@@ -1068,15 +1073,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let savedReport;
             if (state.reportId) {
-                // دریافت ورژن فعلی گزارش و افزایش ۱ واحدی آن (در صورتی که ورژن قبلی موجود نباشد حداقل ۱ در نظر گرفته می‌شود)
+                // ۱. دریافت آخرین نسخه کامل گزارش فعلی از دیتابیس
                 const currentReport = await state.pb.collection(COLLECTIONS.reports).getOne(state.reportId);
                 const currentVersion = (typeof currentReport.version === 'number' && currentReport.version > 0) ? currentReport.version : 1;
-                formData.append('version', currentVersion + 1);
 
+                // ۲. دریافت تمام کامنت‌های مرتبط با این گزارش جهت ثبت Snapshot
+                let currentComments = [];
+                try {
+                    currentComments = await state.pb.collection('comments').getFullList({
+                        filter: `report = "${state.reportId}"`,
+                        sort: '+created'
+                    });
+                } catch (cErr) {
+                    console.warn('خطا در دریافت کامنت‌ها برای ساخت Snapshot:', cErr);
+                }
+
+                // ۳. دریافت دلیل ویرایش از ورودی در صورت وجود
+                const changeReasonInput = $id('report-change-reason') || $id('change-reason');
+                const changeReasonVal = changeReasonInput ? changeReasonInput.value.trim() : '';
+
+                // ۴. ایجاد رکورد پشتیبان (Snapshot) کامل مطابق با اسکیمای report_versions
+                const versionSnapshotData = {
+                    report: state.reportId,
+                    title: currentReport.title || '',
+                    abstract: currentReport.abstract || '',
+                    content: currentReport.content || '',
+                    automation_id: currentReport.automation_id || '',
+                    classification: currentReport.classification || '',
+                    priority: currentReport.priority || '',
+                    news_type: currentReport.news_type || '',
+                    evaluation: currentReport.evaluation || '',
+                    occurrence_date: currentReport.occurrence_date || '',
+                    department: currentReport.department || null,
+                    author: currentReport.author || null,
+                    cover_image: currentReport.cover_image || '',
+                    attachments: Array.isArray(currentReport.attachments) ? currentReport.attachments : [],
+                    submitter: currentReport.submitter || null,
+                    version: currentVersion,
+                    cases_rel: Array.isArray(currentReport.cases_rel) ? currentReport.cases_rel : [],
+                    topics_rel: Array.isArray(currentReport.topics_rel) ? currentReport.topics_rel : [],
+                    snapshot_comments: currentComments
+                };
+
+                await state.pb.collection('report_versions').create(versionSnapshotData);
+
+                // ۵. افزایش شماره نسخه و آپدیت گزارش اصلی
+                formData.set('version', currentVersion + 1);
                 savedReport = await state.pb.collection(COLLECTIONS.reports).update(state.reportId, formData);
-                showToast('گزارش با موفقیت ویرایش شد.');
+                showToast('گزارش با موفقیت ویرایش شد و نسخه جدید ثبت گردید.');
             } else {
-                // هنگام ثبت اولیه مقدار ورژن ۱ قرار داده می‌شود تا خطای Required پاکت‌بیس رخ ندهد
+                // هنگام ثبت اولیه، مقدار نسخه روی ۱ قرار می‌گیرد
                 formData.append('version', 1);
 
                 savedReport = await state.pb.collection(COLLECTIONS.reports).create(formData);

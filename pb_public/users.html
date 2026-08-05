@@ -55,7 +55,8 @@
     <div class="space-y-6">
 
         <!-- نوار عنوان و دکمه افزودن کاربر -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div
+            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div>
                 <h2 class="font-black text-slate-800 text-lg">👥 مدیریت کاربران سامانه</h2>
                 <p class="text-xs text-slate-500 mt-1">تعریف، ویرایش و مدیریت سطح دسترسی و نقش‌های کاربران</p>
@@ -68,7 +69,8 @@
 
         <!-- جدول لیست کاربران -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div
+                class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-center gap-3">
                 <div class="w-full sm:w-auto flex-1 max-w-md">
                     <input type="text" id="user-search-input" oninput="filterUsersTable()"
                         placeholder="جستجو بر اساس نام، نام کاربری یا اداره..."
@@ -76,7 +78,8 @@
                 </div>
                 <div class="flex items-center gap-2 text-xs font-bold text-slate-600">
                     <label>نقش:</label>
-                    <select id="user-role-filter" onchange="filterUsersTable()" class="border border-slate-300 rounded-lg p-1.5 bg-white outline-none">
+                    <select id="user-role-filter" onchange="filterUsersTable()"
+                        class="border border-slate-300 rounded-lg p-1.5 bg-white outline-none">
                         <option value="">همه نقش‌ها</option>
                         <option value="admin_site">مدیر سایت (admin_site)</option>
                         <option value="admin_general">مدیر کل (admin_general)</option>
@@ -110,39 +113,52 @@
     </div>
 
     <!-- ==================== مودال ایجاد / ویرایش کاربر ==================== -->
-    <div id="user-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div id="user-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div
+            class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 id="modal-title" class="font-black text-slate-800 text-base">ایجاد کاربر جدید</h3>
-                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600 font-black text-lg">✕</button>
+                <button onclick="closeUserModal()"
+                    class="text-slate-400 hover:text-slate-600 font-black text-lg">✕</button>
             </div>
 
             <form id="user-form" onsubmit="handleUserFormSubmit(event)" class="space-y-4 text-xs font-bold">
                 <input type="hidden" id="user-id">
 
                 <div>
-                    <label class="block text-slate-700 mb-1">نام و نام خانوادگی <span class="text-red-500">*</span></label>
+                    <label class="block text-slate-700 mb-1">نام و نام خانوادگی <span
+                            class="text-red-500">*</span></label>
                     <input type="text" id="user-name" required
                         class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white">
                 </div>
 
                 <div>
                     <label class="block text-slate-700 mb-1">نام کاربری <span class="text-red-500">*</span></label>
-                    <input type="text" id="user-username" required
-                        class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white" dir="ltr">
+                    <input type="text" id="user-username" required placeholder="مثال: user123"
+                        class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white"
+                        dir="ltr">
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 mb-1">کلمه عبور <span id="password-required-star" class="text-red-500">*</span></label>
-                    <input type="password" id="user-password"
-                        placeholder="حداقل ۸ کاراکتر"
-                        class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white" dir="ltr">
-                    <p id="password-hint" class="text-[10px] text-slate-400 mt-1 hidden">در صورت عدم تمایل به تغییر رمز عبور، این فیلد را خالی بگذارید.</p>
+                    <label class="block text-slate-700 mb-1">کلمه عبور <span id="password-required-star"
+                            class="text-red-500">*</span></label>
+                    <input type="password" id="user-password" placeholder="حداقل ۸ کاراکتر"
+                        class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white"
+                        dir="ltr">
+                    <p id="password-hint" class="text-[10px] text-slate-400 mt-1 hidden">در صورت عدم تمایل به تغییر رمز
+                        عبور، این فیلد را خالی بگذارید.</p>
+                </div>
+                <div>
+                    <label class="block text-slate-700 mb-1">تصویر آواتار کاربر</label>
+                    <input type="file" id="user-avatar" accept="image/*"
+                        class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                 </div>
 
                 <div>
                     <label class="block text-slate-700 mb-1">نقش دسترسی <span class="text-red-500">*</span></label>
-                    <select id="user-role" required class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white">
+                    <select id="user-role" required
+                        class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white">
                         <option value="expert">کارشناس (expert)</option>
                         <option value="department">مدیر اداره (department)</option>
                         <option value="admin_general">مدیر کل (admin_general)</option>
@@ -151,16 +167,18 @@
                 </div>
 
                 <div>
-                    <label class="block text-slate-700 mb-1">اداره / بخش <span class="text-red-500">*</span></label>
-                    <input type="text" id="user-department" required
+                    <label class="block text-slate-700 mb-1">اداره / بخش</label>
+                    <select id="user-department"
                         class="w-full border border-slate-300 rounded-xl px-3 py-2 outline-none focus:border-indigo-600 bg-white">
+                        <option value="">انتخاب اداره (ویژه کارشناسان)</option>
+                    </select>
                 </div>
-
                 <div class="flex justify-end gap-3 border-t border-slate-100 pt-4 mt-6">
                     <button type="button" onclick="closeUserModal()"
                         class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">انصراف</button>
                     <button type="submit" id="btn-save-user"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-black transition shadow-sm">ذخیره کاربر</button>
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-black transition shadow-sm">ذخیره
+                        کاربر</button>
                 </div>
             </form>
         </div>

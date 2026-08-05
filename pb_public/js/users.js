@@ -10,6 +10,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUsers();
 });
 
+// پر کردن دراپ‌داون اداره‌ها از روی کاربران با نقش department
+function populateDepartmentDropdown(users) {
+    const deptSelect = document.getElementById('user-department');
+    if (!deptSelect) return;
+
+    deptSelect.innerHTML = '<option value="">انتخاب اداره (ویژه کارشناسان)</option>';
+
+    const departments = users.filter(u => u.role === 'department');
+    departments.forEach(dept => {
+        const nameDisplay = dept.name || dept.username || dept.email || dept.id;
+        deptSelect.innerHTML += `<option value="${dept.id}">${nameDisplay}</option>`;
+    });
+}
+
 // بارگذاری لیست تمامی کاربران از پاکت‌بیس
 async function loadUsers() {
     try {
@@ -18,7 +32,10 @@ async function loadUsers() {
             expand: 'department_rel'
         });
         allUsersData = records;
-        renderUsersTable(allUsersData);
+        populateDepartmentDropdown(allUsersData);
+        
+        // در صورت وجود فیلتر مجدداً اعمال می‌شود، در غیر این صورت کل کاربران رندر می‌شوند
+        filterUsersTable();
     } catch (err) {
         console.error("خطا در بارگذاری لیست کاربران:", err);
         const tbody = document.getElementById('users-table-body');
@@ -28,7 +45,7 @@ async function loadUsers() {
     }
 }
 
-// رندر کردن جدول کاربران
+// رندر کردن جدول کاربران با اعمال دسترسی‌ها
 function renderUsersTable(users) {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
@@ -38,6 +55,9 @@ function renderUsersTable(users) {
         return;
     }
 
+    const currentUser = pb.authStore.model;
+    const currentRole = currentUser?.role || '';
+
     let html = '';
     users.forEach((user, index) => {
         const isEven = index % 2 === 0;
@@ -45,7 +65,7 @@ function renderUsersTable(users) {
 
         // نام اداره از رابطه department_rel
         const deptObj = user.expand?.department_rel;
-        const deptName = deptObj 
+        const deptName = deptObj
             ? (deptObj.name || deptObj.username || '---')
             : (user.department_rel || '---');
 
@@ -59,17 +79,50 @@ function renderUsersTable(users) {
 
         const roleDisplay = roleBadges[user.role] || `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${user.role || '---'}</span>`;
 
+        // ۱. بررسی دسترسی ویرایش
+        const canEdit = (
+            currentRole === 'admin_site' ||
+            currentRole === 'admin_general' ||
+            currentUser.id === user.id ||
+            (currentRole === 'department' && user.department_rel === currentUser.id)
+        );
+
+        // ۲. بررسی دسترسی حذف
+        const canDelete = (
+            currentRole === 'admin_site' ||
+            currentRole === 'admin_general' ||
+            (currentRole === 'department' && user.department_rel === currentUser.id)
+        );
+
+        let actionButtons = '';
+        if (canEdit) {
+            actionButtons += `<button onclick="openUserModal('${user.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-lg transition text-xs">ویرایش</button>`;
+        }
+        if (canDelete) {
+            actionButtons += `<button onclick="deleteUser('${user.id}', '${user.name || user.username}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1 rounded-lg transition text-xs">حذف</button>`;
+        }
+        if (!canEdit && !canDelete) {
+            actionButtons = `<span class="text-slate-400 text-xs italic">بدون دسترسی</span>`;
+        }
+
+        // آدرس تصویر آواتار در صورت وجود
+        const avatarUrl = user.avatar
+            ? pb.files.getUrl(user, user.avatar, { thumb: '100x100' })
+            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || 'User') + '&background=random';
+
         html += `
             <tr class="${bgRow} border-b border-slate-100 hover:bg-slate-100/50 transition">
-                <td class="p-3 font-bold text-slate-900">${user.name || '---'}</td>
+                <td class="p-3 font-bold text-slate-900 flex items-center gap-3">
+                    <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm" alt="آواتار">
+                    <span>${user.name || '---'}</span>
+                </td>
                 <td class="p-3 font-mono dir-ltr text-right text-slate-700">${user.username || user.email || '---'}</td>
                 <td class="p-3 font-semibold text-slate-700">${deptName}</td>
                 <td class="p-3">${roleDisplay}</td>
                 <td class="p-3 text-slate-500 text-xs">${typeof formatDateToFa === 'function' ? formatDateToFa(user.created) : user.created}</td>
                 <td class="p-3 text-center">
                     <div class="flex justify-center items-center gap-2">
-                        <button onclick="openUserModal('${user.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-lg transition text-xs">ویرایش</button>
-                        <button onclick="deleteUser('${user.id}', '${user.name || user.username}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1 rounded-lg transition text-xs">حذف</button>
+                        ${actionButtons}
                     </div>
                 </td>
             </tr>
@@ -108,7 +161,44 @@ function openUserModal(userId = null) {
     const passStar = document.getElementById('password-required-star');
     const passHint = document.getElementById('password-hint');
 
+    const currentUser = pb.authStore.model;
+    const currentRole = currentUser?.role || '';
+
+    const roleSelect = document.getElementById('user-role');
+    const deptSelect = document.getElementById('user-department');
+
     form.reset();
+
+    // مدیریت دسترسی فیلدهای فرم بر اساس نقش کاربر لاگین شده
+    if (roleSelect) {
+        const adminSiteOpt = roleSelect.querySelector('option[value="admin_site"]');
+        if (adminSiteOpt) {
+            // مدیر کل نباید بتواند کاربر با نقش مدیر سایت بسازد
+            if (currentRole === 'admin_general') {
+                adminSiteOpt.disabled = true;
+                adminSiteOpt.classList.add('hidden');
+            } else {
+                adminSiteOpt.disabled = false;
+                adminSiteOpt.classList.remove('hidden');
+            }
+        }
+
+        if (currentRole === 'department') {
+            roleSelect.value = 'expert';
+            roleSelect.disabled = true; // مدیر اداره فقط کارشناس می‌سازد
+        } else {
+            roleSelect.disabled = false;
+        }
+    }
+
+    if (deptSelect) {
+        if (currentRole === 'department') {
+            deptSelect.value = currentUser.id; // خودکار انتخاب شدن خود اداره
+            deptSelect.disabled = true; // غیرقابل تغییر
+        } else {
+            deptSelect.disabled = false;
+        }
+    }
 
     if (userId) {
         // حالت ویرایش
@@ -118,9 +208,12 @@ function openUserModal(userId = null) {
         modalTitle.innerText = 'ویرایش کاربر';
         document.getElementById('user-id').value = user.id;
         document.getElementById('user-name').value = user.name || '';
-        document.getElementById('user-username').value = user.username || '';
-        document.getElementById('user-role').value = user.role || 'expert';
-        document.getElementById('user-department').value = user.department_rel || '';
+        
+        const usernameInput = document.getElementById('user-username');
+        if (usernameInput) usernameInput.value = user.username || '';
+
+        if (roleSelect) roleSelect.value = user.role || 'expert';
+        if (deptSelect) deptSelect.value = user.department_rel || '';
 
         passInput.removeAttribute('required');
         if (passStar) passStar.classList.add('hidden');
@@ -129,6 +222,9 @@ function openUserModal(userId = null) {
         // حالت ایجاد کاربر جدید
         modalTitle.innerText = 'ایجاد کاربر جدید';
         document.getElementById('user-id').value = '';
+        
+        const usernameInput = document.getElementById('user-username');
+        if (usernameInput) usernameInput.value = '';
 
         passInput.setAttribute('required', 'required');
         if (passStar) passStar.classList.remove('hidden');
@@ -154,20 +250,42 @@ async function handleUserFormSubmit(event) {
     const name = document.getElementById('user-name').value.trim();
     const username = document.getElementById('user-username').value.trim();
     const password = document.getElementById('user-password').value;
-    const role = document.getElementById('user-role').value;
-    const departmentRel = document.getElementById('user-department').value.trim();
 
-    const data = {
-        name: name,
-        username: username,
-        role: role,
-        department_rel: departmentRel
-    };
+    const currentUser = pb.authStore.model;
+    const currentRole = currentUser?.role || '';
+
+    const roleSelect = document.getElementById('user-role');
+    const deptSelect = document.getElementById('user-department');
+
+    // استخراج دقیق نقش و اداره حتی در صورت disabled بودن selectها
+    let role = roleSelect ? roleSelect.value : 'expert';
+    if (currentRole === 'department') {
+        role = 'expert';
+    }
+
+    let departmentRel = deptSelect ? deptSelect.value : '';
+    if (currentRole === 'department') {
+        departmentRel = currentUser.id;
+    }
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('username', username);
+    formData.append('email', `${username}@sahab.local`);
+    formData.append('role', role);
+    formData.append('department_rel', departmentRel);
+    formData.append('emailVisibility', 'true');
+
+    // افزودن تصویر آواتار در صورت انتخاب فایل
+    const avatarInput = document.getElementById('user-avatar');
+    if (avatarInput && avatarInput.files && avatarInput.files[0]) {
+        formData.append('avatar', avatarInput.files[0]);
+    }
 
     // اضافه کردن کلمه عبور فقط در صورت پر بودن یا هنگام ساخت جدید
     if (password) {
-        data.password = password;
-        data.passwordConfirm = password;
+        formData.append('password', password);
+        formData.append('passwordConfirm', password);
     }
 
     const btnSave = document.getElementById('btn-save-user');
@@ -177,23 +295,23 @@ async function handleUserFormSubmit(event) {
     try {
         if (userId) {
             // ویرایش کاربر موجود
-            await pb.collection('users').update(userId, data);
+            await pb.collection('users').update(userId, formData);
         } else {
             // ایجاد کاربر جدید
-            await pb.collection('users').create(data);
+            await pb.collection('users').create(formData);
         }
 
         closeUserModal();
         await loadUsers();
     } catch (err) {
         console.error("خطا در ذخیره‌سازی کاربر:", err);
-        alert("خطا در ذخیره‌سازی کاربر: " + (err.message || 'مشکلی رخ داده است.'));
+        const errDetails = err.data?.data ? JSON.stringify(err.data.data) : (err.message || 'مشکلی رخ داده است.');
+        alert("خطا در ذخیره‌سازی کاربر: " + errDetails);
     } finally {
         btnSave.disabled = false;
         btnSave.innerText = 'ذخیره کاربر';
     }
 }
-
 // حذف کاربر
 async function deleteUser(userId, userName) {
     if (!confirm(`آیا از حذف کاربر «${userName}» اطمینان دارید؟`)) {

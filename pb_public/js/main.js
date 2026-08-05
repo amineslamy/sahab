@@ -34,15 +34,17 @@ function getRoleBasedFilter() {
     return `author = "${user.id}"`;
 }
 const chartFont = 'Vazirmatn, sans-serif';
-if (window.Apex) {
-    window.Apex = {
-        chart: { fontFamily: chartFont },
-        dataLabels: { style: { fontFamily: chartFont, fontWeight: 'bold' } },
-        tooltip: { style: { fontFamily: chartFont } },
-        xaxis: { labels: { style: { fontFamily: chartFont } } },
-        yaxis: { labels: { style: { fontFamily: chartFont } } },
-        legend: { fontFamily: chartFont }
-    };
+function setupApexDefaults() {
+    if (window.ApexCharts && window.Apex) {
+        window.Apex = {
+            chart: { fontFamily: chartFont },
+            dataLabels: { style: { fontFamily: chartFont, fontWeight: 'bold' } },
+            tooltip: { style: { fontFamily: chartFont } },
+            xaxis: { labels: { style: { fontFamily: chartFont } } },
+            yaxis: { labels: { style: { fontFamily: chartFont } } },
+            legend: { fontFamily: chartFont }
+        };
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -53,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    setupApexDefaults();
     await loadAllBaseData();
     renderOverviewCharts();
     renderAnalyticsCharts();
@@ -143,11 +146,12 @@ async function loadAllBaseData() {
             pb.collection('reports').getFullList({
                 sort: '-created',
                 expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
-                filter: roleFilter
+                filter: roleFilter,
+                requestKey: null
             }),
-            pb.collection('topics').getFullList(),
-            pb.collection('cases').getFullList(),
-            pb.collection('users').getFullList()
+            pb.collection('topics').getFullList({ requestKey: null }),
+            pb.collection('cases').getFullList({ requestKey: null }),
+            pb.collection('users').getFullList({ requestKey: null })
         ]);
 
         allReports = reports;
@@ -270,10 +274,18 @@ function goToPage(page) {
 
 // ------------------- نمودارها -------------------
 function renderChart(elementSelector, options) {
+    if (typeof ApexCharts === 'undefined') {
+        // اگر هنوز آماده نیست، پس از ۱۰۰ میلی‌ثانیه دوباره تلاش کن
+        setTimeout(() => renderChart(elementSelector, options), 100);
+        return;
+    }
+    const el = document.querySelector(elementSelector);
+    if (!el) return;
+
     if (chartInstances[elementSelector]) {
         chartInstances[elementSelector].destroy();
     }
-    const chart = new ApexCharts(document.querySelector(elementSelector), options);
+    const chart = new ApexCharts(el, options);
     chart.render();
     chartInstances[elementSelector] = chart;
 }
@@ -655,22 +667,7 @@ function applyAdvancedFilters() {
     loadReportsTable();
 }
 
-function resetAdvancedFilters() {
-    const globalInput = document.getElementById('global-search-input');
-    if (globalInput) globalInput.value = "";
-    
-    if (document.getElementById('adv-filter-topic')) document.getElementById('adv-filter-topic').value = "";
-    if (document.getElementById('adv-filter-case')) document.getElementById('adv-filter-case').value = "";
-    if (document.getElementById('adv-filter-classification')) document.getElementById('adv-filter-classification').value = "";
-    if (document.getElementById('adv-filter-priority')) document.getElementById('adv-filter-priority').value = "";
-    if (document.getElementById('adv-filter-news-type')) document.getElementById('adv-filter-news-type').value = "";
-    if (document.getElementById('adv-filter-evaluation')) document.getElementById('adv-filter-evaluation').value = "";
-    if (document.getElementById('adv-filter-author')) document.getElementById('adv-filter-author').value = "";
-    
-    currentFilterQuery = "";
-    currentPage = 1;
-    loadReportsTable();
-}
+
 
 function resetAdvancedFilters() {
     document.getElementById('adv-filter-topic').value = "";

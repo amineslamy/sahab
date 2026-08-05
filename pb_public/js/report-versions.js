@@ -204,6 +204,73 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             });
 
+            // پردازش و ساخت درخت سلسله‌مراتبی کامنت‌ها
+    function renderSnapshotCommentsTree(commentsData) {
+        let commentsList = [];
+        if (typeof commentsData === 'string') {
+            try { commentsList = JSON.parse(commentsData); } catch { commentsList = []; }
+        } else if (Array.isArray(commentsData)) {
+            commentsList = commentsData;
+        }
+
+        if (!commentsList || commentsList.length === 0) {
+            return '<span class="text-slate-400 text-xs">(بدون نظر یا کامنت)</span>';
+        }
+
+        const map = {};
+        const roots = [];
+
+        commentsList.forEach(c => {
+            map[c.id] = { ...c, children: [] };
+        });
+
+        commentsList.forEach(c => {
+            if (c.parent && map[c.parent]) {
+                map[c.parent].children.push(map[c.id]);
+            } else {
+                roots.push(map[c.id]);
+            }
+        });
+
+        function buildTreeHtml(nodes, level = 0) {
+            if (!nodes || nodes.length === 0) return '';
+            const indentClass = level > 0 ? `mr-${Math.min(level * 3, 6)} border-r-2 border-slate-300 pr-2 my-1` : 'my-1.5';
+            
+            return `<div class="space-y-1.5">
+                ${nodes.map(node => {
+                    const cDate = node.created ? new Date(node.created).toLocaleDateString('fa-IR') : '';
+                    const badgeColor = node.type === 'نظریه' ? 'bg-amber-100 text-amber-800' :
+                                       node.type === 'ملاحظه' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-700';
+
+                    return `
+                        <div class="${indentClass} p-2 bg-white rounded border border-slate-200 text-xs shadow-2xs">
+                            <div class="flex items-center justify-between mb-1 gap-2">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${badgeColor}">${escapeHtml(node.type || 'کامنت')}</span>
+                                    <span class="font-bold text-slate-700">${escapeHtml(node.author || 'کاربر')}</span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">${cDate}</span>
+                            </div>
+                            <div class="text-slate-800 leading-relaxed font-medium">${escapeHtml(node.text)}</div>
+                            ${node.children.length > 0 ? buildTreeHtml(node.children, level + 1) : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>`;
+        }
+
+        return buildTreeHtml(roots);
+    }
+
+            // مقایسه کامنت‌های ثبت‌شده در اسنپ‌شات به‌صورت درخت سلسله‌مراتبی
+            const commentsDiffHtml = `
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">نظرات و ملاحظات</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderSnapshotCommentsTree(ver.snapshot_comments)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderSnapshotCommentsTree(nextVer.snapshot_comments)}</td>
+                </tr>
+            `;
+
             // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
@@ -245,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </thead>
                             <tbody>
                                 ${sideBySideFieldsHtml}
+                                ${commentsDiffHtml}
                                 ${coverDiffHtml}
                                 ${attachmentsDiffHtml}
                             </tbody>

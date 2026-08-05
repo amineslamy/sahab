@@ -43,48 +43,116 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function computeDiffHtml(oldStr, newStr) {
-        const cleanOld = (oldStr || '').replace(/<[^>]*>/g, '');
-        const cleanNew = (newStr || '').replace(/<[^>]*>/g, '');
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
 
-        const oldWords = cleanOld.split(/(\s+)/);
-        const newWords = cleanNew.split(/(\s+)/);
+    function stripTags(html) {
+        if (!html) return '';
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+    }
 
-        const matrix = Array(oldWords.length + 1).fill(null).map(() => Array(newWords.length + 1).fill(0));
+    // الگوریتم مقایسه کلمه‌ای استاندارد و تمیز (Diff)
+    function diffWords(oldText, newText) {
+        const oldWords = (oldText || '').trim().split(/\s+/).filter(Boolean);
+        const newWords = (newText || '').trim().split(/\s+/).filter(Boolean);
 
-        for (let i = 0; i < oldWords.length; i++) {
-            for (let j = 0; j < newWords.length; j++) {
-                if (oldWords[i] === newWords[j]) {
-                    matrix[i + 1][j + 1] = matrix[i][j] + 1;
+        const n = oldWords.length;
+        const m = newWords.length;
+        const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+
+        for (let i = 1; i <= n; i++) {
+            for (let j = 1; j <= m; j++) {
+                if (oldWords[i - 1] === newWords[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
                 } else {
-                    matrix[i + 1][j + 1] = Math.max(matrix[i + 1][j], matrix[i][j + 1]);
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
                 }
             }
         }
 
-        let i = oldWords.length;
-        let j = newWords.length;
-        const result = [];
+        let i = n, j = m;
+        const oldResult = [];
+        const newResult = [];
 
         while (i > 0 || j > 0) {
             if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
-                result.unshift(escapeHtml(oldWords[i - 1]));
-                i--;
+                const word = escapeHtml(oldWords[i - 1]);
+                oldResult.unshift(word);
+                newResult.unshift(word);
+                i--; j--;
+            } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                newResult.unshift(`<mark class="bg-cyan-100 text-cyan-900 px-1 py-0.5 rounded font-bold border border-cyan-300">${escapeHtml(newWords[j - 1])}</mark>`);
                 j--;
-            } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
-                result.unshift(`<span class="bg-cyan-100 text-cyan-900 px-1 rounded font-bold">${escapeHtml(newWords[j - 1])}</span>`);
-                j--;
-            } else if (i > 0 && (j === 0 || matrix[i][j - 1] < matrix[i - 1][j])) {
-                result.unshift(`<span class="bg-rose-100 text-rose-900 line-through px-1 rounded font-bold">${escapeHtml(oldWords[i - 1])}</span>`);
+            } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+                oldResult.unshift(`<mark class="bg-rose-100 text-rose-900 line-through px-1 py-0.5 rounded font-bold border border-rose-300">${escapeHtml(oldWords[i - 1])}</mark>`);
                 i--;
             }
         }
 
-        return result.join('');
+        return {
+            oldHtml: oldResult.join(' ') || '<span class="text-slate-400 italic">(خالی)</span>',
+            newHtml: newResult.join(' ') || '<span class="text-slate-400 italic">(خالی)</span>'
+        };
     }
 
-    function escapeHtml(str) {
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    function renderRelationItems(items) {
+        if (!items || !items.length) return '<span class="text-slate-400 text-xs">(بدون آیتم)</span>';
+        if (Array.isArray(items)) {
+            return items.map(item => typeof item === 'object' ? (item.title || item.name || item.id) : item).join(', ');
+        }
+        return String(items);
+    }
+
+    function renderAttachmentsThumbnails(files, mainReportId) {
+        if (!files) return '<span class="text-slate-400 text-xs">(بدون فایل)</span>';
+
+        let fileList = [];
+        if (typeof files === 'string') {
+            try { fileList = JSON.parse(files); } catch { fileList = [files]; }
+        } else if (Array.isArray(files)) {
+            fileList = files;
+        }
+
+        if (!fileList.length) return '<span class="text-slate-400 text-xs">(بدون فایل)</span>';
+
+        return `<div class="flex flex-wrap gap-2 mt-1">
+            ${fileList.map(f => {
+                const fileName = typeof f === 'object' ? (f.name || f.file || '') : f;
+                // لینک فایل‌ها همیشه به کالکشن اصلی reports و ID گزارش اصلی اشاره دارد
+                const fileUrl = `${PB_URL}/api/files/reports/${mainReportId}/${fileName}`;
+                const isImg = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
+
+                if (isImg) {
+                    return `
+                        <a href="${fileUrl}" target="_blank" class="block border rounded p-1 bg-white hover:shadow transition">
+                            <img src="${fileUrl}" class="w-14 h-14 object-cover rounded" alt="${escapeHtml(fileName)}" title="${escapeHtml(fileName)}">
+                        </a>
+                    `;
+                }
+                return `
+                    <a href="${fileUrl}" target="_blank" class="flex items-center gap-1 p-1.5 border rounded bg-white text-xs text-slate-700 hover:bg-slate-100 transition" title="${escapeHtml(fileName)}">
+                        📁 <span class="max-w-[100px] truncate">${escapeHtml(fileName)}</span>
+                    </a>
+                `;
+            }).join('')}
+        </div>`;
+    }
+
+    function renderCoverThumbnail(coverImg, mainReportId) {
+        if (!coverImg) return '<span class="text-slate-400 text-xs">(بدون کاور)</span>';
+        // لینک کاور همیشه به کالکشن اصلی reports و ID گزارش اصلی اشاره دارد
+        const imgUrl = `${PB_URL}/api/files/reports/${mainReportId}/${coverImg}`;
+        return `
+            <div class="mt-1">
+                <a href="${imgUrl}" target="_blank" class="inline-block border rounded p-1 bg-white">
+                    <img src="${imgUrl}" class="w-20 h-20 object-cover rounded" alt="کاور" />
+                </a>
+            </div>
+        `;
     }
 
     function renderVersionsAccordion() {
@@ -98,20 +166,67 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const mainReportId = state.reportId;
+
         state.versions.forEach((ver, idx) => {
-            const nextVersionObj = state.versions[idx - 1] || state.currentReport;
+            const nextVer = state.versions[idx - 1] || state.currentReport;
             const card = document.createElement('div');
-            card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-3';
+            card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-4';
 
             const createdDate = ver.created ? new Date(ver.created).toLocaleDateString('fa-IR') : 'نامشخص';
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
+            const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
+
+            // لیست فیلدها برای مقایسه دو ستونه
+            const fieldsToCompare = [
+                { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
+                { label: 'چکیده', oldVal: ver.abstract, newVal: nextVer.abstract },
+                { label: 'شرح و متن اصلی', oldVal: stripTags(ver.content), newVal: stripTags(nextVer.content) },
+                { label: 'طبقه بندی', oldVal: ver.classification, newVal: nextVer.classification },
+                { label: 'اولیت', oldVal: ver.priority, newVal: nextVer.priority },
+                { label: 'نوع خبر', oldVal: ver.news_type, newVal: nextVer.news_type },
+                { label: 'ارزیابی', oldVal: ver.evaluation, newVal: nextVer.evaluation },
+                { label: 'تاریخ وقوع', oldVal: ver.occurrence_date, newVal: nextVer.occurrence_date },
+                { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
+                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) }
+            ];
+
+            let sideBySideFieldsHtml = '';
+
+            fieldsToCompare.forEach(field => {
+                const diff = diffWords(field.oldVal, field.newVal);
+                sideBySideFieldsHtml += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                        <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">${field.label}</td>
+                        <td class="p-3 text-xs leading-relaxed text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${diff.oldHtml}</td>
+                        <td class="p-3 text-xs leading-relaxed text-slate-800 w-1/2 align-top bg-cyan-50/20">${diff.newHtml}</td>
+                    </tr>
+                `;
+            });
+
+            // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
+            const coverDiffHtml = `
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">تصویر کاور</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderCoverThumbnail(ver.cover_image, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderCoverThumbnail(nextVer.cover_image, mainReportId)}</td>
+                </tr>
+            `;
+
+            const attachmentsDiffHtml = `
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">فایل‌های پیوست</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderAttachmentsThumbnails(ver.attachments, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderAttachmentsThumbnails(nextVer.attachments, mainReportId)}</td>
+                </tr>
+            `;
 
             card.innerHTML = `
                 <button type="button" class="w-full p-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition border-b border-slate-200 text-right accordion-toggle-btn">
                     <div class="flex items-center gap-3">
                         <span class="bg-slate-800 text-white text-xs font-bold px-2.5 py-1 rounded-md">نسخه ${ver.version}</span>
-                        <span class="text-sm font-bold text-slate-800">${ver.title || 'بدون عنوان'}</span>
-                        <span class="text-xs text-slate-400">ویرایش‌شده توسط ${authorName}</span>
+                        <span class="text-sm font-bold text-slate-800">${escapeHtml(ver.title || 'بدون عنوان')}</span>
+                        <span class="text-xs text-slate-400">ویرایش‌شده توسط ${escapeHtml(authorName)}</span>
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-xs text-slate-400 font-medium">${createdDate}</span>
@@ -119,11 +234,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </button>
                 <div class="accordion-content hidden p-4 space-y-4 bg-white">
-                    <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
-                        <div class="text-xs font-bold text-slate-500">مقایسه تغییرات شرح گزارش (Diff):</div>
-                        <div class="text-sm leading-relaxed p-3 bg-white rounded border border-slate-200 font-medium">
-                            ${computeDiffHtml(ver.content, nextVersionObj?.content)}
-                        </div>
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table class="w-full border-collapse text-right">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-700 text-xs border-b border-slate-200">
+                                    <th class="p-2.5 w-28">نام فیلد</th>
+                                    <th class="p-2.5 w-1/2 text-rose-700 font-bold border-l border-slate-200">⬅️ نسخه قبلی (نسخه ${ver.version})</th>
+                                    <th class="p-2.5 w-1/2 text-cyan-700 font-bold">➡️ نسخه بعدی (${nextVersionLabel})</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${sideBySideFieldsHtml}
+                                ${coverDiffHtml}
+                                ${attachmentsDiffHtml}
+                            </tbody>
+                        </table>
                     </div>
                     <div class="flex justify-end pt-2 border-t border-slate-100">
                         <button type="button" class="restore-version-btn px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition">

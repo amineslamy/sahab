@@ -55,6 +55,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // بروزرسانی هدر پس از مقداردهی کامل pb و تایید لاگین
+    if (typeof window.renderGlobalHeader === 'function') {
+        window.renderGlobalHeader();
+    }
+
     setupApexDefaults();
     await loadAllBaseData();
     renderOverviewCharts();

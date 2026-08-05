@@ -1448,6 +1448,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mb >= 1024) return `${(mb / 1024).toFixed(2)} گیگابایت`;
         return `${mb.toFixed(2)} مگابایت`;
     }
+
+    // تابع بازیابی مقادیر نسخه انتخابی روی فرم
+    window.restoreReportVersionToForm = function (versionData) {
+        if (!versionData) return;
+
+        setInputValue('report-title', versionData.title);
+        setInputValue('report-abstract', versionData.abstract);
+        setInputValue('report-classification', versionData.classification);
+        setInputValue('report-priority', versionData.priority);
+        setInputValue('report-news-type', versionData.news_type);
+        setInputValue('report-evaluation', versionData.evaluation);
+
+        if (state.quill && versionData.content) {
+            state.quill.clipboard.dangerouslyPasteHTML(versionData.content);
+        }
+
+        if (Array.isArray(versionData.topics_rel)) {
+            state.selectedTopics = [...versionData.topics_rel];
+            renderTopicsTags(state.allTopics);
+            renderTopicsList(state.allTopics);
+        }
+
+        if (Array.isArray(versionData.cases_rel)) {
+            state.selectedCases = [...versionData.cases_rel];
+            renderCasesTags(state.allOrderedCases, state.allRawCases);
+            renderCasesList(state.allOrderedCases, state.allRawCases);
+        }
+
+        showToast(`اطلاعات نسخه ${versionData.version} با موفقیت روی فرم جایگذاری شد.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 });
 
 

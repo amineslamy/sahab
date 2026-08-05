@@ -164,10 +164,17 @@ async function loadAllBaseData() {
         allCases = cases;
         allUsers = users;
 
+        // استخراج کیس‌های منحصر‌به‌فرد از روی اخبار قابل دسترسی کاربر
+        const activeUserCases = new Set();
+        allReports.forEach(r => {
+            const cases = r.expand?.cases_rel || [];
+            cases.forEach(c => activeUserCases.add(c.id));
+        });
+
         const statTotal = document.getElementById('stat-total-reports-1');
         const statCases = document.getElementById('stat-active-cases');
         if (statTotal) statTotal.innerText = allReports.length;
-        if (statCases) statCases.innerText = allCases.length;
+        if (statCases) statCases.innerText = activeUserCases.size;
 
     } catch (err) {
         console.error("خطا در بارگذاری اطلاعات پایه دیتابیس:", err);

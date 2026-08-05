@@ -110,6 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.className = `p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-2 ${isChild ? 'bg-slate-50/50' : ''}`;
 
+        const currentUser = state.pb.authStore.record || state.pb.authStore.model;
+        const authorId = comment.author || comment.expand?.author?.id;
+        const isOwner = currentUser && currentUser.id === authorId;
+
         const authorName = comment.authorName || comment.expand?.author?.name || comment.expand?.author?.username || 'کاربر ناشناس';
         const typeBadge = comment.type ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-md">${comment.type}</span>` : '';
 
@@ -127,16 +131,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <span class="text-xs text-slate-400 font-medium">${createdDate}</span>
             </div>
-            <div class="text-sm text-slate-700 leading-relaxed font-semibold">
-                ${comment.text}
-            </div>
-            ${!isChild ? `
-                <div class="pt-2 flex justify-end">
-                    <button type="button" class="reply-btn text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1" data-id="${comment.id}">
-                        💬 پاسخ
-                    </button>
+            <div class="comment-display-body space-y-2">
+                <div class="comment-text-content text-sm text-slate-700 leading-relaxed font-semibold">
+                    ${comment.text}
                 </div>
-            ` : ''}
+                <div class="pt-2 flex justify-end items-center gap-3">
+                    ${!isChild ? `
+                        <button type="button" class="reply-btn text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+                            💬 پاسخ
+                        </button>
+                    ` : ''}
+                    ${isOwner ? `
+                        <button type="button" class="edit-btn text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            ✏️ ویرایش
+                        </button>
+                        <button type="button" class="delete-btn text-xs font-bold text-red-600 hover:text-red-800 flex items-center gap-1">
+                            🗑️ حذف
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+            <div class="comment-edit-form hidden space-y-2 pt-2">
+                <textarea class="edit-textarea w-full px-3 py-2 border-2 border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800">${comment.text}</textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="cancel-edit-btn px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg">انصراف</button>
+                    <button type="button" class="save-edit-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg">ذخیره ویرایش</button>
+                </div>
+            </div>
         `;
 
         const replyBtn = card.querySelector('.reply-btn');
@@ -150,6 +171,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (replyNotice) {
                     replyNotice.textContent = `در حال ارسال پاسخ به کامنت ${authorName}...`;
                     replyNotice.classList.remove('hidden');
+                }
+            });
+        }
+
+        if (isOwner) {
+            const editBtn = card.querySelector('.edit-btn');
+            const deleteBtn = card.querySelector('.delete-btn');
+            const cancelEditBtn = card.querySelector('.cancel-edit-btn');
+            const saveEditBtn = card.querySelector('.save-edit-btn');
+            const displayBody = card.querySelector('.comment-display-body');
+            const editForm = card.querySelector('.comment-edit-form');
+            const editTextarea = card.querySelector('.edit-textarea');
+
+            // نمایش فرم ویرایش
+            editBtn?.addEventListener('click', () => {
+                displayBody.classList.add('hidden');
+                editForm.classList.remove('hidden');
+            });
+
+            // انصراف از ویرایش
+            cancelEditBtn?.addEventListener('click', () => {
+                editForm.classList.add('hidden');
+                displayBody.classList.remove('hidden');
+                editTextarea.value = comment.text;
+            });
+
+            // ذخیره ویرایش
+            saveEditBtn?.addEventListener('click', async () => {
+                const updatedText = editTextarea.value.trim();
+                if (!updatedText) {
+                    alert('متن دیدگاه نمی‌تواند خالی باشد.');
+                    return;
+                }
+
+                if (comment.isPending) {
+                    comment.text = updatedText;
+                    renderCommentsList();
+                } else {
+                    try {
+                        const currentVersion = Number(comment.version) || 1;
+                        await state.pb.collection(COMMENTS_COLLECTION).update(comment.id, {
+                            text: updatedText,
+                            version: currentVersion + 1
+                        });
+                        await fetchComments();
+                    } catch (err) {
+                        console.error('خطا در ویرایش دیدگاه:', err);
+                        alert('ویرایش دیدگاه با خطا مواجه شد.');
+                    }
+                }
+            });
+
+            // حذف دیدگاه با تاییدیه
+            deleteBtn?.addEventListener('click', async () => {
+                const confirmed = confirm('آیا از حذف این دیدگاه اطمینان دارید؟ این عملیات قابل بازگشت نیست.');
+                if (!confirmed) return;
+
+                if (comment.isPending) {
+                    state.pendingComments = state.pendingComments.filter(c => c.id !== comment.id);
+                    renderCommentsList();
+                } else {
+                    try {
+                        await state.pb.collection(COMMENTS_COLLECTION).delete(comment.id);
+                        await fetchComments();
+                    } catch (err) {
+                        console.error('خطا در حذف دیدگاه:', err);
+                        alert('حذف دیدگاه با خطا مواجه شد.');
+                    }
                 }
             });
         }

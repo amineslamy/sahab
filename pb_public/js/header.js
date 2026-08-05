@@ -1,14 +1,15 @@
-// اطمینان از مقداردهی pb در صورت عدم وجود
-if (typeof pb === 'undefined') {
-    window.pb = (window.state && window.state.pb) || new PocketBase('http://127.0.0.1:8090');
-}// header.js - مدیریت یکپارچه هدر در تمام صفحات
+// header.js - مدیریت یکپارچه هدر در تمام صفحات
 async function renderGlobalHeader() {
     const headerContainer = document.getElementById('app-header');
     if (!headerContainer) return;
 
+    // اطمینان از وجود متغیر pb
+    if (typeof pb === 'undefined') {
+        window.pb = (window.state && window.state.pb) || new PocketBase(window.location.origin);
+    }
+
     // دریافت اطلاعات کاربر جاری از PocketBase
-    // (با فرض اینکه pb در پروژه شما به صورت سراسری تعریف شده است)
-    const user = pb.authStore.model;
+    const user = (pb && pb.authStore) ? pb.authStore.model : null;
 
     // نقشه‌برداری نقش‌های PocketBase به عناوین فارسی
     const roleTitles = {
@@ -18,20 +19,27 @@ async function renderGlobalHeader() {
         'admin_general': 'مدیر کل'
     };
 
-    // دریافت اطلاعات کاربر جاری از PocketBase
-    const rawRole = user?.role_name || user?.role;
-    const userName = user?.name || user?.username || 'کاربر مهمان';
-    const userRole = roleTitles[rawRole] || rawRole || 'کاربر سیستم';
-    const avatarUrl = user?.avatar
-        ? pb.files.getUrl(user, user.avatar)
-        : 'images/default-avatar.png'; // مسیر آواتار پیش‌فرض شما
+    // دریافت اطلاعات کاربر جاری
+    const rawRole = user ? (user.role_name || user.role) : null;
+    const userName = user ? (user.name || user.username || 'کاربر سیستم') : 'کاربر مهمان';
+    const userRole = rawRole ? (roleTitles[rawRole] || rawRole) : 'کاربر سیستم';
+    
+    let avatarUrl = 'images/default-avatar.png';
+    if (user && user.avatar && pb && pb.files) {
+        try {
+            avatarUrl = pb.files.getUrl(user, user.avatar);
+        } catch (e) {
+            console.warn('خطا در دریافت تصویر آواتار:', e);
+        }
+    }
 
     // ساختار HTML هدر
     headerContainer.innerHTML = `
         <header class="main-navbar">
             <div class="navbar-brand">
                 <a href="index.html" class="logo-link">
-<img src="images/logo.png" alt="لوگو سحاب" class="app-logo" height="40" style="height: 40px; width: auto;">                    <span class="app-title">بانک اطلاعات آفلاین «سحاب»</span>
+                    <img src="images/logo.png" alt="لوگو سحاب" class="app-logo" height="40" style="height: 40px; width: auto;">
+                    <span class="app-title">بانک اطلاعات آفلاین «سحاب»</span>
                 </a>
             </div>
 
@@ -48,7 +56,7 @@ async function renderGlobalHeader() {
                 </div>
                 <div class="user-avatar-wrapper">
                     <a href="profile.html" title="مشاهده پروفایل">
-                        <img src="${avatarUrl}" alt="${userName}" class="user-avatar">
+                        <img src="${avatarUrl}" alt="${userName}" class="user-avatar" onerror="this.src='images/default-avatar.png'">
                     </a>
                 </div>
                 <button id="logout-btn" class="logout-btn" title="خروج از سامانه">
@@ -61,7 +69,9 @@ async function renderGlobalHeader() {
     // اضافه کردن اکشن خروج
     document.getElementById('logout-btn')?.addEventListener('click', () => {
         if (confirm('آیا می‌خواهید از سامانه خارج شوید؟')) {
-            pb.authStore.clear();
+            if (pb && pb.authStore) {
+                pb.authStore.clear();
+            }
             window.location.href = 'login.html';
         }
     });
@@ -73,5 +83,9 @@ function isCurrentPage(pageName) {
         (pageName === 'index.html' && (window.location.pathname === '/' || window.location.pathname.endsWith('/')));
 }
 
-// اجرای خودکار پس از بارگذاری DOM
-document.addEventListener('DOMContentLoaded', renderGlobalHeader);
+// اجرای خودکار
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderGlobalHeader);
+} else {
+    renderGlobalHeader();
+}

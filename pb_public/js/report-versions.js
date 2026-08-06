@@ -107,10 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 newResult.unshift(word);
                 i--; j--;
             } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-                newResult.unshift(`<mark class="bg-cyan-100 text-cyan-900 px-1 py-0.5 rounded font-bold border border-cyan-300">${escapeHtml(newWords[j - 1])}</mark>`);
+                newResult.unshift(`<mark class="inline mx-0.5 bg-cyan-100 text-cyan-900 px-1 py-0.5 rounded font-bold border border-cyan-300">${escapeHtml(newWords[j - 1])}</mark>`);
                 j--;
             } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
-                oldResult.unshift(`<mark class="bg-rose-100 text-rose-900 line-through px-1 py-0.5 rounded font-bold border border-rose-300">${escapeHtml(oldWords[i - 1])}</mark>`);
+                oldResult.unshift(`<mark class="inline mx-0.5 bg-rose-100 text-rose-900 line-through px-1 py-0.5 rounded font-bold border border-rose-300">${escapeHtml(oldWords[i - 1])}</mark>`);
                 i--;
             }
         }

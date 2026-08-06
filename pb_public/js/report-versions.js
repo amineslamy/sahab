@@ -195,7 +195,23 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function initMainAccordionEvents() {
+        const mainToggleBtn = $id('main-versions-accordion-toggle');
+        const mainContent = $id('main-versions-accordion-content');
+        const mainArrow = $id('main-versions-arrow');
+
+        if (mainToggleBtn && mainContent && mainArrow) {
+            mainToggleBtn.onclick = () => {
+                const isHidden = mainContent.classList.contains('hidden');
+                mainContent.classList.toggle('hidden', !isHidden);
+                mainArrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+            };
+        }
+    }
+
     function renderVersionsAccordion() {
+        initMainAccordionEvents();
+
         const container = $id('versions-history-container');
         if (!container) return;
 
@@ -211,14 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.versions.forEach((ver, idx) => {
             const nextVer = state.versions[idx - 1] || state.currentReport;
             const card = document.createElement('div');
-            card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-4';
+            card.className = 'version-card border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-3';
 
             const createdDate = ver.created ? new Date(ver.created).toLocaleDateString('fa-IR') : 'نامشخص';
             const rawAuthor = ver.author || ver.expand?.author?.id;
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || (state.usersMap && state.usersMap[rawAuthor]) || (state.usersMap && state.usersMap[ver.author]) || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
-            // پردازش و پارس اولیه داده‌های کامنت
             function parseCommentsData(commentsData) {
                 if (typeof commentsData === 'string') {
                     try { return JSON.parse(commentsData); } catch { return []; }
@@ -226,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return Array.isArray(commentsData) ? commentsData : [];
             }
 
-            // رندر دیدگاه‌ها همراه با هایلایت تفاوت‌های متنی (قرمز و فیروزه‌ای)
             function renderDiffComments(oldCommentsData, newCommentsData) {
                 const oldList = parseCommentsData(oldCommentsData);
                 const newList = parseCommentsData(newCommentsData);
@@ -238,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 }
 
-                // ساخت نقشه شناسه کامنت‌ها به نام نویسنده برای بخش "در پاسخ به"
                 const commentIdToAuthorName = {};
                 [...oldList, ...newList].forEach(c => {
                     const name = c.authorName || c.expand?.author?.name || c.expand?.author?.username || (state.usersMap && state.usersMap[c.author]) || null;
@@ -247,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // ایجاد نگاشت کامنت‌های جدید بر اساس ID برای تطبیق دقیق
                 const newMap = {};
                 newList.forEach((c, i) => {
                     const key = c.id || `idx_${i}`;
@@ -296,25 +308,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 }
 
-                // مقایسه کامنت‌های قدیم با جدید
                 oldList.forEach((oldC, i) => {
                     const key = oldC.id || `idx_${i}`;
                     const newC = newMap[key];
 
                     if (newC) {
                         matchedNewKeys.add(key);
-                        // اگر کامنت در هر دو نسخه وجود داشته باشد، متن آن‌ها مقایسه کلمه‌ای می‌شود
                         const diff = diffWords(oldC.text || '', newC.text || '');
                         oldCardHtmls.push(buildCardHtml(oldC, diff.oldHtml));
                         newCardHtmls.push(buildCardHtml(newC, diff.newHtml));
                     } else {
-                        // کامنتی که در نسخه جدید کاملاً حذف شده است (قرمز کامل)
                         const diff = diffWords(oldC.text || '', '');
                         oldCardHtmls.push(buildCardHtml(oldC, diff.oldHtml));
                     }
                 });
 
-                // کامنت‌های کاملاً جدید که در نسخه قبلی وجود نداشته‌اند (فیروزه‌ای کامل)
                 newList.forEach((newC, i) => {
                     const key = newC.id || `idx_${i}`;
                     if (!matchedNewKeys.has(key)) {
@@ -329,13 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
-            // استخراج و نگاشت نام نویسندگان برای دو نسخه
             const oldAuthorRaw = ver.author || ver.expand?.author?.id;
             const newAuthorRaw = nextVer.author || nextVer.expand?.author?.id;
             const oldAuthorName = ver.expand?.author?.name || ver.expand?.author?.username || (state.usersMap && state.usersMap[oldAuthorRaw]) || 'نامشخص';
             const newAuthorName = nextVer.expand?.author?.name || nextVer.expand?.author?.username || (state.usersMap && state.usersMap[newAuthorRaw]) || 'نامشخص';
 
-            // لیست فیلدها برای مقایسه دو ستونه
             const fieldsToCompare = [
                 { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
                 { label: 'نویسنده گزارش', oldVal: oldAuthorName, newVal: newAuthorName },
@@ -363,19 +369,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 `;
             });
-            // استخراج و فال‌بک کامنت‌ها برای نسخه فعلی / بعدی
+
             const oldComments = ver.snapshot_comments || ver.comments;
             let newComments = nextVer.snapshot_comments || nextVer.comments;
             
-            // اگر نسخه بعدی، همان گزارش فعلی (زنده) است، از کامنت‌های دریافت‌شده از دیتابیس استفاده شود
             if (nextVer.id === state.currentReport?.id || idx === 0) {
                 newComments = state.currentComments || nextVer.snapshot_comments || [];
             }
 
-            // محاسبه هایلایت‌های متنی برای کامنت‌ها
             const commentsDiffResult = renderDiffComments(oldComments, newComments);
 
-            // ساختار شکیل نمایش نظرات و ملاحظات در دو نسخه پیشین و پسین همراه با Diff
             const commentsDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                     <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">نظرات و ملاحظات</td>
@@ -383,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${commentsDiffResult.newHtml}</td>
                 </tr>
             `;
-            // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
+
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                     <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">تصویر کاور</td>
@@ -445,6 +448,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             toggleBtn.addEventListener('click', () => {
                 const isHidden = content.classList.contains('hidden');
+
+                // بستن سایر آکاردئون‌های نسخه باز شده (رفتار آکاردئون تک‌باز)
+                if (isHidden) {
+                    container.querySelectorAll('.version-card').forEach(otherCard => {
+                        if (otherCard !== card) {
+                            const otherContent = otherCard.querySelector('.accordion-content');
+                            const otherArrow = otherCard.querySelector('.accordion-arrow');
+                            if (otherContent) otherContent.classList.add('hidden');
+                            if (otherArrow) otherArrow.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                }
+
                 content.classList.toggle('hidden', !isHidden);
                 arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
             });

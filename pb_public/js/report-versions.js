@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return tmp.textContent || tmp.innerText || '';
     }
 
-    // الگوریتم مقایسه کلمه‌ای بر پایه کتابخانه Diff (jsdiff)
+    // الگوریتم مقایسه کلمه‌ای با حفظ فاصله‌ها و عدم چسبندگی کلمات
     function diffWords(oldText, newText) {
         const str1 = String(oldText || '').trim();
         const str2 = String(newText || '').trim();
@@ -89,7 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        const changes = Diff.diffWords(str1, str2);
+        // استفاده از diffWordsWithSpace جهت حفظ دقیق فاصله‌ها بین کلمات
+        const changes = Diff.diffWordsWithSpace(str1, str2);
         let oldHtml = '';
         let newHtml = '';
 

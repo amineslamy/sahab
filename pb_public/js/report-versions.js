@@ -205,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
-            // تبدیل کامنت‌ها به متن تخت جهت اعمال هایلایت Diff کلمه‌ای
-            function serializeCommentsToText(commentsData) {
+            // رندر ساختاریافته و زیبای کامنت‌های اسنپ‌شات با عناوین فارسی و تاریخ شمسی
+            function renderFormattedComments(commentsData) {
                 let commentsList = [];
                 if (typeof commentsData === 'string') {
                     try { commentsList = JSON.parse(commentsData); } catch { commentsList = []; }
@@ -214,18 +214,62 @@ document.addEventListener('DOMContentLoaded', () => {
                     commentsList = commentsData;
                 }
 
-                if (!commentsList || commentsList.length === 0) return '';
+                if (!commentsList || commentsList.length === 0) {
+                    return '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>';
+                }
+
+                // نگاشت آیدی کامنت‌ها به نام نویسندگان جهت رندر "در پاسخ به"
+                const commentAuthorMap = {};
+                commentsList.forEach(c => {
+                    if (c.id) {
+                        const name = c.authorName || c.expand?.author?.name || c.expand?.author?.username || c.author || 'کاربر';
+                        commentAuthorMap[c.id] = name;
+                    }
+                });
 
                 return commentsList.map(c => {
-                    const typeStr = c.type ? `[${c.type}] ` : '';
-                    const authorStr = c.author ? `${c.author}: ` : '';
-                    return `${typeStr}${authorStr}${c.text || ''}`;
-                }).join('\n');
+                    const authorName = escapeHtml(c.authorName || c.expand?.author?.name || c.expand?.author?.username || 'کاربر سیستم');
+                    const typeStr = c.type ? `<span class="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md">${escapeHtml(c.type)}</span>` : '';
+                    const textStr = escapeHtml(c.text || '');
+
+                    let dateStr = '';
+                    if (c.created) {
+                        try {
+                            const pDate = new persianDate(new Date(c.created));
+                            dateStr = pDate.format('YYYY/MM/DD HH:mm');
+                        } catch (e) {
+                            dateStr = c.created;
+                        }
+                    }
+
+                    let parentNotice = '';
+                    if (c.parent) {
+                        const parentAuthor = commentAuthorMap[c.parent] ? escapeHtml(commentAuthorMap[c.parent]) : 'دیدگاه دیگر';
+                        parentNotice = `<div class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border-r-2 border-slate-400 mb-1">💬 در پاسخ به: ${parentAuthor}</div>`;
+                    }
+
+                    return `
+                        <div class="p-2.5 rounded-lg border border-slate-200 bg-white shadow-xs space-y-1.5 mb-2 text-right">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs font-bold text-slate-900">👤 ${authorName}</span>
+                                    ${typeStr}
+                                </div>
+                                <span class="text-[10px] text-slate-400 font-medium">${dateStr}</span>
+                            </div>
+                            ${parentNotice}
+                            <div class="text-xs text-slate-700 leading-relaxed font-semibold">
+                                ${textStr}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
             // لیست فیلدها برای مقایسه دو ستونه
             const fieldsToCompare = [
                 { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
+                { label: 'دلیل تغییرات', oldVal: ver.change_reason, newVal: nextVer.change_reason },
                 { label: 'چکیده', oldVal: ver.abstract, newVal: nextVer.abstract },
                 { label: 'شرح و متن اصلی', oldVal: stripTags(ver.content), newVal: stripTags(nextVer.content) },
                 { label: 'طبقه بندی', oldVal: ver.classification, newVal: nextVer.classification },
@@ -235,7 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { label: 'تاریخ وقوع', oldVal: formatOccurrenceDate(ver.occurrence_date), newVal: formatOccurrenceDate(nextVer.occurrence_date) },
                 { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
                 { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) },
-                { label: 'نظرات و ملاحظات', oldVal: serializeCommentsToText(ver.snapshot_comments), newVal: serializeCommentsToText(nextVer.snapshot_comments) }
+                { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
+                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) }
             ];
 
             let sideBySideFieldsHtml = '';
@@ -250,6 +295,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 `;
             });
+            // ساختار شکیل نمایش نظرات و ملاحظات در دو نسخه پیشین و پسین
+            const commentsDiffHtml = `
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">نظرات و ملاحظات</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-slate-50/30">${renderFormattedComments(ver.snapshot_comments)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-slate-50/30">${renderFormattedComments(nextVer.snapshot_comments)}</td>
+                </tr>
+            `;
+
             // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
@@ -291,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </thead>
                             <tbody>
                                 ${sideBySideFieldsHtml}
+                                ${commentsDiffHtml}
                                 ${coverDiffHtml}
                                 ${attachmentsDiffHtml}
                             </tbody>

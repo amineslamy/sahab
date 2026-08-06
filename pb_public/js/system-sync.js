@@ -72,7 +72,9 @@ async function exportDataToJSON() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `sahab_export_${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         URL.revokeObjectURL(url);
 
         logStatus(`خروجی موفقیت‌آمیز انجام شد. تعداد کل گزارش‌ها: ${reports.length}`);
@@ -156,7 +158,9 @@ async function exportDataToZIP() {
         const a = document.createElement('a');
         a.href = url;
         a.download = `sahab_full_export_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         URL.revokeObjectURL(url);
 
         logStatus("فایل ZIP با موفقیت دانلود شد.");

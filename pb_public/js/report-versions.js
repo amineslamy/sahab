@@ -454,6 +454,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 content.classList.toggle('hidden', !isHidden);
                 arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+
+                // انتقال نرم صفحه به بالای آکاردئون باز شده
+                if (isHidden) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             });
 
             restoreBtn.addEventListener('click', () => {

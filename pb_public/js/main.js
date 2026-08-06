@@ -406,22 +406,27 @@ async function exportBatchZip() {
         }
 
         userCode = currentUser?.name || currentUser?.id || "unknown";
-        
-        // ۲. تولید timestamp به فرمت YYYYMMDD_HHMMSS
-        const now = new Date();
-        const timestamp = now.getFullYear().toString() +
-            String(now.getMonth() + 1).padStart(2, '0') +
-            String(now.getDate()).padStart(2, '0') + '_' +
-            String(now.getHours()).padStart(2, '0') +
-            String(now.getMinutes()).padStart(2, '0') +
-            String(now.getSeconds()).padStart(2, '0');
 
-        // ۳. ساخت نام پویا برای فایل JSON (نمونه: report_user114_20260806_211500.json)
-        const dynamicFileName = `report_user${userCode}_${timestamp}.json`;
+        // ۲. تولید timestamp شمسی به فرمت YYYYMMDD_HHMMSS
+        let timestamp = "";
+        if (window.persianDate) {
+            const pd = new window.persianDate();
+            timestamp = pd.format('YYYYMMDD_HHmmss');
+        } else {
+            const now = new Date();
+            timestamp = now.getFullYear().toString() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + '_' +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+        }
+
+        // ۳. ساخت نام پویا برای فایل JSON
+        const dynamicFileName = `${userCode}_${timestamp}.json`;
 
         // ۴. قرار دادن فایل اصلی شامل تمام اطلاعات اخبار انتخاب‌شده با نام پویا
         zip.file(dynamicFileName, JSON.stringify(reports, null, 2));
-
         // ۲. دانلود و افزودن فایل‌های رسانه‌ای (تصویر شاخص و پیوست‌ها) به پوشه media
         for (const report of reports) {
             // الف) دانلود تصویر شاخص (Cover Image)
@@ -455,16 +460,18 @@ async function exportBatchZip() {
             }
         }
 
-        // ۳. تولید فایل ZIP و دانلود آن
+        // ۳. تولید نام پویا برای فایل ZIP (دقیقاً مشابه ساختار نام فایل JSON)
+        //const zipFileName = `report_user${userCode}_${timestamp}.zip`;
+        const zipFileName = `${userCode}_${timestamp}.zip`;
+        // ۴. تولید فایل ZIP و دانلود آن با نام جدید
         const content = await zip.generateAsync({ type: "blob" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);
-        link.download = `reports_export_${new Date().toISOString().slice(0, 10)}.zip`;
+        link.download = zipFileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-
     } catch (err) {
         console.error("خطا در ایجاد فایل زیپ:", err);
         alert("خطایی هنگام دانلود و بسته‌بندی فایل زیپ رخ داد.");

@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
-            // رندر ساختاریافته و زیبای کامنت‌های اسنپ‌شات با عناوین فارسی و تاریخ شمسی
+            // رندر ساختاریافته کامنت‌ها با رفع مشکل آیدی والد و نام نویسنده
             function renderFormattedComments(commentsData) {
                 let commentsList = [];
                 if (typeof commentsData === 'string') {
@@ -221,17 +221,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     return '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>';
                 }
 
-                // نگاشت آیدی کامنت‌ها به نام نویسندگان جهت رندر "در پاسخ به"
-                const commentAuthorMap = {};
+                // ۱. نقشه شناسه کامنت به نام نویسنده
+                const commentIdToAuthorName = {};
                 commentsList.forEach(c => {
-                    if (c.id) {
-                        const name = c.authorName || c.expand?.author?.name || c.expand?.author?.username || c.author || 'کاربر';
-                        commentAuthorMap[c.id] = name;
+                    const name = c.authorName || c.expand?.author?.name || c.expand?.author?.username || (state.usersMap && state.usersMap[c.author]) || null;
+                    if (c.id && name) {
+                        commentIdToAuthorName[c.id] = name;
                     }
                 });
 
                 return commentsList.map(c => {
-                    const authorName = escapeHtml(c.authorName || c.expand?.author?.name || c.expand?.author?.username || 'کاربر سیستم');
+                    // محاسبه نام نویسنده خود کامنت
+                    const rawAuthor = c.authorName || c.expand?.author?.name || c.expand?.author?.username || c.author;
+                    const authorName = escapeHtml((state.usersMap && state.usersMap[rawAuthor]) || rawAuthor || 'کاربر سیستم');
+
                     const typeStr = c.type ? `<span class="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md">${escapeHtml(c.type)}</span>` : '';
                     const textStr = escapeHtml(c.text || '');
 
@@ -245,10 +248,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
+                    // ۲. حل مشکل نمایش آیدی در پاسخ به
                     let parentNotice = '';
                     if (c.parent) {
-                        const parentAuthor = commentAuthorMap[c.parent] ? escapeHtml(commentAuthorMap[c.parent]) : 'دیدگاه دیگر';
-                        parentNotice = `<div class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border-r-2 border-slate-400 mb-1">💬 در پاسخ به: ${parentAuthor}</div>`;
+                        // ابتدا جستجو در نگاشت کامنت‌ها، سپس جستجو در نگاشت کاربران
+                        let parentAuthorName = commentIdToAuthorName[c.parent] || (state.usersMap && state.usersMap[c.parent]) || null;
+                        if (!parentAuthorName) {
+                            parentAuthorName = 'دیدگاه دیگر';
+                        }
+                        parentNotice = `<div class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border-r-2 border-slate-400 mb-1">💬 در پاسخ به: ${escapeHtml(parentAuthorName)}</div>`;
                     }
 
                     return `

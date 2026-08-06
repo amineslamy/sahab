@@ -43,13 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
             topics.forEach(t => { state.topicsMap[t.id] = t.title; });
             cases.forEach(c => { state.casesMap[c.id] = c.title; });
 
-            state.currentReport = await state.pb.collection('reports').getOne(state.reportId);
-            const records = await state.pb.collection(VERSIONS_COLLECTION).getFullList({
-                filter: `report = "${state.reportId}"`,
-                sort: '-version',
-                expand: 'author,submitter'
-            });
+            const [currentReport, currentComments, records] = await Promise.all([
+                state.pb.collection('reports').getOne(state.reportId),
+                state.pb.collection('comments').getFullList({
+                    filter: `report = "${state.reportId}"`,
+                    sort: '+created',
+                    expand: 'author'
+                }).catch(() => []),
+                state.pb.collection(VERSIONS_COLLECTION).getFullList({
+                    filter: `report = "${state.reportId}"`,
+                    sort: '-version',
+                    expand: 'author,submitter'
+                })
+            ]);
 
+            state.currentReport = currentReport;
+            state.currentComments = currentComments;
             state.versions = records;
             renderVersionsAccordion();
         } catch (err) {
@@ -350,7 +359,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             // استخراج و فال‌بک کامنت‌ها برای نسخه فعلی / بعدی
             const oldComments = ver.snapshot_comments || ver.comments;
-            const newComments = nextVer.snapshot_comments || nextVer.comments || (nextVer.id === state.currentReport?.id ? state.currentReport.snapshot_comments : null);
+            let newComments = nextVer.snapshot_comments || nextVer.comments;
+            
+            // اگر نسخه بعدی، همان گزارش فعلی (زنده) است، از کامنت‌های دریافت‌شده از دیتابیس استفاده شود
+            if (nextVer.id === state.currentReport?.id || idx === 0) {
+                newComments = state.currentComments || nextVer.snapshot_comments || [];
+            }
 
             // محاسبه هایلایت‌های متنی برای کامنت‌ها
             const commentsDiffResult = renderDiffComments(oldComments, newComments);

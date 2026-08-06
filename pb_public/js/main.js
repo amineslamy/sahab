@@ -361,7 +361,7 @@ function updateSelectionUI() {
     }
 }
 
-// تابع عملیاتی دریافت خروجی زیپ دسته‌جمعی
+// تابع عملیاتی دریافت خروجی زیپ دسته‌جمعی به همراه فایل‌های رسانه‌ای (Media)
 async function exportBatchZip() {
     if (selectedReportIds.size === 0) {
         alert("لطفاً حداقل یک خبر را برای دریافت خروجی انتخاب کنید.");
@@ -375,7 +375,7 @@ async function exportBatchZip() {
 
     const ids = Array.from(selectedReportIds);
     const zip = new JSZip();
-    const folder = zip.folder("selected_reports");
+    const mediaFolder = zip.folder("media");
 
     try {
         // دریافت اطلاعات کامل اخبار انتخاب‌شده از پاکت‌بیس
@@ -391,16 +391,43 @@ async function exportBatchZip() {
             return;
         }
 
-        // افزودن گزارش‌ها به‌صورت فایل‌های JSON جداگانه در فایل زیپ
-        reports.forEach((report, index) => {
-            const fileName = `report_${report.automation_id || report.id || (index + 1)}.json`;
-            folder.file(fileName, JSON.stringify(report, null, 2));
-        });
-
-        // همچنین یک فایل خلاصه شامل تمام گزارش‌های انتخابی قرار می‌دهیم
+        // ۱. قرار دادن فایل اصلی شامل تمام اطلاعات اخبار انتخاب‌شده
         zip.file("all_selected_reports.json", JSON.stringify(reports, null, 2));
 
-        // تولید فایل ZIP و دانلود آن
+        // ۲. دانلود و افزودن فایل‌های رسانه‌ای (تصویر شاخص و پیوست‌ها) به پوشه media
+        for (const report of reports) {
+            // الف) دانلود تصویر شاخص (Cover Image)
+            if (report.cover_image) {
+                const coverUrl = pb.files.getUrl(report, report.cover_image);
+                try {
+                    const response = await fetch(coverUrl);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        mediaFolder.file(report.cover_image, blob);
+                    }
+                } catch (imgErr) {
+                    console.error(`خطا در دریافت تصویر شاخص ${report.cover_image}:`, imgErr);
+                }
+            }
+
+            // ب) دانلود فایل‌های پیوست (Attachments)
+            if (report.attachments && Array.isArray(report.attachments)) {
+                for (const file of report.attachments) {
+                    const fileUrl = pb.files.getUrl(report, file);
+                    try {
+                        const response = await fetch(fileUrl);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            mediaFolder.file(file, blob);
+                        }
+                    } catch (attErr) {
+                        console.error(`خطا در دریافت فایل پیوست ${file}:`, attErr);
+                    }
+                }
+            }
+        }
+
+        // ۳. تولید فایل ZIP و دانلود آن
         const content = await zip.generateAsync({ type: "blob" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(content);

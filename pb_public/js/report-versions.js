@@ -31,12 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchVersions() {
         try {
-            // دریافت لیست کامل موضوعات و کیس‌ها جهت نگاشت ID به عنوان فارسی
-            const [topics, cases] = await Promise.all([
+            // دریافت لیست کامل موضوعات، کیس‌ها و کاربران جهت نگاشت ID به عنوان فارسی
+            const [topics, cases, users] = await Promise.all([
                 state.pb.collection('topics').getFullList({ fields: 'id,title' }).catch(() => []),
-                state.pb.collection('cases').getFullList({ fields: 'id,title' }).catch(() => [])
+                state.pb.collection('cases').getFullList({ fields: 'id,title' }).catch(() => []),
+                state.pb.collection('users').getFullList({ fields: 'id,name,username' }).catch(() => [])
             ]);
 
+            state.usersMap = {};
+            users.forEach(u => { state.usersMap[u.id] = u.name || u.username || u.id; });
             topics.forEach(t => { state.topicsMap[t.id] = t.title; });
             cases.forEach(c => { state.casesMap[c.id] = c.title; });
 

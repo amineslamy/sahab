@@ -46,22 +46,31 @@ async function exportDataToJSON() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
-        // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه
-        const [reports, topics, cases, comments] = await Promise.all([
-            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
+        // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه (شامل کاربرانی که دسترسی خواندن دارند)
+        const [users, topics, cases, reports, comments] = await Promise.all([
+            activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
             activePb.collection('topics').getFullList({ requestKey: null }),
             activePb.collection('cases').getFullList({ requestKey: null }),
+            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
             activePb.collection('comments').getFullList({ requestKey: null })
         ]);
+
+        // پاک‌سازی کلید expand برای جلوگیری از اختلال در هنگام Import
+        const cleanRecords = (list) => list.map(record => {
+            const clean = { ...record };
+            delete clean.expand;
+            return clean;
+        });
 
         const exportPayload = {
             version: "1.0",
             exportedAt: new Date().toISOString(),
             data: {
-                topics,
-                cases,
-                reports,
-                comments
+                users: cleanRecords(users),
+                topics: cleanRecords(topics),
+                cases: cleanRecords(cases),
+                reports: cleanRecords(reports),
+                comments: cleanRecords(comments)
             }
         };
 
@@ -98,19 +107,31 @@ async function exportDataToZIP() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
-        const [reports, topics, cases, comments] = await Promise.all([
-            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
+        const [users, topics, cases, reports, comments] = await Promise.all([
+            activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
             activePb.collection('topics').getFullList({ requestKey: null }),
             activePb.collection('cases').getFullList({ requestKey: null }),
+            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
             activePb.collection('comments').getFullList({ requestKey: null })
         ]);
+
+        const cleanRecords = (list) => list.map(record => {
+            const clean = { ...record };
+            delete clean.expand;
+            return clean;
+        });
 
         const exportPayload = {
             version: "1.0",
             exportedAt: new Date().toISOString(),
-            data: { topics, cases, reports, comments }
+            data: {
+                users: cleanRecords(users),
+                topics: cleanRecords(topics),
+                cases: cleanRecords(cases),
+                reports: cleanRecords(reports),
+                comments: cleanRecords(comments)
+            }
         };
-
         // افزودن دیتای متنی JSON به ZIP
         zip.file("data.json", JSON.stringify(exportPayload, null, 2));
 
@@ -225,27 +246,35 @@ async function importDataFromFile() {
 async function processImportData(payload) {
     const overwrite = document.getElementById('overwrite-existing')?.checked || false;
 
-    const { topics = [], cases = [], reports = [], comments = [] } = payload;
+    const { users = [], topics = [], cases = [], reports = [], comments = [] } = payload;
 
-    // ۱. ورود موضوعات (Topics)
+    // ۱. ورود کاربران (Users) - جهت تامین Foreign Keyهای مربوط به نویسنده و ارائه‌دهنده
+    if (users.length > 0) {
+        logStatus(`بررسی و ورود ${users.length} کاربر...`);
+        for (const item of users) {
+            await upsertRecord('users', item, overwrite);
+        }
+    }
+
+    // ۲. ورود موضوعات (Topics)
     logStatus(`بررسی و ورود ${topics.length} موضوع...`);
     for (const item of topics) {
         await upsertRecord('topics', item, overwrite);
     }
 
-    // ۲. ورود کیس‌ها (Cases)
+    // ۳. ورود کیس‌ها (Cases)
     logStatus(`بررسی و ورود ${cases.length} کیس...`);
     for (const item of cases) {
         await upsertRecord('cases', item, overwrite);
     }
 
-    // ۳. ورود گزارش‌ها (Reports)
+    // ۴. ورود گزارش‌ها (Reports)
     logStatus(`بررسی و ورود ${reports.length} گزارش...`);
     for (const item of reports) {
         await upsertRecord('reports', item, overwrite);
     }
 
-    // ۴. ورود کامنت‌ها (Comments)
+    // ۵. ورود کامنت‌ها (Comments)
     logStatus(`بررسی و ورود ${comments.length} کامنت...`);
     for (const item of comments) {
         await upsertRecord('comments', item, overwrite);

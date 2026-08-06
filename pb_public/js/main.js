@@ -391,8 +391,36 @@ async function exportBatchZip() {
             return;
         }
 
-        // ۱. قرار دادن فایل اصلی شامل تمام اطلاعات اخبار انتخاب‌شده
-        zip.file("all_selected_reports.json", JSON.stringify(reports, null, 2));
+        // ۱. دریافت کد کاربر جاری از پاکت‌بیس با پشتیبانی از تمامی نسخه‌ها و بازیابی مطمئن
+        let userCode = "unknown";
+        let currentUser = pb.authStore.record || pb.authStore.model;
+
+        // اگر AuthStore خالی بود یا user_code را نداشت، مجدداً از سرور Refresh می‌کنیم
+        if (!currentUser?.user_code && pb.authStore.isValid) {
+            try {
+                currentUser = await pb.collection('users').authRefresh();
+                currentUser = currentUser?.record || currentUser?.model || pb.authStore.record || pb.authStore.model;
+            } catch (err) {
+                console.warn("خطا در به روزرسانی اطلاعات کاربر جاری:", err);
+            }
+        }
+
+        userCode = currentUser?.user_code || currentUser?.id || "unknown";
+        
+        // ۲. تولید timestamp به فرمت YYYYMMDD_HHMMSS
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + '_' +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+        // ۳. ساخت نام پویا برای فایل JSON (نمونه: report_user114_20260806_211500.json)
+        const dynamicFileName = `report_user${userCode}_${timestamp}.json`;
+
+        // ۴. قرار دادن فایل اصلی شامل تمام اطلاعات اخبار انتخاب‌شده با نام پویا
+        zip.file(dynamicFileName, JSON.stringify(reports, null, 2));
 
         // ۲. دانلود و افزودن فایل‌های رسانه‌ای (تصویر شاخص و پیوست‌ها) به پوشه media
         for (const report of reports) {

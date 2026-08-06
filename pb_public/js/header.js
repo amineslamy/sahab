@@ -1,14 +1,24 @@
-// اطمینان از مقداردهی pb در صورت عدم وجود
-if (typeof pb === 'undefined') {
-    window.pb = (window.state && window.state.pb) || (typeof PocketBase !== 'undefined' ? new PocketBase('http://127.0.0.1:8090') : null);
+// اطمینان از مقداردهی اولیه pb بر اساس origin جاری مرورگر
+if (typeof window.pb === 'undefined' || !window.pb) {
+    if (typeof PocketBase !== 'undefined') {
+        window.pb = new PocketBase(window.location.origin);
+    }
 }
+
 // header.js - مدیریت یکپارچه هدر در تمام صفحات
 window.renderGlobalHeader = async function renderGlobalHeader() {
     const headerContainer = document.getElementById('app-header');
     if (!headerContainer) return;
 
-    // دریافت اطلاعات کاربر جاری از PocketBase با چک کردن وجود pb
-    const user = (typeof pb !== 'undefined' && pb?.authStore) ? pb.authStore.model : null;
+    // اگر window.pb مقداردهی نشده بود، مجددا تلاش برای ایجاد آن
+    if (!window.pb && typeof PocketBase !== 'undefined') {
+        window.pb = new PocketBase(window.location.origin);
+    }
+
+    const activePb = window.pb || (typeof pb !== 'undefined' ? pb : null);
+    
+    // بازخوانی مدل کاربر از authStore
+    const user = activePb?.authStore?.isValid ? activePb.authStore.model : null;
 
     // نقشه‌برداری نقش‌های PocketBase به عناوین فارسی
     const roleTitles = {
@@ -18,20 +28,21 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
         'admin_general': 'مدیر کل'
     };
 
-    // دریافت اطلاعات کاربر جاری از PocketBase
+    // استخراج مشخصات کاربر
     const rawRole = user?.role_name || user?.role;
     const userName = user?.name || user?.username || 'کاربر مهمان';
     const userRole = roleTitles[rawRole] || rawRole || 'کاربر سیستم';
-    const avatarUrl = user?.avatar
-        ? pb.files.getUrl(user, user.avatar)
-        : 'images/default-avatar.png'; // مسیر آواتار پیش‌فرض شما
+    const avatarUrl = (user?.avatar && activePb?.files)
+        ? activePb.files.getUrl(user, user.avatar)
+        : 'images/default-avatar.png';
 
     // ساختار HTML هدر
     headerContainer.innerHTML = `
         <header class="main-navbar">
             <div class="navbar-brand">
                 <a href="index.html" class="logo-link">
-<img src="images/logo.png" alt="لوگو سحاب" class="app-logo" height="40" style="height: 40px; width: auto;">                    <span class="app-title">بانک اطلاعات آفلاین «سحاب»</span>
+                    <img src="images/logo.png" alt="لوگو سحاب" class="app-logo" height="40" style="height: 40px; width: auto;">
+                    <span class="app-title">بانک اطلاعات آفلاین «سحاب»</span>
                 </a>
             </div>
 
@@ -39,6 +50,7 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
                 <a href="index.html" class="nav-item ${isCurrentPage('index.html') ? 'active' : ''}">پیشخوان</a>
                 <a href="create-report.html" class="nav-item ${isCurrentPage('create-report.html') ? 'active' : ''}">افزودن | ویرایش خبر</a>
                 <a href="users.html" class="nav-item ${isCurrentPage('users.html') ? 'active' : ''}">مدیریت کاربران</a>
+                <a href="sahab-sync.html" class="nav-item ${isCurrentPage('sahab-sync.html') ? 'active' : ''}">همگام‌سازی و پشتیبان</a>
             </nav>
 
             <div class="navbar-user-profile">
@@ -61,11 +73,13 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
     // اضافه کردن اکشن خروج
     document.getElementById('logout-btn')?.addEventListener('click', () => {
         if (confirm('آیا می‌خواهید از سامانه خارج شوید؟')) {
-            pb.authStore.clear();
+            if (activePb?.authStore) {
+                activePb.authStore.clear();
+            }
             window.location.href = 'login.html';
         }
     });
-}
+};
 
 // تابع کمکی برای تشخیص صفحه فعلی و فعال کردن منو
 function isCurrentPage(pageName) {

@@ -8,6 +8,9 @@ let currentPage = 1;
 let perPage = 10;
 let currentFilterQuery = "";
 
+// متغیر سراسری مدیریت انتخاب‌ها (حفظ ID خبرها در پجینیشن و فیلترها)
+const selectedReportIds = new Set();
+
 // تابع کمکی برای ساخت فیلتر بر اساس نقش کاربر
 function getRoleBasedFilter() {
     const user = pb.authStore.model;
@@ -207,9 +210,10 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
+            updateSelectionUI();
             return;
         }
 
@@ -227,13 +231,19 @@ async function loadReportsTable() {
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
-            // رنگ زمینه یکدست و یکی در میان برای هر کارت خبر (بدون هاور)
+            // بررسی انتخاب شدن خبر در حافظه
+            const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
+
+            // رنگ زمینه یکدست و یکی در میان برای هر کارت خبر
             const isEven = index % 2 === 0;
             const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
 
             html += `
                 <!-- سطر اصلی خبر -->
                 <tr class="${bgRow} border-t-2 border-slate-300">
+                    <td class="p-3 text-center" rowspan="2">
+                        <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                    </td>
                     <td class="p-3 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
                     <td class="p-3"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded inline-block">${topicTitles}</span></td>
                     <td class="p-3" rowspan="2"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded inline-block">${caseTitles}</span></td>
@@ -264,6 +274,7 @@ async function loadReportsTable() {
             `;
         });
         tbody.innerHTML = html;
+        updateSelectionUI();
 
         // به‌روزرسانی Pagination
         document.getElementById('pagination-info').innerText = `صفحه ${result.page} از ${result.totalPages} (مجموع ${result.totalItems} گزارش)`;
@@ -283,7 +294,82 @@ function goToPage(page) {
     currentPage = page;
     loadReportsTable();
 }
+// ------------------- مدیریت حافظه انتخاب‌ها (Selection Manager) -------------------
 
+// تغییر وضعیت انتخاب یک خبر منفرد
+function toggleReportSelection(id, isChecked) {
+    if (isChecked) {
+        selectedReportIds.add(id);
+    } else {
+        selectedReportIds.delete(id);
+    }
+    updateSelectionUI();
+}
+
+// تغییر وضعیت انتخاب کل خبرهای صفحه جاری
+function toggleSelectAllCurrentPage(isChecked) {
+    const checkboxes = document.querySelectorAll('.report-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        if (isChecked) {
+            selectedReportIds.add(cb.value);
+        } else {
+            selectedReportIds.delete(cb.value);
+        }
+    });
+    updateSelectionUI();
+}
+
+// پاک‌سازی کامل تمام انتخاب‌ها
+function clearAllSelections() {
+    selectedReportIds.clear();
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) selectAllCb.checked = false;
+
+    document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = false);
+    updateSelectionUI();
+}
+
+// به‌روزرسانی نوار اطلاع‌رسانی بالای جدول و چک‌باکس هدر
+function updateSelectionUI() {
+    const count = selectedReportIds.size;
+    const badge = document.getElementById('selected-count-badge');
+    const bar = document.getElementById('selection-bar');
+    const selectAllCb = document.getElementById('select-all-checkbox');
+
+    if (badge) {
+        badge.innerText = `${count.toLocaleString('fa-IR')} مورد انتخاب شده`;
+    }
+
+    if (bar) {
+        if (count > 0) {
+            bar.classList.remove('hidden');
+        } else {
+            bar.classList.add('hidden');
+        }
+    }
+
+    // همگام‌سازی چک‌باکس "انتخاب همه" در هدر صفحه جاری
+    if (selectAllCb) {
+        const currentPageCheckboxes = Array.from(document.querySelectorAll('.report-checkbox'));
+        if (currentPageCheckboxes.length > 0) {
+            const allCheckedOnPage = currentPageCheckboxes.every(cb => cb.checked);
+            selectAllCb.checked = allCheckedOnPage;
+        } else {
+            selectAllCb.checked = false;
+        }
+    }
+}
+
+// تابع موقت جهت گام‌های بعدی برای خروجی زیپ دسته‌جمعی
+function exportBatchZip() {
+    if (selectedReportIds.size === 0) {
+        alert("لطفاً حداقل یک خبر را برای دریافت خروجی انتخاب کنید.");
+        return;
+    }
+    console.log("آیدی‌های انتخاب شده برای خروجی گروهی:", Array.from(selectedReportIds));
+    alert(`${selectedReportIds.size} خبر انتخاب شده آماده خروجی ZIP است. (موتور خروجی زیپ در گام‌های بعدی متصل خواهد شد)`);
+}
 // ------------------- نمودارها -------------------
 function renderChart(elementSelector, options) {
     if (typeof ApexCharts === 'undefined') {
@@ -304,8 +390,8 @@ function renderChart(elementSelector, options) {
 
 // پالت رنگی گسترده (۱۵ رنگ هماهنگ و متمایز)
 const extendedPalette = [
-    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4', 
-    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4',
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
     '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b'
 ];
 
@@ -379,9 +465,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-timeline", {
         series: [{ name: 'تعداد اخبار', data: timelineValues }],
-        chart: { 
-            type: 'area', 
-            height: 260, 
+        chart: {
+            type: 'area',
+            height: 260,
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -449,9 +535,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(caseMap).length ? Object.values(caseMap) : [1],
         labels: Object.keys(caseMap).length ? Object.keys(caseMap) : ['بدون کیس'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', 
-    '#f97316', '#14b8a6', '#eab308', '#ef4444', 
-    '#3b82f6', '#84cc16', '#d97706', '#64748b']
+        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b',
+            '#f97316', '#14b8a6', '#eab308', '#ef4444',
+            '#3b82f6', '#84cc16', '#d97706', '#64748b']
     });
 
     // موضوعات
@@ -463,9 +549,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(topicMap).length ? Object.values(topicMap) : [1],
         labels: Object.keys(topicMap).length ? Object.keys(topicMap) : ['بدون موضوع'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', 
-    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
-    '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
+        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4',
+            '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
+            '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
     });
 
     // ثبت کننده
@@ -537,9 +623,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-occurrence-timeline", {
         series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
-        chart: { 
-            type: 'area', 
-            height: 260, 
+        chart: {
+            type: 'area',
+            height: 260,
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -569,7 +655,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 fromStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (!toStr && toVal && window.persianDate) {
@@ -580,7 +666,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 toStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     let filtered = allReports;
@@ -599,7 +685,7 @@ function applyAnalyticsDateFilter() {
             const parts = toStr.split('-');
             const endDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             endDate.setDate(endDate.getDate() + 1);
-            
+
             const nextDayStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
             filtered = filtered.filter(r => {
@@ -726,7 +812,7 @@ async function openDetailModal(id) {
             commentsHtml = comments.map(c => {
                 const cAuthor = c.expand?.author ? (c.expand.author.name || c.expand.author.username) : 'کاربر نامشخص';
                 const cType = c.type || 'کامنت عمومی';
-                
+
                 // استایل‌دهی بر اساس نوع (ملاحظه، نظریه، پاسخ، کامنت)
                 let badgeStyle = 'bg-slate-200 text-slate-800';
                 if (cType === 'ملاحظه') badgeStyle = 'bg-amber-100 text-amber-800 border border-amber-300';

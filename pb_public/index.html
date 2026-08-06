@@ -148,6 +148,24 @@
                 </div>
             </div>
 
+            <!-- نوار اطلاع‌رسانی و عملیات دسته‌جمعی اخبار انتخاب‌شده -->
+            <div id="selection-bar" class="hidden bg-indigo-900 text-white px-5 py-3 border-b border-indigo-800 flex justify-between items-center transition-all">
+                <div class="flex items-center gap-3">
+                    <span class="bg-indigo-700 text-indigo-100 px-3 py-1 rounded-lg text-xs font-black" id="selected-count-badge">
+                        ۰ مورد انتخاب شده
+                    </span>
+                    <span class="text-xs text-indigo-200">می‌توانید از تمامی موارد انتخاب‌شده خروجی زیپ دریافت کنید.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-batch-export-zip" onclick="exportBatchZip()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition shadow-sm flex items-center gap-1.5">
+                        📦 خروجی زیپ از موارد انتخابی
+                    </button>
+                    <button onclick="clearAllSelections()" class="bg-indigo-800 hover:bg-indigo-700 text-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                        انصراف / پاک‌سازی انتخاب‌ها
+                    </button>
+                </div>
+            </div>
+
             <!-- پنل کشویی (آکاردئون) فیلترهای پیشرفته -->
             <div id="advanced-filter-accordion" class="hidden border-b border-slate-200 bg-slate-50 p-5 space-y-4">
                 <div class="flex justify-between items-center border-b border-slate-200 pb-2">
@@ -243,6 +261,9 @@
                 <table class="w-full text-right text-xs text-slate-700 whitespace-nowrap">
                     <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
                         <tr>
+                            <th class="p-3 w-10 text-center">
+                                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAllCurrentPage(this.checked)" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                            </th>
                             <th class="p-3">عنوان خبر / شماره اتوماسیون</th>
                             <th class="p-3">موضوع / نوع خبر</th>
                             <th class="p-3">کیس</th>

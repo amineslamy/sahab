@@ -77,47 +77,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return tmp.textContent || tmp.innerText || '';
     }
 
-    // الگوریتم مقایسه کلمه‌ای استاندارد و تمیز (Diff)
+    // الگوریتم مقایسه کلمه‌ای بر پایه کتابخانه Diff (jsdiff)
     function diffWords(oldText, newText) {
-        const oldWords = (oldText || '').trim().split(/\s+/).filter(Boolean);
-        const newWords = (newText || '').trim().split(/\s+/).filter(Boolean);
+        const str1 = String(oldText || '').trim();
+        const str2 = String(newText || '').trim();
 
-        const n = oldWords.length;
-        const m = newWords.length;
-        const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
-
-        for (let i = 1; i <= n; i++) {
-            for (let j = 1; j <= m; j++) {
-                if (oldWords[i - 1] === newWords[j - 1]) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                } else {
-                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-                }
-            }
+        if (!str1 && !str2) {
+            return {
+                oldHtml: '<span class="text-slate-400 italic">(خالی)</span>',
+                newHtml: '<span class="text-slate-400 italic">(خالی)</span>'
+            };
         }
 
-        let i = n, j = m;
-        const oldResult = [];
-        const newResult = [];
+        const changes = Diff.diffWords(str1, str2);
+        let oldHtml = '';
+        let newHtml = '';
 
-        while (i > 0 || j > 0) {
-            if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
-                const word = escapeHtml(oldWords[i - 1]);
-                oldResult.unshift(word);
-                newResult.unshift(word);
-                i--; j--;
-            } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-                newResult.unshift(`<mark class="inline mx-0.5 bg-cyan-100 text-cyan-900 px-1 py-0.5 rounded font-bold border border-cyan-300">${escapeHtml(newWords[j - 1])}</mark>`);
-                j--;
-            } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
-                oldResult.unshift(`<mark class="inline mx-0.5 bg-rose-100 text-rose-900 line-through px-1 py-0.5 rounded font-bold border border-rose-300">${escapeHtml(oldWords[i - 1])}</mark>`);
-                i--;
+        changes.forEach(part => {
+            const escapedValue = escapeHtml(part.value);
+            if (part.added) {
+                newHtml += `<mark class="inline mx-0.5 bg-cyan-100 text-cyan-900 px-1 py-0.5 rounded font-bold border border-cyan-300">${escapedValue}</mark>`;
+            } else if (part.removed) {
+                oldHtml += `<mark class="inline mx-0.5 bg-rose-100 text-rose-900 line-through px-1 py-0.5 rounded font-bold border border-rose-300">${escapedValue}</mark>`;
+            } else {
+                oldHtml += escapedValue;
+                newHtml += escapedValue;
             }
-        }
+        });
 
         return {
-            oldHtml: oldResult.join(' ') || '<span class="text-slate-400 italic">(خالی)</span>',
-            newHtml: newResult.join(' ') || '<span class="text-slate-400 italic">(خالی)</span>'
+            oldHtml: oldHtml || '<span class="text-slate-400 italic">(خالی)</span>',
+            newHtml: newHtml || '<span class="text-slate-400 italic">(خالی)</span>'
         };
     }
 

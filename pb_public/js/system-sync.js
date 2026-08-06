@@ -46,13 +46,14 @@ async function exportDataToJSON() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
-        // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه (شامل کاربرانی که دسترسی خواندن دارند)
-        const [users, topics, cases, reports, comments] = await Promise.all([
+        // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه (شامل ورژنینگ گزارش‌ها)
+        const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
             activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
             activePb.collection('topics').getFullList({ requestKey: null }),
             activePb.collection('cases').getFullList({ requestKey: null }),
             activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            activePb.collection('comments').getFullList({ requestKey: null })
+            activePb.collection('comments').getFullList({ requestKey: null }),
+            activePb.collection('report_versions').getFullList({ requestKey: null }).catch(() => [])
         ]);
 
         // پاک‌سازی کلید expand برای جلوگیری از اختلال در هنگام Import
@@ -70,10 +71,10 @@ async function exportDataToJSON() {
                 topics: cleanRecords(topics),
                 cases: cleanRecords(cases),
                 reports: cleanRecords(reports),
-                comments: cleanRecords(comments)
+                comments: cleanRecords(comments),
+                report_versions: cleanRecords(reportVersions)
             }
         };
-
         const jsonString = JSON.stringify(exportPayload, null, 2);
         const blob = new Blob([jsonString], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -107,12 +108,13 @@ async function exportDataToZIP() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
-        const [users, topics, cases, reports, comments] = await Promise.all([
+        const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
             activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
             activePb.collection('topics').getFullList({ requestKey: null }),
             activePb.collection('cases').getFullList({ requestKey: null }),
             activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            activePb.collection('comments').getFullList({ requestKey: null })
+            activePb.collection('comments').getFullList({ requestKey: null }),
+            activePb.collection('report_versions').getFullList({ requestKey: null }).catch(() => [])
         ]);
 
         const cleanRecords = (list) => list.map(record => {
@@ -129,7 +131,8 @@ async function exportDataToZIP() {
                 topics: cleanRecords(topics),
                 cases: cleanRecords(cases),
                 reports: cleanRecords(reports),
-                comments: cleanRecords(comments)
+                comments: cleanRecords(comments),
+                report_versions: cleanRecords(reportVersions)
             }
         };
         // افزودن دیتای متنی JSON به ZIP
@@ -246,9 +249,9 @@ async function importDataFromFile() {
 async function processImportData(payload) {
     const overwrite = document.getElementById('overwrite-existing')?.checked || false;
 
-    const { users = [], topics = [], cases = [], reports = [], comments = [] } = payload;
+    const { users = [], topics = [], cases = [], reports = [], comments = [], report_versions = [] } = payload;
 
-    // ۱. ورود کاربران (Users) - جهت تامین Foreign Keyهای مربوط به نویسنده و ارائه‌دهنده
+    // ۱. ورود کاربران (Users)
     if (users.length > 0) {
         logStatus(`بررسی و ورود ${users.length} کاربر...`);
         for (const item of users) {
@@ -278,6 +281,14 @@ async function processImportData(payload) {
     logStatus(`بررسی و ورود ${comments.length} کامنت...`);
     for (const item of comments) {
         await upsertRecord('comments', item, overwrite);
+    }
+
+    // ۶. ورود تاریخچه نسخه‌های گزارش (Report Versions)
+    if (report_versions.length > 0) {
+        logStatus(`بررسی و ورود ${report_versions.length} نسخه گزارش...`);
+        for (const item of report_versions) {
+            await upsertRecord('report_versions', item, overwrite);
+        }
     }
 }
 

@@ -395,8 +395,8 @@ async function exportBatchZip() {
         let userCode = "unknown";
         let currentUser = pb.authStore.record || pb.authStore.model;
 
-        // اگر AuthStore خالی بود یا user_code را نداشت، مجدداً از سرور Refresh می‌کنیم
-        if (!currentUser?.user_code && pb.authStore.isValid) {
+        // اگر AuthStore خالی بود یا name را نداشت، مجدداً از سرور Refresh می‌کنیم
+        if (!currentUser?.name && pb.authStore.isValid) {
             try {
                 currentUser = await pb.collection('users').authRefresh();
                 currentUser = currentUser?.record || currentUser?.model || pb.authStore.record || pb.authStore.model;
@@ -405,7 +405,7 @@ async function exportBatchZip() {
             }
         }
 
-        userCode = currentUser?.user_code || currentUser?.id || "unknown";
+        userCode = currentUser?.name || currentUser?.id || "unknown";
         
         // ۲. تولید timestamp به فرمت YYYYMMDD_HHMMSS
         const now = new Date();

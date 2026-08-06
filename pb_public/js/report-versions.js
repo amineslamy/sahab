@@ -214,7 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-4';
 
             const createdDate = ver.created ? new Date(ver.created).toLocaleDateString('fa-IR') : 'نامشخص';
-            const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
+            const rawAuthor = ver.author || ver.expand?.author?.id;
+            const authorName = ver.expand?.author?.name || ver.expand?.author?.username || (state.usersMap && state.usersMap[rawAuthor]) || (state.usersMap && state.usersMap[ver.author]) || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
             // پردازش و پارس اولیه داده‌های کامنت
@@ -328,9 +329,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
+            // استخراج و نگاشت نام نویسندگان برای دو نسخه
+            const oldAuthorRaw = ver.author || ver.expand?.author?.id;
+            const newAuthorRaw = nextVer.author || nextVer.expand?.author?.id;
+            const oldAuthorName = ver.expand?.author?.name || ver.expand?.author?.username || (state.usersMap && state.usersMap[oldAuthorRaw]) || 'نامشخص';
+            const newAuthorName = nextVer.expand?.author?.name || nextVer.expand?.author?.username || (state.usersMap && state.usersMap[newAuthorRaw]) || 'نامشخص';
+
             // لیست فیلدها برای مقایسه دو ستونه
             const fieldsToCompare = [
                 { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
+                { label: 'نویسنده گزارش', oldVal: oldAuthorName, newVal: newAuthorName },
                 { label: 'دلیل تغییرات', oldVal: ver.change_reason, newVal: nextVer.change_reason },
                 { label: 'چکیده', oldVal: ver.abstract, newVal: nextVer.abstract },
                 { label: 'شرح و متن اصلی', oldVal: stripTags(ver.content), newVal: stripTags(nextVer.content) },
@@ -339,8 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 { label: 'نوع خبر', oldVal: ver.news_type, newVal: nextVer.news_type },
                 { label: 'ارزیابی', oldVal: ver.evaluation, newVal: nextVer.evaluation },
                 { label: 'تاریخ وقوع', oldVal: formatOccurrenceDate(ver.occurrence_date), newVal: formatOccurrenceDate(nextVer.occurrence_date) },
-                { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
-                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) },
                 { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
                 { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) }
             ];

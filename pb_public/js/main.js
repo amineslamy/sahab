@@ -361,14 +361,59 @@ function updateSelectionUI() {
     }
 }
 
-// تابع موقت جهت گام‌های بعدی برای خروجی زیپ دسته‌جمعی
-function exportBatchZip() {
+// تابع عملیاتی دریافت خروجی زیپ دسته‌جمعی
+async function exportBatchZip() {
     if (selectedReportIds.size === 0) {
         alert("لطفاً حداقل یک خبر را برای دریافت خروجی انتخاب کنید.");
         return;
     }
-    console.log("آیدی‌های انتخاب شده برای خروجی گروهی:", Array.from(selectedReportIds));
-    alert(`${selectedReportIds.size} خبر انتخاب شده آماده خروجی ZIP است. (موتور خروجی زیپ در گام‌های بعدی متصل خواهد شد)`);
+
+    if (typeof JSZip === 'undefined') {
+        alert("کتابخانه JSZip بارگذاری نشده است. لطفاً اسکریپت JSZip را به فایل HTML اضافه کنید.");
+        return;
+    }
+
+    const ids = Array.from(selectedReportIds);
+    const zip = new JSZip();
+    const folder = zip.folder("selected_reports");
+
+    try {
+        // دریافت اطلاعات کامل اخبار انتخاب‌شده از پاکت‌بیس
+        const filterQuery = ids.map(id => `id = "${id}"`).join(' || ');
+        const reports = await pb.collection('reports').getFullList({
+            filter: filterQuery,
+            expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
+            requestKey: null
+        });
+
+        if (!reports || reports.length === 0) {
+            alert("هیچ داده‌ای برای اخبار انتخاب‌شده یافت نشد.");
+            return;
+        }
+
+        // افزودن گزارش‌ها به‌صورت فایل‌های JSON جداگانه در فایل زیپ
+        reports.forEach((report, index) => {
+            const fileName = `report_${report.automation_id || report.id || (index + 1)}.json`;
+            folder.file(fileName, JSON.stringify(report, null, 2));
+        });
+
+        // همچنین یک فایل خلاصه شامل تمام گزارش‌های انتخابی قرار می‌دهیم
+        zip.file("all_selected_reports.json", JSON.stringify(reports, null, 2));
+
+        // تولید فایل ZIP و دانلود آن
+        const content = await zip.generateAsync({ type: "blob" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = `reports_export_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+
+    } catch (err) {
+        console.error("خطا در ایجاد فایل زیپ:", err);
+        alert("خطایی هنگام دانلود و بسته‌بندی فایل زیپ رخ داد.");
+    }
 }
 // ------------------- نمودارها -------------------
 function renderChart(elementSelector, options) {

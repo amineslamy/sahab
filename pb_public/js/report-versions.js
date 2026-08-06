@@ -6,7 +6,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pb: null,
         reportId: null,
         versions: [],
-        currentReport: null
+        currentReport: null,
+        topicsMap: {},
+        casesMap: {}
     };
 
     const $id = (id) => document.getElementById(id);
@@ -29,6 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function fetchVersions() {
         try {
+            // دریافت لیست کامل موضوعات و کیس‌ها جهت نگاشت ID به عنوان فارسی
+            const [topics, cases] = await Promise.all([
+                state.pb.collection('topics').getFullList({ fields: 'id,title' }).catch(() => []),
+                state.pb.collection('cases').getFullList({ fields: 'id,title' }).catch(() => [])
+            ]);
+
+            topics.forEach(t => { state.topicsMap[t.id] = t.title; });
+            cases.forEach(c => { state.casesMap[c.id] = c.title; });
+
             state.currentReport = await state.pb.collection('reports').getOne(state.reportId);
             const records = await state.pb.collection(VERSIONS_COLLECTION).getFullList({
                 filter: `report = "${state.reportId}"`,
@@ -42,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('خطا در دریافت تاریخچه نسخه‌ها:', err);
         }
     }
-
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -101,12 +111,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderRelationItems(items) {
         if (!items || !items.length) return '<span class="text-slate-400 text-xs">(بدون آیتم)</span>';
-        if (Array.isArray(items)) {
-            return items.map(item => typeof item === 'object' ? (item.title || item.name || item.id) : item).join(', ');
+        let itemList = items;
+        if (typeof items === 'string') {
+            try { itemList = JSON.parse(items); } catch { itemList = [items]; }
         }
-        return String(items);
-    }
+        if (!Array.isArray(itemList)) itemList = [itemList];
 
+        return itemList.map(item => {
+            if (typeof item === 'object' && item !== null) {
+                const itemId = item.id || item;
+                return item.title || item.name || state.topicsMap[itemId] || state.casesMap[itemId] || itemId || '';
+            }
+            const strVal = String(item).trim();
+            return state.topicsMap[strVal] || state.casesMap[strVal] || strVal;
+        }).filter(Boolean).join('، ');
+    }
+    function formatOccurrenceDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const pDate = new persianDate(new Date(dateStr));
+            return pDate.format('YYYY/MM/DD HH:mm');
+        } catch (e) {
+            return dateStr;
+        }
+    }
     function renderAttachmentsThumbnails(files, mainReportId) {
         if (!files) return '<span class="text-slate-400 text-xs">(بدون فایل)</span>';
 
@@ -121,24 +149,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `<div class="flex flex-wrap gap-2 mt-1">
             ${fileList.map(f => {
-                const fileName = typeof f === 'object' ? (f.name || f.file || '') : f;
-                // لینک فایل‌ها همیشه به کالکشن اصلی reports و ID گزارش اصلی اشاره دارد
-                const fileUrl = `${PB_URL}/api/files/reports/${mainReportId}/${fileName}`;
-                const isImg = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
+            const fileName = typeof f === 'object' ? (f.name || f.file || '') : f;
+            // لینک فایل‌ها همیشه به کالکشن اصلی reports و ID گزارش اصلی اشاره دارد
+            const fileUrl = `${PB_URL}/api/files/reports/${mainReportId}/${fileName}`;
+            const isImg = /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(fileName);
 
-                if (isImg) {
-                    return `
+            if (isImg) {
+                return `
                         <a href="${fileUrl}" target="_blank" class="block border rounded p-1 bg-white hover:shadow transition">
                             <img src="${fileUrl}" class="w-14 h-14 object-cover rounded" alt="${escapeHtml(fileName)}" title="${escapeHtml(fileName)}">
                         </a>
                     `;
-                }
-                return `
+            }
+            return `
                     <a href="${fileUrl}" target="_blank" class="flex items-center gap-1 p-1.5 border rounded bg-white text-xs text-slate-700 hover:bg-slate-100 transition" title="${escapeHtml(fileName)}">
                         📁 <span class="max-w-[100px] truncate">${escapeHtml(fileName)}</span>
                     </a>
                 `;
-            }).join('')}
+        }).join('')}
         </div>`;
     }
 
@@ -177,6 +205,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
+            // تبدیل کامنت‌ها به متن تخت جهت اعمال هایلایت Diff کلمه‌ای
+            function serializeCommentsToText(commentsData) {
+                let commentsList = [];
+                if (typeof commentsData === 'string') {
+                    try { commentsList = JSON.parse(commentsData); } catch { commentsList = []; }
+                } else if (Array.isArray(commentsData)) {
+                    commentsList = commentsData;
+                }
+
+                if (!commentsList || commentsList.length === 0) return '';
+
+                return commentsList.map(c => {
+                    const typeStr = c.type ? `[${c.type}] ` : '';
+                    const authorStr = c.author ? `${c.author}: ` : '';
+                    return `${typeStr}${authorStr}${c.text || ''}`;
+                }).join('\n');
+            }
+
             // لیست فیلدها برای مقایسه دو ستونه
             const fieldsToCompare = [
                 { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
@@ -186,9 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 { label: 'اولیت', oldVal: ver.priority, newVal: nextVer.priority },
                 { label: 'نوع خبر', oldVal: ver.news_type, newVal: nextVer.news_type },
                 { label: 'ارزیابی', oldVal: ver.evaluation, newVal: nextVer.evaluation },
-                { label: 'تاریخ وقوع', oldVal: ver.occurrence_date, newVal: nextVer.occurrence_date },
+                { label: 'تاریخ وقوع', oldVal: formatOccurrenceDate(ver.occurrence_date), newVal: formatOccurrenceDate(nextVer.occurrence_date) },
                 { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
-                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) }
+                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) },
+                { label: 'نظرات و ملاحظات', oldVal: serializeCommentsToText(ver.snapshot_comments), newVal: serializeCommentsToText(nextVer.snapshot_comments) }
             ];
 
             let sideBySideFieldsHtml = '';
@@ -203,74 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 `;
             });
-
-            // پردازش و ساخت درخت سلسله‌مراتبی کامنت‌ها
-    function renderSnapshotCommentsTree(commentsData) {
-        let commentsList = [];
-        if (typeof commentsData === 'string') {
-            try { commentsList = JSON.parse(commentsData); } catch { commentsList = []; }
-        } else if (Array.isArray(commentsData)) {
-            commentsList = commentsData;
-        }
-
-        if (!commentsList || commentsList.length === 0) {
-            return '<span class="text-slate-400 text-xs">(بدون نظر یا کامنت)</span>';
-        }
-
-        const map = {};
-        const roots = [];
-
-        commentsList.forEach(c => {
-            map[c.id] = { ...c, children: [] };
-        });
-
-        commentsList.forEach(c => {
-            if (c.parent && map[c.parent]) {
-                map[c.parent].children.push(map[c.id]);
-            } else {
-                roots.push(map[c.id]);
-            }
-        });
-
-        function buildTreeHtml(nodes, level = 0) {
-            if (!nodes || nodes.length === 0) return '';
-            const indentClass = level > 0 ? `mr-${Math.min(level * 3, 6)} border-r-2 border-slate-300 pr-2 my-1` : 'my-1.5';
-            
-            return `<div class="space-y-1.5">
-                ${nodes.map(node => {
-                    const cDate = node.created ? new Date(node.created).toLocaleDateString('fa-IR') : '';
-                    const badgeColor = node.type === 'نظریه' ? 'bg-amber-100 text-amber-800' :
-                                       node.type === 'ملاحظه' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-700';
-
-                    return `
-                        <div class="${indentClass} p-2 bg-white rounded border border-slate-200 text-xs shadow-2xs">
-                            <div class="flex items-center justify-between mb-1 gap-2">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${badgeColor}">${escapeHtml(node.type || 'کامنت')}</span>
-                                    <span class="font-bold text-slate-700">${escapeHtml(node.author || 'کاربر')}</span>
-                                </div>
-                                <span class="text-[10px] text-slate-400">${cDate}</span>
-                            </div>
-                            <div class="text-slate-800 leading-relaxed font-medium">${escapeHtml(node.text)}</div>
-                            ${node.children.length > 0 ? buildTreeHtml(node.children, level + 1) : ''}
-                        </div>
-                    `;
-                }).join('')}
-            </div>`;
-        }
-
-        return buildTreeHtml(roots);
-    }
-
-            // مقایسه کامنت‌های ثبت‌شده در اسنپ‌شات به‌صورت درخت سلسله‌مراتبی
-            const commentsDiffHtml = `
-                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">نظرات و ملاحظات</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderSnapshotCommentsTree(ver.snapshot_comments)}</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderSnapshotCommentsTree(nextVer.snapshot_comments)}</td>
-                </tr>
-            `;
-
             // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
@@ -312,7 +291,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             </thead>
                             <tbody>
                                 ${sideBySideFieldsHtml}
-                                ${commentsDiffHtml}
                                 ${coverDiffHtml}
                                 ${attachmentsDiffHtml}
                             </tbody>

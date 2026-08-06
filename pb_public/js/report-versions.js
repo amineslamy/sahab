@@ -208,35 +208,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const authorName = ver.expand?.author?.name || ver.expand?.author?.username || 'نامشخص';
             const nextVersionLabel = (idx === 0) ? 'نسخه فعلی' : `نسخه ${nextVer.version}`;
 
-            // رندر ساختاریافته کامنت‌ها با رفع مشکل آیدی والد و نام نویسنده
-            function renderFormattedComments(commentsData) {
-                let commentsList = [];
+            // پردازش و پارس اولیه داده‌های کامنت
+            function parseCommentsData(commentsData) {
                 if (typeof commentsData === 'string') {
-                    try { commentsList = JSON.parse(commentsData); } catch { commentsList = []; }
-                } else if (Array.isArray(commentsData)) {
-                    commentsList = commentsData;
+                    try { return JSON.parse(commentsData); } catch { return []; }
+                }
+                return Array.isArray(commentsData) ? commentsData : [];
+            }
+
+            // رندر دیدگاه‌ها همراه با هایلایت تفاوت‌های متنی (قرمز و فیروزه‌ای)
+            function renderDiffComments(oldCommentsData, newCommentsData) {
+                const oldList = parseCommentsData(oldCommentsData);
+                const newList = parseCommentsData(newCommentsData);
+
+                if (oldList.length === 0 && newList.length === 0) {
+                    return {
+                        oldHtml: '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>',
+                        newHtml: '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>'
+                    };
                 }
 
-                if (!commentsList || commentsList.length === 0) {
-                    return '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>';
-                }
-
-                // ۱. نقشه شناسه کامنت به نام نویسنده
+                // ساخت نقشه شناسه کامنت‌ها به نام نویسنده برای بخش "در پاسخ به"
                 const commentIdToAuthorName = {};
-                commentsList.forEach(c => {
+                [...oldList, ...newList].forEach(c => {
                     const name = c.authorName || c.expand?.author?.name || c.expand?.author?.username || (state.usersMap && state.usersMap[c.author]) || null;
                     if (c.id && name) {
                         commentIdToAuthorName[c.id] = name;
                     }
                 });
 
-                return commentsList.map(c => {
-                    // محاسبه نام نویسنده خود کامنت
+                // ایجاد نگاشت کامنت‌های جدید بر اساس ID برای تطبیق دقیق
+                const newMap = {};
+                newList.forEach((c, i) => {
+                    const key = c.id || `idx_${i}`;
+                    newMap[key] = c;
+                });
+
+                const matchedNewKeys = new Set();
+                const oldCardHtmls = [];
+                const newCardHtmls = [];
+
+                function buildCardHtml(c, diffTextHtml) {
                     const rawAuthor = c.authorName || c.expand?.author?.name || c.expand?.author?.username || c.author;
                     const authorName = escapeHtml((state.usersMap && state.usersMap[rawAuthor]) || rawAuthor || 'کاربر سیستم');
-
                     const typeStr = c.type ? `<span class="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md">${escapeHtml(c.type)}</span>` : '';
-                    const textStr = escapeHtml(c.text || '');
 
                     let dateStr = '';
                     if (c.created) {
@@ -248,14 +263,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // ۲. حل مشکل نمایش آیدی در پاسخ به
                     let parentNotice = '';
                     if (c.parent) {
-                        // ابتدا جستجو در نگاشت کامنت‌ها، سپس جستجو در نگاشت کاربران
-                        let parentAuthorName = commentIdToAuthorName[c.parent] || (state.usersMap && state.usersMap[c.parent]) || null;
-                        if (!parentAuthorName) {
-                            parentAuthorName = 'دیدگاه دیگر';
-                        }
+                        let parentAuthorName = commentIdToAuthorName[c.parent] || (state.usersMap && state.usersMap[c.parent]) || 'دیدگاه دیگر';
                         parentNotice = `<div class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded border-r-2 border-slate-400 mb-1">💬 در پاسخ به: ${escapeHtml(parentAuthorName)}</div>`;
                     }
 
@@ -270,11 +280,43 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             ${parentNotice}
                             <div class="text-xs text-slate-700 leading-relaxed font-semibold">
-                                ${textStr}
+                                ${diffTextHtml}
                             </div>
                         </div>
                     `;
-                }).join('');
+                }
+
+                // مقایسه کامنت‌های قدیم با جدید
+                oldList.forEach((oldC, i) => {
+                    const key = oldC.id || `idx_${i}`;
+                    const newC = newMap[key];
+
+                    if (newC) {
+                        matchedNewKeys.add(key);
+                        // اگر کامنت در هر دو نسخه وجود داشته باشد، متن آن‌ها مقایسه کلمه‌ای می‌شود
+                        const diff = diffWords(oldC.text || '', newC.text || '');
+                        oldCardHtmls.push(buildCardHtml(oldC, diff.oldHtml));
+                        newCardHtmls.push(buildCardHtml(newC, diff.newHtml));
+                    } else {
+                        // کامنتی که در نسخه جدید کاملاً حذف شده است (قرمز کامل)
+                        const diff = diffWords(oldC.text || '', '');
+                        oldCardHtmls.push(buildCardHtml(oldC, diff.oldHtml));
+                    }
+                });
+
+                // کامنت‌های کاملاً جدید که در نسخه قبلی وجود نداشته‌اند (فیروزه‌ای کامل)
+                newList.forEach((newC, i) => {
+                    const key = newC.id || `idx_${i}`;
+                    if (!matchedNewKeys.has(key)) {
+                        const diff = diffWords('', newC.text || '');
+                        newCardHtmls.push(buildCardHtml(newC, diff.newHtml));
+                    }
+                });
+
+                return {
+                    oldHtml: oldCardHtmls.join('') || '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>',
+                    newHtml: newCardHtmls.join('') || '<span class="text-slate-400 italic font-normal">(بدون دیدگاه)</span>'
+                };
             }
 
             // لیست فیلدها برای مقایسه دو ستونه
@@ -306,15 +348,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>
                 `;
             });
-            // ساختار شکیل نمایش نظرات و ملاحظات در دو نسخه پیشین و پسین
+            // استخراج و فال‌بک کامنت‌ها برای نسخه فعلی / بعدی
+            const oldComments = ver.snapshot_comments || ver.comments;
+            const newComments = nextVer.snapshot_comments || nextVer.comments || (nextVer.id === state.currentReport?.id ? state.currentReport.snapshot_comments : null);
+
+            // محاسبه هایلایت‌های متنی برای کامنت‌ها
+            const commentsDiffResult = renderDiffComments(oldComments, newComments);
+
+            // ساختار شکیل نمایش نظرات و ملاحظات در دو نسخه پیشین و پسین همراه با Diff
             const commentsDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                     <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">نظرات و ملاحظات</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-slate-50/30">${renderFormattedComments(ver.snapshot_comments)}</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-slate-50/30">${renderFormattedComments(nextVer.snapshot_comments)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${commentsDiffResult.oldHtml}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${commentsDiffResult.newHtml}</td>
                 </tr>
             `;
-
             // مقایسه تصویر کاور و فایل‌های پیوست با ارجاع دقیق به mainReportId
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">

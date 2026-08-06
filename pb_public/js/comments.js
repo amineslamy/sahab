@@ -158,19 +158,83 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button type="button" class="save-edit-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg">ذخیره ویرایش</button>
                 </div>
             </div>
+            <div class="comment-reply-form hidden space-y-2 pt-2 border-t border-slate-100 mt-2">
+                <div class="text-xs text-slate-500 font-semibold">پاسخ به ${authorName}:</div>
+                <textarea class="reply-textarea w-full px-3 py-2 border-2 border-slate-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-slate-800" placeholder="متن پاسخ خود را بنویسید..."></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" class="cancel-reply-btn px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg">انصراف</button>
+                    <button type="button" class="save-reply-btn px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg">ثبت پاسخ</button>
+                </div>
+            </div>
         `;
 
         const replyBtn = card.querySelector('.reply-btn');
+        const replyForm = card.querySelector('.comment-reply-form');
+        const cancelReplyBtn = card.querySelector('.cancel-reply-btn');
+        const saveReplyBtn = card.querySelector('.save-reply-btn');
+        const replyTextarea = card.querySelector('.reply-textarea');
+
         if (replyBtn) {
             replyBtn.addEventListener('click', () => {
-                state.activeReplyId = comment.id;
-                const parentInput = $id('comment-parent-id');
-                if (parentInput) parentInput.value = comment.id;
+                const isHidden = replyForm.classList.contains('hidden');
+                replyForm.classList.toggle('hidden', !isHidden);
+                if (isHidden && replyTextarea) {
+                    replyTextarea.focus();
+                }
+            });
 
-                const replyNotice = $id('reply-notice');
-                if (replyNotice) {
-                    replyNotice.textContent = `در حال ارسال پاسخ به کامنت ${authorName}...`;
-                    replyNotice.classList.remove('hidden');
+            cancelReplyBtn?.addEventListener('click', () => {
+                replyForm.classList.add('hidden');
+                if (replyTextarea) replyTextarea.value = '';
+            });
+
+            saveReplyBtn?.addEventListener('click', async () => {
+                const replyText = replyTextarea ? replyTextarea.value.trim() : '';
+                if (!replyText) {
+                    alert('متن پاسخ نمی‌تواند خالی باشد.');
+                    return;
+                }
+
+                const currentUser = state.pb.authStore.record || state.pb.authStore.model;
+                if (!currentUser) {
+                    alert('جهت ارسال پاسخ ابتدا باید وارد سیستم شوید.');
+                    return;
+                }
+
+                const typeSelect = $id('comment-type');
+                const commentType = (typeSelect && typeSelect.value) ? typeSelect.value : 'کامنت عمومی';
+
+                if (state.reportId) {
+                    const data = {
+                        report: state.reportId,
+                        author: currentUser.id,
+                        type: commentType,
+                        text: replyText,
+                        parent: comment.id,
+                        version: 1
+                    };
+
+                    try {
+                        await state.pb.collection(COMMENTS_COLLECTION).create(data);
+                        await fetchComments();
+                    } catch (err) {
+                        console.error('خطا در ثبت پاسخ:', err?.data || err);
+                        alert('ثبت پاسخ با خطا مواجه شد.');
+                    }
+                } else {
+                    const tempComment = {
+                        id: 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        author: currentUser.id,
+                        authorName: currentUser.name || currentUser.username || 'کاربر سیستم',
+                        type: commentType,
+                        text: replyText,
+                        parent: comment.id,
+                        version: 1,
+                        isPending: true
+                    };
+
+                    state.pendingComments.push(tempComment);
+                    renderCommentsList();
                 }
             });
         }

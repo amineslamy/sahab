@@ -1,13 +1,16 @@
-let pb;
-
-document.addEventListener('DOMContentLoaded', async () => {
-    // اطمینان از مقداردهی نمونه PocketBase
-    if (typeof PocketBase !== 'undefined' && (!window.pb || !window.pb.authStore)) {
+// تابع کمکی برای اطمینان از دسترسی به نمونه سراسری PocketBase
+function getPb() {
+    if (!window.pb && typeof PocketBase !== 'undefined') {
         window.pb = new PocketBase(window.location.origin);
     }
+    return window.pb;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const pbInstance = getPb();
 
     // بررسی وجود pb و اعتبارسنجی نشست کاربر
-    if (!window.pb || !window.pb.authStore || !window.pb.authStore.isValid) {
+    if (!pbInstance || !pbInstance.authStore || !pbInstance.authStore.isValid) {
         window.location.href = 'login.html';
         return;
     }
@@ -40,12 +43,15 @@ async function exportDataToJSON() {
     try {
         logStatus("شروع فرایند استخراج داده‌ها (JSON)...");
         
+        const activePb = getPb();
+        if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
+
         // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه
         const [reports, topics, cases, comments] = await Promise.all([
-            pb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            pb.collection('topics').getFullList({ requestKey: null }),
-            pb.collection('cases').getFullList({ requestKey: null }),
-            pb.collection('comments').getFullList({ requestKey: null })
+            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
+            activePb.collection('topics').getFullList({ requestKey: null }),
+            activePb.collection('cases').getFullList({ requestKey: null }),
+            activePb.collection('comments').getFullList({ requestKey: null })
         ]);
 
         const exportPayload = {
@@ -87,11 +93,14 @@ async function exportDataToZIP() {
         logStatus("در حال جمع‌آوری داده‌ها و فایل‌های پیوست...");
         const zip = new JSZip();
 
+        const activePb = getPb();
+        if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
+
         const [reports, topics, cases, comments] = await Promise.all([
-            pb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            pb.collection('topics').getFullList({ requestKey: null }),
-            pb.collection('cases').getFullList({ requestKey: null }),
-            pb.collection('comments').getFullList({ requestKey: null })
+            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
+            activePb.collection('topics').getFullList({ requestKey: null }),
+            activePb.collection('cases').getFullList({ requestKey: null }),
+            activePb.collection('comments').getFullList({ requestKey: null })
         ]);
 
         const exportPayload = {
@@ -112,7 +121,7 @@ async function exportDataToZIP() {
             // دریافت تصویر کاور
             if (r.cover_image) {
                 try {
-                    const imgUrl = pb.files.getUrl(r, r.cover_image);
+                    const imgUrl = activePb.files.getUrl(r, r.cover_image);
                     const res = await fetch(imgUrl);
                     if (res.ok) {
                         const blob = await res.blob();
@@ -127,7 +136,7 @@ async function exportDataToZIP() {
             if (r.attachments && Array.isArray(r.attachments)) {
                 for (const file of r.attachments) {
                     try {
-                        const fileUrl = pb.files.getUrl(r, file);
+                        const fileUrl = activePb.files.getUrl(r, file);
                         const res = await fetch(fileUrl);
                         if (res.ok) {
                             const blob = await res.blob();
@@ -241,12 +250,15 @@ async function processImportData(payload) {
 
 // تابع کمکی برای ایجاد یا بروزرسانی رکوردها
 async function upsertRecord(collectionName, itemData, overwrite) {
+    const activePb = getPb();
+    if (!activePb) return;
+
     try {
         if (!itemData.id) return;
 
         let exists = false;
         try {
-            await pb.collection(collectionName).getOne(itemData.id, { requestKey: null });
+            await activePb.collection(collectionName).getOne(itemData.id, { requestKey: null });
             exists = true;
         } catch (e) {
             exists = false;
@@ -254,10 +266,10 @@ async function upsertRecord(collectionName, itemData, overwrite) {
 
         if (exists) {
             if (overwrite) {
-                await pb.collection(collectionName).update(itemData.id, itemData, { requestKey: null });
+                await activePb.collection(collectionName).update(itemData.id, itemData, { requestKey: null });
             }
         } else {
-            await pb.collection(collectionName).create(itemData, { requestKey: null });
+            await activePb.collection(collectionName).create(itemData, { requestKey: null });
         }
     } catch (err) {
         console.warn(`خطا در پردازش رکورد ${itemData.id} در کلکسیون ${collectionName}:`, err.message);

@@ -56,12 +56,8 @@ async function exportDataToJSON() {
             activePb.collection('report_versions').getFullList({ requestKey: null }).catch(() => [])
         ]);
 
-        // پاک‌سازی کلید expand برای جلوگیری از اختلال در هنگام Import
-        const cleanRecords = (list) => list.map(record => {
-            const clean = { ...record };
-            delete clean.expand;
-            return clean;
-        });
+        // نگه‌داشتن تمام داده‌ها شامل کلید expand
+        const cleanRecords = (list) => list.map(record => ({ ...record }));
 
         const exportPayload = {
             version: "1.0",
@@ -143,8 +139,24 @@ async function exportDataToZIP() {
 
         logStatus("در حال دریافت فایل‌های پیوست از سرور...");
         
+        // استخراج آواتار کاربران
+        for (const u of users) {
+            if (u.avatar) {
+                try {
+                    const avatarUrl = activePb.files.getUrl(u, u.avatar);
+                    const res = await fetch(avatarUrl);
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        mediaFolder.file(`users/${u.id}/${u.avatar}`, blob);
+                    }
+                } catch (e) {
+                    console.warn(`امکان دانلود آواتار کاربر ${u.id} وجود نداشت.`);
+                }
+            }
+        }
+
+        // استخراج کاور و پیوست‌های گزارش‌ها
         for (const r of reports) {
-            // دریافت تصویر کاور
             if (r.cover_image) {
                 try {
                     const imgUrl = activePb.files.getUrl(r, r.cover_image);
@@ -158,7 +170,6 @@ async function exportDataToZIP() {
                 }
             }
 
-            // دریافت فایل‌های پیوست multi-file
             if (r.attachments && Array.isArray(r.attachments)) {
                 for (const file of r.attachments) {
                     try {
@@ -224,18 +235,28 @@ async function importDataFromFile() {
                 return;
             }
             const zip = await JSZip.loadAsync(file);
-            const dataJsonFile = zip.file("data.json");
             
-            if (!dataJsonFile) {
-                logStatus("فایل data.json در آرشیو ZIP یافت نشد.", true);
+            // پیدا کردن اولویت‌دار data.json یا اولین فایل json موجود در آرشیو
+            let targetJsonFile = zip.file("data.json");
+            
+            if (!targetJsonFile) {
+                const jsonFiles = zip.file(/\.json$/i);
+                if (jsonFiles && jsonFiles.length > 0) {
+                    targetJsonFile = jsonFiles[0];
+                }
+            }
+            
+            if (!targetJsonFile) {
+                logStatus("هیچ فایل داده با پسوند JSON در آرشیو ZIP یافت نشد.", true);
                 return;
             }
 
-            const jsonText = await dataJsonFile.async("string");
+            logStatus(`در حال خواندن داده‌ها از فایل ${targetJsonFile.name}...`);
+            const jsonText = await targetJsonFile.async("string");
             const parsed = JSON.parse(jsonText);
             
-            // پردازش داده‌های متنی
-            await processImportData(parsed.data || parsed);
+            // پردازش داده‌های متنی و فایل‌های رسانه‌ای نمونه زیپ
+            await processImportData(parsed.data || parsed, zip);
         }
 
         logStatus("عملیات ورود اطلاعات با موفقیت پایان یافت.");
@@ -245,60 +266,141 @@ async function importDataFromFile() {
     }
 }
 
-// تابع اصلی ایجاد/بروزرسانی داده‌ها در دیتابیس
-async function processImportData(payload) {
+// تابع اصلی ایجاد/بروزرسانی داده‌ها در دیتابیس (پشتیبانی از آرایه مختلط و پیوست‌های ZIP)
+async function processImportData(payload, zipInstance = null) {
     const overwrite = document.getElementById('overwrite-existing')?.checked || false;
 
-    const { users = [], topics = [], cases = [], reports = [], comments = [], report_versions = [] } = payload;
+    let collectionsMap = {
+        users: [],
+        topics: [],
+        cases: [],
+        reports: [],
+        comments: [],
+        report_versions: []
+    };
+
+    // تفکیک داده‌ها بر اساس آرایه یکپارچه یا شیء دسته‌بندی شده
+    if (Array.isArray(payload)) {
+        payload.forEach(item => {
+            const cName = item.collectionName || 'reports';
+            if (collectionsMap[cName]) {
+                collectionsMap[cName].push(item);
+            } else {
+                collectionsMap[cName] = [item];
+            }
+        });
+    } else if (typeof payload === 'object' && payload !== null) {
+        Object.keys(collectionsMap).forEach(key => {
+            if (Array.isArray(payload[key])) {
+                collectionsMap[key] = payload[key];
+            }
+        });
+    }
+
+    const { users, topics, cases, reports, comments, report_versions } = collectionsMap;
 
     // ۱. ورود کاربران (Users)
     if (users.length > 0) {
         logStatus(`بررسی و ورود ${users.length} کاربر...`);
         for (const item of users) {
-            await upsertRecord('users', item, overwrite);
+            await upsertRecord('users', item, overwrite, zipInstance);
         }
     }
 
     // ۲. ورود موضوعات (Topics)
-    logStatus(`بررسی و ورود ${topics.length} موضوع...`);
-    for (const item of topics) {
-        await upsertRecord('topics', item, overwrite);
+    if (topics.length > 0) {
+        logStatus(`بررسی و ورود ${topics.length} موضوع...`);
+        for (const item of topics) {
+            await upsertRecord('topics', item, overwrite, zipInstance);
+        }
     }
 
     // ۳. ورود کیس‌ها (Cases)
-    logStatus(`بررسی و ورود ${cases.length} کیس...`);
-    for (const item of cases) {
-        await upsertRecord('cases', item, overwrite);
+    if (cases.length > 0) {
+        logStatus(`بررسی و ورود ${cases.length} کیس...`);
+        for (const item of cases) {
+            await upsertRecord('cases', item, overwrite, zipInstance);
+        }
     }
 
     // ۴. ورود گزارش‌ها (Reports)
-    logStatus(`بررسی و ورود ${reports.length} گزارش...`);
-    for (const item of reports) {
-        await upsertRecord('reports', item, overwrite);
+    if (reports.length > 0) {
+        logStatus(`بررسی و ورود ${reports.length} گزارش...`);
+        for (const item of reports) {
+            await upsertRecord('reports', item, overwrite, zipInstance);
+        }
     }
 
     // ۵. ورود کامنت‌ها (Comments)
-    logStatus(`بررسی و ورود ${comments.length} کامنت...`);
-    for (const item of comments) {
-        await upsertRecord('comments', item, overwrite);
+    if (comments.length > 0) {
+        logStatus(`بررسی و ورود ${comments.length} کامنت...`);
+        for (const item of comments) {
+            await upsertRecord('comments', item, overwrite, zipInstance);
+        }
     }
 
-    // ۶. ورود تاریخچه نسخه‌های گزارش (Report Versions)
-    if (report_versions.length > 0) {
+    // ۶. ورود نسخه‌های گزارش (Report Versions)
+    if (report_versions && report_versions.length > 0) {
         logStatus(`بررسی و ورود ${report_versions.length} نسخه گزارش...`);
         for (const item of report_versions) {
-            await upsertRecord('report_versions', item, overwrite);
+            await upsertRecord('report_versions', item, overwrite, zipInstance);
         }
     }
 }
 
-// تابع کمکی برای ایجاد یا بروزرسانی رکوردها
-async function upsertRecord(collectionName, itemData, overwrite) {
+// تابع کمکی برای ایجاد یا بروزرسانی رکوردها همراه با بارگذاری رسانه
+async function upsertRecord(collectionName, itemData, overwrite, zipInstance = null) {
     const activePb = getPb();
     if (!activePb) return;
 
     try {
         if (!itemData.id) return;
+
+        // پاک‌سازی فیلدهای سیستمی اضافه قبل از ارسال به دیتابیس
+        const cleanData = { ...itemData };
+        delete cleanData.expand;
+
+        let formData = null;
+
+        // اگر زیپ وجود داشته باشد، فایل‌های مرتبط از فولدر media خوانده می‌شوند
+        if (zipInstance && collectionName === 'reports') {
+            formData = new FormData();
+            
+            // افزودن تمام فیلدهای متنی به FormData
+            Object.keys(cleanData).forEach(key => {
+                if (key !== 'cover_image' && key !== 'attachments') {
+                    if (Array.isArray(cleanData[key]) || typeof cleanData[key] === 'object') {
+                        formData.append(key, JSON.stringify(cleanData[key]));
+                    } else if (cleanData[key] !== null && cleanData[key] !== undefined) {
+                        formData.append(key, cleanData[key]);
+                    }
+                }
+            });
+
+            // خواندن تصویر کاور
+            if (cleanData.cover_image) {
+                const coverPath = `media/reports/${cleanData.id}/${cleanData.cover_image}`;
+                const coverZipFile = zipInstance.file(coverPath);
+                if (coverZipFile) {
+                    const blob = await coverZipFile.async('blob');
+                    formData.append('cover_image', blob, cleanData.cover_image);
+                }
+            }
+
+            // خواندن پیوست‌های چندگانه
+            if (cleanData.attachments && Array.isArray(cleanData.attachments)) {
+                for (const file of cleanData.attachments) {
+                    const attachPath = `media/reports/${cleanData.id}/${file}`;
+                    const attachZipFile = zipInstance.file(attachPath);
+                    if (attachZipFile) {
+                        const blob = await attachZipFile.async('blob');
+                        formData.append('attachments', blob, file);
+                    }
+                }
+            }
+        }
+
+        const dataToSend = formData || cleanData;
 
         let exists = false;
         try {
@@ -310,10 +412,10 @@ async function upsertRecord(collectionName, itemData, overwrite) {
 
         if (exists) {
             if (overwrite) {
-                await activePb.collection(collectionName).update(itemData.id, itemData, { requestKey: null });
+                await activePb.collection(collectionName).update(itemData.id, dataToSend, { requestKey: null });
             }
         } else {
-            await activePb.collection(collectionName).create(itemData, { requestKey: null });
+            await activePb.collection(collectionName).create(dataToSend, { requestKey: null });
         }
     } catch (err) {
         console.warn(`خطا در پردازش رکورد ${itemData.id} در کلکسیون ${collectionName}:`, err.message);

@@ -65,10 +65,10 @@
     <!-- ۱. هدر سراسری سامانه سحاب -->
     <div id="app-header"></div>
 
-    <!-- ۲. نوار تب‌های اصلی (تنها ۲ تب اصلی) -->
+    <!-- ۲. نوار تب‌های اصلی -->
     <div class="flex justify-center my-4">
         <div
-            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-md w-full justify-between">
+            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-lg w-full justify-between">
             <button onclick="switchTab('tab-overview')" id="btn-tab-overview"
                 class="tab-btn active flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
                 📊 خلاصه عملیاتی
@@ -76,6 +76,10 @@
             <button onclick="switchTab('tab-analytics')" id="btn-tab-analytics"
                 class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
                 📈 تحلیل و آمار گزارش‌ها
+            </button>
+            <button onclick="switchTab('tab-sync')" id="btn-tab-sync"
+                class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
+                🔄 همگام سازی
             </button>
         </div>
     </div>
@@ -395,6 +399,31 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- ==================== تب سوم: همگام سازی ==================== -->
+    <div id="tab-sync" class="tab-content hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+                <h3 class="font-black text-slate-800 text-base">ورود اطلاعات به سامانه (Import)</h3>
+                <p class="text-xs text-slate-500 mt-1">جهت وارد کردن داده‌ها، فایل ZIP حاوی اطلاعات را انتخاب کرده و دکمه شروع ایمپورت را بزنید.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-2">انتخاب فایل ZIP:</label>
+                    <input type="file" id="sync-zip-file" accept=".zip"
+                        class="block w-full text-xs text-slate-500 file:mr-0 file:ml-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-xl p-2 cursor-pointer bg-slate-50">
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button id="btn-start-import" onclick="handleStartImport()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-black transition shadow-sm flex items-center gap-2">
+                        📥 شروع ایمپورت داده‌ها
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ==================== مودال پیش‌نمایش کامل جزئیات خبر ==================== -->

@@ -42,6 +42,31 @@ function clearSelection() {
     });
     updateSelectionUI();
 }
+function exportZip() {
+    const ids = Array.from(selectedReportIds);
+    if (ids.length === 0) return;
+    console.log("درخواست خروجی Zip برای شناسه ها:", ids);
+    // منطق اتصال به API خروجی Zip اینجا قرار می‌گیرد
+}
+
+function exportBulletin() {
+    const ids = Array.from(selectedReportIds);
+    if (ids.length === 0) return;
+    console.log("درخواست خروجی بولتن برای شناسه ها:", ids);
+    // منطق اتصال به API خروجی بولتن اینجا قرار می‌گیرد
+}
+
+async function deleteReport(id) {
+    if (!confirm("آیا از حذف این گزارش اطمینان دارید؟")) return;
+    try {
+        await pb.collection('reports').delete(id);
+        selectedReportIds.delete(id);
+        loadReportsTable();
+    } catch (err) {
+        console.error("خطا در حذف گزارش:", err);
+        alert("خطا در حذف گزارش انجام نشد.");
+    }
+}
 
 function updateSelectionUI() {
     const selectionBar = document.getElementById('selection-bar');
@@ -302,7 +327,7 @@ async function loadReportsTable() {
             const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
 
             html += `
-                <!-- سطر اول: عنوان خبر، کیس، نویسنده و دکمه‌های عملیات -->
+                <!-- ردیف ۱: عنوان | نویسنده | تاریخ انتشار | جزئیات -->
                 <tr class="${bgRow} border-t-2 border-slate-300">
                     <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
                         <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
@@ -311,38 +336,47 @@ async function loadReportsTable() {
                         <div>${rec.title || 'بدون عنوان'}</div>
                         ${mediaBadgesHtml}
                     </td>
-                    <td class="p-1.5 sm:p-2.5 align-top" rowspan="3">
-                        <span class="bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded block text-[10px] sm:text-xs leading-relaxed break-words">${caseTitles}</span>
-                    </td>
                     <td class="p-1.5 sm:p-2.5 font-semibold text-slate-700 break-words">
                         ${authorName} <span class="text-[10px] text-slate-400 block sm:inline">(${deptName})</span>
                     </td>
-                    <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
-                        <div class="flex flex-col gap-1 justify-center items-center">
-                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">جزئیات</button>
-                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full text-center">ویرایش</a>
-                        </div>
+                    <td class="p-1.5 sm:p-2.5 text-slate-700 font-medium break-words">
+                        انتشار: ${formatDateToFa(rec.created)}
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">جزئیات</button>
                     </td>
                 </tr>
 
-                <!-- سطر دوم: اتوماسیون، موضوع خبر و تاریخ وقوع -->
+                <!-- ردیف ۲: ادامه عنوان (خالی) | موضوعات | تاریخ وقوع | ویرایش -->
                 <tr class="${bgRow} text-slate-600 text-[10px] sm:text-xs">
                     <td class="px-1.5 sm:px-2.5 py-1">
-                        <span class="font-mono bg-slate-200/60 px-1 py-0.5 rounded text-[10px]">اتوماسیون: ${rec.automation_id || '---'}</span>
+                        <!-- فضای خالی برای ادامه عنوان طولانی -->
+                    </td>
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${topicTitles}</span>
                     </td>
                     <td class="px-1.5 sm:px-2.5 py-1">
                         <span>وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
                     </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition block text-center">ویرایش</a>
+                    </td>
                 </tr>
 
-                <!-- سطر سوم: موضوع، نوع خبر و تاریخ انتشار/بروزرسانی -->
+                <!-- ردیف ۳: شماره اتوماسیون و نوع خبر | کیس‌ها | تاریخ به روزرسانی | دکمه حذف -->
                 <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-[10px] sm:text-xs">
                     <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
-                        <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${topicTitles}</span>
-                        <span class="text-slate-500 mr-1">(${rec.news_type || '---'})</span>
+                        <span class="font-mono bg-slate-200/60 px-1 py-0.5 rounded text-[10px]">اتوماسیون: ${rec.automation_id || '---'}</span>
+                        <span class="text-slate-600 font-bold mr-1">(${rec.news_type || '---'})</span>
                     </td>
                     <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
-                        <span>انتشار: ${formatDateToFa(rec.created)}</span>
+                        <span class="bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${caseTitles}</span>
+                    </td>
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span>به‌روزرسانی: ${formatDateToFa(rec.updated)}</span>
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <button onclick="deleteReport('${rec.id}')" class="bg-red-500 hover:bg-red-600 text-white text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">حذف</button>
                     </td>
                 </tr>
             `;

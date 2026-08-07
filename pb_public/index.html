@@ -238,17 +238,28 @@
                         فیلترها</button>
                 </div>
             </div>
-            <!-- نوار اعلان تعداد ردیف‌های انتخاب‌شده -->
+            <!-- نوار اعلان تعداد ردیف‌های انتخاب‌شده و دکمه‌های خروجی -->
             <div id="selection-bar"
-                class="hidden bg-indigo-50 border-b border-indigo-100 p-3 flex justify-between items-center text-xs font-bold text-indigo-900">
-                <div class="flex items-center gap-2">
-                    <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-md text-[11px]"
-                        id="selected-count">0</span>
-                    <span>مورد انتخاب شده است.</span>
+                class="hidden bg-indigo-50 border-b border-indigo-100 p-3 flex flex-wrap justify-between items-center text-xs font-bold text-indigo-900 gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-md text-[11px]"
+                            id="selected-count">0</span>
+                        <span>مورد انتخاب شده است.</span>
+                    </div>
+                    <button onclick="clearSelection()" class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
+                        لغو انتخاب‌ها
+                    </button>
                 </div>
-                <button onclick="clearSelection()" class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
-                    لغو انتخاب‌ها
-                </button>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="exportBulletin()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                        📄 خروجی بولتن
+                    </button>
+                    <button onclick="exportZip()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                        📦 خروجی Zip
+                    </button>
+                </div>
             </div>
             <div class="w-full overflow-hidden">
                 <table class="w-full text-right text-[11px] sm:text-xs text-slate-700 table-fixed">
@@ -257,15 +268,15 @@
                             <th class="p-2 sm:p-3 w-1/12 text-center">
                                 <input type="checkbox" id="select-all-page" onchange="toggleSelectAllPage(this.checked)" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                             </th>
-                            <th class="p-2 sm:p-3 w-4/12">عنوان / اتوماسیون / موضوع / نوع</th>
-                            <th class="p-2 sm:p-3 w-3/12">کیس</th>
-                            <th class="p-2 sm:p-3 w-2/12">نویسنده / تاریخ‌ها</th>
+                            <th class="p-2 sm:p-3 w-4/12">اطلاعات خبر / عنوان</th>
+                            <th class="p-2 sm:p-3 w-3/12">نویسنده / موضوعات / کیس‌ها</th>
+                            <th class="p-2 sm:p-3 w-2/12">تاریخ انتشار / تاریخ وقوع / بروزرسانی</th>
                             <th class="p-2 sm:p-3 w-2/12 text-center">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="table-reports-body" class="divide-y divide-slate-100 font-medium">
                         <tr>
-                            <td colspan="11" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
+                            <td colspan="5" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
                         </tr>
                     </tbody>
                 </table>

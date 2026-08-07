@@ -350,16 +350,15 @@ async function handleStartImport() {
             updateProgress(processedItems, totalItems, `نسخه گزارش بررسی شد (${processedItems}/${totalItems})`);
         }
 
-        // تحلیل و نمایش پیام متناسب با نتیجه واقعی
+        // تحلیل و نمایش پیام متناسب با نتیجه واقعی در صفحه (بدون استفاده از alert)
         if (stats.created === 0 && stats.updated === 0) {
             const msg = 'اطلاعات وارد شده تکراری بود و هیچ مطلب جدید یا تغییریافته‌ای در دیتابیس ثبت نشد.';
             updateProgress(totalItems, totalItems, `ℹ️ ${msg}`);
-            alert(`ℹ️ ${msg}`);
         } else {
-            const msg = `عملیات ایمپورت انجام شد.\nرکوردهای جدید: ${stats.created}\nرکوردهای بروزرسانی شده: ${stats.updated}\nبدون تغییر/خطا: ${stats.skipped + stats.failed}`;
-            updateProgress(totalItems, totalItems, '✅ عملیات ایمپورت با موفقیت تکمیل شد.');
-            alert(msg);
+            const msg = `عملیات ایمپورت انجام شد | رکوردهای جدید: ${stats.created} | بروزرسانی‌شده: ${stats.updated} | بدون تغییر یا محدود شده: ${stats.skipped + stats.failed}`;
+            updateProgress(totalItems, totalItems, `✅ ${msg}`);
         }
+
         // بازخوانی جدول گزارش‌ها در صورت وجود تابع مربوطه
         if (typeof loadReports === 'function') {
             loadReports();
@@ -367,9 +366,12 @@ async function handleStartImport() {
 
     } catch (error) {
         console.error('خطا در فرایند ایمپورت:', error);
-        if (progressText) progressText.innerText = '❌ خطا در ایمپورت: ' + error.message;
-        alert('خطا در ثبت ایمپورت: ' + error.message);
-    } finally {
+        if (progressText) {
+            progressText.innerText = '❌ خطا در ایمپورت: ' + error.message;
+        }
+    }
+    
+    finally {
         if (importBtn) {
             importBtn.disabled = false;
             importBtn.innerHTML = originalBtnText;

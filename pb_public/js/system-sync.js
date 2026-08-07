@@ -277,12 +277,27 @@ async function handleStartImport() {
         // ۲. ایمپورت بر اساس ترتیب منطقی کلیدهای خارجی:
         // ۱. کاربران -> ۲. کیس‌ها -> ۳. موضوعات -> ۴. گزارش‌ها -> ۵. کامنت‌ها -> ۶. نسخه‌ها
 
-// آمارگیری از وضعیت ایمپورت
-        const stats = { created: 0, updated: 0, skipped: 0, failed: 0 };
+// آمارگیری مجزا برای گزارش‌ها و سایر آیتم‌ها
+        const reportStats = {
+            created: new Set(),
+            updated: new Set(),
+            skipped: new Set(),
+            failed: new Set()
+        };
 
-        const processResult = (res) => {
-            if (res && res.status) {
-                stats[res.status] = (stats[res.status] || 0) + 1;
+        const otherStats = {
+            created: new Set(),
+            updated: new Set(),
+            skipped: new Set(),
+            failed: new Set()
+        };
+
+        const processResult = (record, res, isReport = false) => {
+            if (res && res.status && record && record.id) {
+                const targetStats = isReport ? reportStats : otherStats;
+                if (targetStats[res.status]) {
+                    targetStats[res.status].add(record.id);
+                }
             }
         };
 
@@ -292,7 +307,7 @@ async function handleStartImport() {
             const res = await importRecordWithFiles(pbInstance, zip, 'users', user, {
                 avatar: `files/users/${user.id}/${user.avatar}`
             });
-            processResult(res);
+            processResult(user, res, false);
             processedItems++;
             updateProgress(processedItems, totalItems, `کاربر بررسی شد (${processedItems}/${totalItems})`);
         }
@@ -301,7 +316,7 @@ async function handleStartImport() {
         for (const caseItem of cases) {
             updateProgress(processedItems, totalItems, `در حال بررسی کیس: ${caseItem.title || caseItem.id}`);
             const res = await importRecordWithFiles(pbInstance, zip, 'cases', caseItem, {});
-            processResult(res);
+            processResult(caseItem, res, false);
             processedItems++;
             updateProgress(processedItems, totalItems, `کیس بررسی شد (${processedItems}/${totalItems})`);
         }
@@ -310,12 +325,12 @@ async function handleStartImport() {
         for (const topic of topics) {
             updateProgress(processedItems, totalItems, `در حال بررسی موضوع: ${topic.title || topic.id}`);
             const res = await importRecordWithFiles(pbInstance, zip, 'topics', topic, {});
-            processResult(res);
+            processResult(topic, res, false);
             processedItems++;
             updateProgress(processedItems, totalItems, `موضوع بررسی شد (${processedItems}/${totalItems})`);
         }
 
-        // ۴. گزارش‌ها
+        // ۴. گزارش‌ها (با کلید isReport = true)
         for (const report of reports) {
             updateProgress(processedItems, totalItems, `در حال بررسی گزارش: ${report.title || report.id}`);
             const filePathsMap = {};
@@ -327,7 +342,7 @@ async function handleStartImport() {
             }
 
             const res = await importRecordWithFiles(pbInstance, zip, 'reports', report, filePathsMap);
-            processResult(res);
+            processResult(report, res, true);
             processedItems++;
             updateProgress(processedItems, totalItems, `گزارش بررسی شد (${processedItems}/${totalItems})`);
         }
@@ -336,7 +351,7 @@ async function handleStartImport() {
         for (const comment of comments) {
             updateProgress(processedItems, totalItems, `در حال بررسی کامنت (${processedItems + 1}/${totalItems})`);
             const res = await importRecordWithFiles(pbInstance, zip, 'comments', comment, {});
-            processResult(res);
+            processResult(comment, res, false);
             processedItems++;
             updateProgress(processedItems, totalItems, `کامنت بررسی شد (${processedItems}/${totalItems})`);
         }
@@ -345,17 +360,26 @@ async function handleStartImport() {
         for (const version of report_versions) {
             updateProgress(processedItems, totalItems, `در حال بررسی نسخه گزارش (${processedItems + 1}/${totalItems})`);
             const res = await importRecordWithFiles(pbInstance, zip, 'report_versions', version, {});
-            processResult(res);
+            processResult(version, res, false);
             processedItems++;
             updateProgress(processedItems, totalItems, `نسخه گزارش بررسی شد (${processedItems}/${totalItems})`);
         }
 
-        // تحلیل و نمایش پیام متناسب با نتیجه واقعی در صفحه (بدون استفاده از alert)
-        if (stats.created === 0 && stats.updated === 0) {
+        // محاسبه آمار گزارش‌های اصلی
+        const repCreated = reportStats.created.size;
+        const repUpdated = reportStats.updated.size;
+        const repOther = reportStats.skipped.size + reportStats.failed.size;
+
+        // محاسبه آمار آیتم‌های وابسته
+        const otherCreated = otherStats.created.size;
+        const otherUpdated = otherStats.updated.size;
+
+        // نمایش گزارش دقیق تفکیک شده
+        if (repCreated === 0 && repUpdated === 0 && otherCreated === 0 && otherUpdated === 0) {
             const msg = 'اطلاعات وارد شده تکراری بود و هیچ مطلب جدید یا تغییریافته‌ای در دیتابیس ثبت نشد.';
             updateProgress(totalItems, totalItems, `ℹ️ ${msg}`);
         } else {
-            const msg = `عملیات ایمپورت انجام شد | رکوردهای جدید: ${stats.created} | بروزرسانی‌شده: ${stats.updated} | بدون تغییر یا محدود شده: ${stats.skipped + stats.failed}`;
+            const msg = `عملیات ایمپورت انجام شد | گزارش‌های جدید: ${repCreated} | گزارش‌های بروزرسانی‌شده: ${repUpdated} (موارد وابسته: ${otherUpdated} بروزرسانی، ${otherCreated} جدید)`;
             updateProgress(totalItems, totalItems, `✅ ${msg}`);
         }
 

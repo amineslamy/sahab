@@ -30,12 +30,20 @@ function logStatus(message, isError = false) {
     const time = new Date().toLocaleTimeString('fa-IR');
     const colorClass = isError ? 'text-rose-400' : 'text-emerald-400';
     
-    const item = document.createElement('div');
-    item.className = colorClass;
-    item.innerText = `[${time}] ${message}`;
-    
-    logBox.appendChild(item);
-    logBox.scrollTop = logBox.scrollHeight;
+    if (logBox) {
+        const item = document.createElement('div');
+        item.className = colorClass;
+        item.innerText = `[${time}] ${message}`;
+        logBox.appendChild(item);
+        logBox.scrollTop = logBox.scrollHeight;
+    } else {
+        // در صورت عدم وجود باکس لوگ در صفحه، پیام در کنسول نمایش داده می‌شود
+        if (isError) {
+            console.error(`[${time}] ${message}`);
+        } else {
+            console.log(`[${time}] ${message}`);
+        }
+    }
 }
 
 // ------------------- Export JSON -------------------
@@ -46,29 +54,38 @@ async function exportDataToJSON() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
-        // استخراج کلیه داده‌های مربوطه بر اساس منطق دسترسی دسته‌بندی پروژه (شامل ورژنینگ گزارش‌ها)
+        // استخراج کلیه داده‌های مربوطه بر اساس ۶ اسکیما با مدیریت خطای مستقل
+        const fetchCollection = async (name, options = {}) => {
+            try {
+                return await activePb.collection(name).getFullList({ requestKey: null, ...options });
+            } catch (e) {
+                console.warn(`خطا در دریافت کلکشن ${name}:`, e.message);
+                return [];
+            }
+        };
+
         const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
-            activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
-            activePb.collection('topics').getFullList({ requestKey: null }),
-            activePb.collection('cases').getFullList({ requestKey: null }),
-            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            activePb.collection('comments').getFullList({ requestKey: null }),
-            activePb.collection('report_versions').getFullList({ requestKey: null }).catch(() => [])
+            fetchCollection('users'),
+            fetchCollection('topics'),
+            fetchCollection('cases'),
+            fetchCollection('reports', { sort: '-created' }),
+            fetchCollection('comments'),
+            fetchCollection('report_versions')
         ]);
 
-        // نگه‌داشتن تمام داده‌ها شامل کلید expand
-        const cleanRecords = (list) => list.map(record => ({ ...record }));
+        // نگه‌داشتن تمامی فیلدها و حفظ ساختار کامل رکوردها
+        const mapRecords = (list) => list.map(record => ({ ...record }));
 
         const exportPayload = {
             version: "1.0",
             exportedAt: new Date().toISOString(),
             data: {
-                users: cleanRecords(users),
-                topics: cleanRecords(topics),
-                cases: cleanRecords(cases),
-                reports: cleanRecords(reports),
-                comments: cleanRecords(comments),
-                report_versions: cleanRecords(reportVersions)
+                users: mapRecords(users),
+                topics: mapRecords(topics),
+                cases: mapRecords(cases),
+                reports: mapRecords(reports),
+                comments: mapRecords(comments),
+                report_versions: mapRecords(reportVersions)
             }
         };
         const jsonString = JSON.stringify(exportPayload, null, 2);
@@ -104,14 +121,24 @@ async function exportDataToZIP() {
         const activePb = getPb();
         if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
 
+        const fetchCollection = async (name, options = {}) => {
+            try {
+                return await activePb.collection(name).getFullList({ requestKey: null, ...options });
+            } catch (e) {
+                console.warn(`خطا در دریافت کلکشن ${name}:`, e.message);
+                return [];
+            }
+        };
+
         const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
-            activePb.collection('users').getFullList({ requestKey: null }).catch(() => []),
-            activePb.collection('topics').getFullList({ requestKey: null }),
-            activePb.collection('cases').getFullList({ requestKey: null }),
-            activePb.collection('reports').getFullList({ sort: '-created', requestKey: null }),
-            activePb.collection('comments').getFullList({ requestKey: null }),
-            activePb.collection('report_versions').getFullList({ requestKey: null }).catch(() => [])
+            fetchCollection('users'),
+            fetchCollection('topics'),
+            fetchCollection('cases'),
+            fetchCollection('reports', { sort: '-created' }),
+            fetchCollection('comments'),
+            fetchCollection('report_versions')
         ]);
+
 
         const cleanRecords = (list) => list.map(record => {
             const clean = { ...record };
@@ -279,10 +306,30 @@ async function processImportData(payload, zipInstance = null) {
         report_versions: []
     };
 
-    // تفکیک داده‌ها بر اساس آرایه یکپارچه یا شیء دسته‌بندی شده
+    // تفکیک داده‌ها همراه با تطابق هوشمند بر اساس اسکیماهای ۶ کلکشن
     if (Array.isArray(payload)) {
         payload.forEach(item => {
-            const cName = item.collectionName || 'reports';
+            let cName = item.collectionName;
+
+            if (!cName) {
+                // نگاشت بر اساس فیلدهای اختصاصی هر اسکیما (اولویت با report_versions نسبت به reports)
+                if (item.snapshot_comments !== undefined || item.cases_rel !== undefined || (item.automation_id !== undefined && item.report !== undefined)) {
+                    cName = 'report_versions';
+                } else if (item.text !== undefined && item.author !== undefined && item.report !== undefined) {
+                    cName = 'comments';
+                } else if (item.automation_id !== undefined || item.occurrence_date !== undefined) {
+                    cName = 'reports';
+                } else if (item.user_code !== undefined || item.dept_code !== undefined || item.email !== undefined) {
+                    cName = 'users';
+                } else if (item.parent_case !== undefined) {
+                    cName = 'cases';
+                } else if (item.title !== undefined) {
+                    cName = 'topics';
+                } else {
+                    cName = 'reports';
+                }
+            }
+
             if (collectionsMap[cName]) {
                 collectionsMap[cName].push(item);
             } else {
@@ -356,9 +403,11 @@ async function upsertRecord(collectionName, itemData, overwrite, zipInstance = n
     try {
         if (!itemData.id) return;
 
-        // پاک‌سازی فیلدهای سیستمی اضافه قبل از ارسال به دیتابیس
+        // پاک‌سازی فیلدهای غیرمجاز برای ارسال به PocketBase (مانند expand) با حفظ تمامی فیلدهای اصلی اسکیما
         const cleanData = { ...itemData };
         delete cleanData.expand;
+        delete cleanData.collectionId;
+        delete cleanData.collectionName;
 
         let formData = null;
 

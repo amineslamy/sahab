@@ -207,7 +207,7 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
             return;
@@ -227,38 +227,65 @@ async function loadReportsTable() {
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
-            // رنگ زمینه یکدست و یکی در میان برای هر کارت خبر (بدون هاور)
+            // بررسی داشتن تصویر کاور یا فایل پیوست
+            const hasCover = !!rec.cover_image;
+            const hasAttachments = Array.isArray(rec.attachments) && rec.attachments.length > 0;
+
+            const coverBadgeHtml = hasCover
+                ? `<span class="inline-flex items-center gap-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200" title="دارای تصویر شاخص">🖼️ عکس</span>`
+                : '';
+
+            const attachmentBadgeHtml = hasAttachments
+                ? `<span class="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="دارای فایل پیوست (${rec.attachments.length} مورد)">📎 پیوست (${rec.attachments.length})</span>`
+                : '';
+
+            const mediaBadgesHtml = (hasCover || hasAttachments)
+                ? `<div class="flex items-center gap-1 mt-1 flex-wrap">${coverBadgeHtml}${attachmentBadgeHtml}</div>`
+                : '';
+
+            // رنگ زمینه یکی در میان برای هر دسته سطر
             const isEven = index % 2 === 0;
             const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
 
             html += `
-                <!-- سطر اصلی خبر -->
+                <!-- سطر اول: عنوان خبر، کیس، نویسنده و دکمه‌های عملیات -->
                 <tr class="${bgRow} border-t-2 border-slate-300">
-                    <td class="p-3 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
-                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded inline-block">${topicTitles}</span></td>
-                    <td class="p-3" rowspan="2"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded inline-block">${caseTitles}</span></td>
-                    <td class="p-3 font-semibold text-slate-700">${authorName} <span class="text-xs text-slate-400">(${deptName})</span></td>
-                    <td class="p-3 text-slate-600">${formatDateToFa(rec.created)}</td>
-                    <td class="p-3 text-center" rowspan="2">
-                        <div class="flex flex-col gap-1.5 justify-center items-center">
-                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg transition w-full">جزئیات</button>
-                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-black px-3 py-1.5 rounded-lg transition w-full text-center">ویرایش</a>
+                    <td class="p-1.5 sm:p-2.5 font-bold text-slate-900 break-words">
+                        <div>${rec.title || 'بدون عنوان'}</div>
+                        ${mediaBadgesHtml}
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 align-top" rowspan="3">
+                        <span class="bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded block text-[10px] sm:text-xs leading-relaxed break-words">${caseTitles}</span>
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 font-semibold text-slate-700 break-words">
+                        ${authorName} <span class="text-[10px] text-slate-400 block sm:inline">(${deptName})</span>
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
+                        <div class="flex flex-col gap-1 justify-center items-center">
+                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">جزئیات</button>
+                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full text-center">ویرایش</a>
                         </div>
                     </td>
                 </tr>
-                <!-- سطر مکمل (اطلاعات تکمیلی زیر هر خبر) -->
-                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-xs">
-                    <td class="px-3 pb-3 pt-0">
-                        <span class="font-mono text-slate-600 bg-slate-200/60 px-1.5 py-0.5 rounded">اتوماسیون: ${rec.automation_id || '---'}</span>
+
+                <!-- سطر دوم: اتوماسیون، موضوع خبر و تاریخ وقوع -->
+                <tr class="${bgRow} text-slate-600 text-[10px] sm:text-xs">
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <span class="font-mono bg-slate-200/60 px-1 py-0.5 rounded text-[10px]">اتوماسیون: ${rec.automation_id || '---'}</span>
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span>نوع خبر: <strong>${rec.news_type || '---'}</strong></span>
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <span>وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span>تاریخ وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
+                </tr>
+
+                <!-- سطر سوم: موضوع، نوع خبر و تاریخ انتشار/بروزرسانی -->
+                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-[10px] sm:text-xs">
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${topicTitles}</span>
+                        <span class="text-slate-500 mr-1">(${rec.news_type || '---'})</span>
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span class="text-slate-400">بروزرسانی: ${formatDateToFa(rec.updated)}</span>
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span>انتشار: ${formatDateToFa(rec.created)}</span>
                     </td>
                 </tr>
             `;

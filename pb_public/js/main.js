@@ -8,7 +8,8 @@ let currentPage = 1;
 let perPage = 10;
 let currentFilterQuery = "";
 
-let selectedReportIds = new Set();
+window.selectedReportIds = new Set();
+const selectedReportIds = window.selectedReportIds;
 
 function toggleReportSelection(id, isChecked) {
     if (isChecked) {

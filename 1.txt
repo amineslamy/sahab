@@ -35,9 +35,289 @@
 هر زمان که آماده بودی، اولین فایل یا قطعه‌کدی که باید اصلاح یا رفع خطا بشه (به همراه متن خطا یا رفتاری که انتظار داری) رو ارسال کن تا مطابق دستورالعمل‌های ۸‌گانه فوق، مرحله‌به‌مرحله با هم پیش ببریمش.
 ================================================================
 
-من نمی دانم از چه کدی به عنوان کد فعلی تابع یا بخش رندر فیلدهای متنی (Diff/Compare) استفاده شده ولی هرچه هست در فایل پیوست است، آن را پیدا کن و به من هم معرفیش کن.
-برای دست یابی به اطلاعات مروبط به موضوعات و کیس ها به اسکیماهایی که در ادامه اراسل می کنم مراجعه کن:
-اسکیمای کیس ها:
+لطفا فایل پیوست را در بخش گرفتن خروجی و تولید جیسون و زیپ طوری تغییر بده که همه کالکشن ها و فیلدهای زیر، در آن حضور داشته باشند:
+
+اسکیمای کالکشن کاربران:
+{
+  "id": "_pb_users_auth_",
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.role = \"admin_site\" || @request.auth.role = \"admin_general\" || @request.auth.role = \"department\"",
+  "updateRule": "id = @request.auth.id || @request.auth.role = \"admin_site\" || @request.auth.role = \"admin_general\" || (@request.auth.role = \"department\" && department_rel = @request.auth.id)",
+  "deleteRule": "@request.auth.role = \"admin_site\" || @request.auth.role = \"admin_general\" || (@request.auth.role = \"department\" && department_rel = @request.auth.id)",
+  "name": "users",
+  "type": "auth",
+  "fields": [
+    {
+      "help": "",
+      "hidden": false,
+      "id": "file376926767",
+      "maxSelect": 1,
+      "maxSize": 0,
+      "mimeTypes": [
+        "image/jpeg",
+        "image/png",
+        "image/svg+xml",
+        "image/gif",
+        "image/webp"
+      ],
+      "name": "avatar",
+      "presentable": false,
+      "protected": false,
+      "required": false,
+      "system": false,
+      "thumbs": null,
+      "type": "file"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text1579384326",
+      "max": 255,
+      "min": 0,
+      "name": "name",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "cost": 0,
+      "help": "",
+      "hidden": true,
+      "id": "password901924565",
+      "max": 0,
+      "min": 8,
+      "name": "password",
+      "pattern": "",
+      "presentable": false,
+      "required": true,
+      "system": true,
+      "type": "password"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text4014228155",
+      "max": 0,
+      "min": 0,
+      "name": "dept_code",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation2309812382",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "department_rel",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1466534506",
+      "maxSelect": 0,
+      "name": "role",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "select",
+      "values": [
+        "expert",
+        "department",
+        "admin_general",
+        "admin_site"
+      ]
+    },
+    {
+      "autogeneratePattern": "[a-zA-Z0-9]{50}",
+      "help": "",
+      "hidden": true,
+      "id": "text2504183744",
+      "max": 60,
+      "min": 30,
+      "name": "tokenKey",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": true,
+      "system": true,
+      "type": "text"
+    },
+    {
+      "exceptDomains": null,
+      "help": "",
+      "hidden": false,
+      "id": "email3885137012",
+      "name": "email",
+      "onlyDomains": null,
+      "presentable": false,
+      "required": false,
+      "system": true,
+      "type": "email"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "bool1547992806",
+      "name": "emailVisibility",
+      "presentable": false,
+      "required": false,
+      "system": true,
+      "type": "bool"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "bool256245529",
+      "name": "verified",
+      "presentable": false,
+      "required": false,
+      "system": true,
+      "type": "bool"
+    },
+    {
+      "autogeneratePattern": "[a-z0-9]{15}",
+      "help": "",
+      "hidden": false,
+      "id": "text3208210256",
+      "max": 15,
+      "min": 15,
+      "name": "id",
+      "pattern": "^[a-z0-9]+$",
+      "presentable": false,
+      "primaryKey": true,
+      "required": true,
+      "system": true,
+      "type": "text"
+    },
+    {
+      "autogeneratePattern": "[1-9]{3}",
+      "help": "",
+      "hidden": false,
+      "id": "text227834961",
+      "max": 0,
+      "min": 0,
+      "name": "user_code",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": true,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "hidden": false,
+      "id": "autodate2990389176",
+      "name": "created",
+      "onCreate": true,
+      "onUpdate": false,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    },
+    {
+      "hidden": false,
+      "id": "autodate3332085495",
+      "name": "updated",
+      "onCreate": true,
+      "onUpdate": true,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
+    "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
+    "CREATE UNIQUE INDEX `idx_wtf9fx9nuz` ON `users` (`user_code`)"
+  ],
+  "created": "2026-08-02 05:17:06.906Z",
+  "updated": "2026-08-05 11:56:28.542Z",
+  "system": false,
+  "authRule": "",
+  "manageRule": null,
+  "authAlert": {
+    "enabled": true,
+    "emailTemplate": {
+      "subject": "Login from a new location",
+      "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location:</p>\n<p><em>{ALERT_INFO}</em></p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>If this was you, you may disregard this email.</p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+    }
+  },
+  "oauth2": {
+    "providers": [],
+    "mappedFields": {
+      "id": "",
+      "name": "name",
+      "username": "",
+      "avatarURL": "avatar"
+    },
+    "enabled": false
+  },
+  "passwordAuth": {
+    "enabled": true,
+    "identityFields": [
+      "email"
+    ]
+  },
+  "mfa": {
+    "enabled": false,
+    "duration": 600,
+    "rule": ""
+  },
+  "otp": {
+    "enabled": false,
+    "duration": 180,
+    "length": 8,
+    "emailTemplate": {
+      "subject": "OTP for {APP_NAME}",
+      "body": "<p>Hello,</p>\n<p>Your one-time password is: <strong>{OTP}</strong></p>\n<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+    }
+  },
+  "authToken": {
+    "duration": 432000
+  },
+  "passwordResetToken": {
+    "duration": 1800
+  },
+  "emailChangeToken": {
+    "duration": 1800
+  },
+  "verificationToken": {
+    "duration": 86400
+  },
+  "fileToken": {
+    "duration": 180
+  },
+  "verificationTemplate": {
+    "subject": "Verify your {APP_NAME} email",
+    "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-verification/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p><i>If you didn't recently register, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+  },
+  "resetPasswordTemplate": {
+    "subject": "Reset your {APP_NAME} password",
+    "body": "<p>Hello,</p>\n<p>Click on the button below to reset your password.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Reset password</a>\n</p>\n<p><i>If you didn't ask to reset your password, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+  },
+  "confirmEmailChangeTemplate": {
+    "subject": "Confirm your {APP_NAME} new email address",
+    "body": "<p>Hello,</p>\n<p>Click on the button below to confirm your new email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}\" target=\"_blank\" rel=\"noopener\">Confirm new email</a>\n</p>\n<p><i>If you didn't ask to change your email address, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+  }
+}
+اسکیمای کالکشن کیس ها:
 {
   "id": "pbc_3613244768",
   "listRule": "@request.auth.id != \"\"",
@@ -118,7 +398,774 @@
   "updated": "2026-08-02 18:00:07.031Z",
   "system": false
 }
-اسکیمای موضوعات:
+اسکیمای کالکشن کامنت ها:
+{
+  "id": "pbc_533777971",
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id = author.id",
+  "deleteRule": "",
+  "name": "comments",
+  "type": "base",
+  "fields": [
+    {
+      "autogeneratePattern": "[a-z0-9]{15}",
+      "help": "",
+      "hidden": false,
+      "id": "text3208210256",
+      "max": 15,
+      "min": 15,
+      "name": "id",
+      "pattern": "^[a-z0-9]+$",
+      "presentable": false,
+      "primaryKey": true,
+      "required": true,
+      "system": true,
+      "type": "text"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select2363381545",
+      "maxSelect": 0,
+      "name": "type",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "select",
+      "values": [
+        "ملاحظه",
+        "نظریه",
+        "پاسخ",
+        "کامنت عمومی"
+      ]
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_1615648943",
+      "help": "",
+      "hidden": false,
+      "id": "relation3291445124",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "report",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3182418120",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "author",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "convertURLs": false,
+      "help": "",
+      "hidden": false,
+      "id": "editor999008199",
+      "maxSize": 0,
+      "name": "text",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "editor"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_533777971",
+      "help": "",
+      "hidden": false,
+      "id": "relation1032740943",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "parent",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "number3206337475",
+      "max": null,
+      "min": null,
+      "name": "version",
+      "onlyInt": false,
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "number"
+    },
+    {
+      "hidden": false,
+      "id": "autodate2990389176",
+      "name": "created",
+      "onCreate": true,
+      "onUpdate": false,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    },
+    {
+      "hidden": false,
+      "id": "autodate3332085495",
+      "name": "updated",
+      "onCreate": true,
+      "onUpdate": true,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    }
+  ],
+  "indexes": [],
+  "created": "2026-08-03 17:47:01.638Z",
+  "updated": "2026-08-05 13:36:44.215Z",
+  "system": false
+}
+اسکیمای کالکشن ورژنینگ:
+{
+  "id": "pbc_2012230717",
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\"",
+  "name": "report_versions",
+  "type": "base",
+  "fields": [
+    {
+      "autogeneratePattern": "[a-z0-9]{15}",
+      "help": "",
+      "hidden": false,
+      "id": "text3208210256",
+      "max": 15,
+      "min": 15,
+      "name": "id",
+      "pattern": "^[a-z0-9]+$",
+      "presentable": false,
+      "primaryKey": true,
+      "required": true,
+      "system": true,
+      "type": "text"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_1615648943",
+      "help": "",
+      "hidden": false,
+      "id": "relation3291445124",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "report",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text724990059",
+      "max": 0,
+      "min": 0,
+      "name": "title",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text1966432161",
+      "max": 0,
+      "min": 0,
+      "name": "abstract",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "convertURLs": false,
+      "help": "",
+      "hidden": false,
+      "id": "editor4274335913",
+      "maxSize": 0,
+      "name": "content",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "editor"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text3519405507",
+      "max": 0,
+      "min": 0,
+      "name": "automation_id",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_3613244768",
+      "help": "",
+      "hidden": false,
+      "id": "relation1022940913",
+      "maxSelect": 10,
+      "minSelect": 0,
+      "name": "cases_rel",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "hidden": false,
+      "id": "autodate2990389176",
+      "name": "created",
+      "onCreate": true,
+      "onUpdate": false,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    },
+    {
+      "hidden": false,
+      "id": "autodate3332085495",
+      "name": "updated",
+      "onCreate": true,
+      "onUpdate": true,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "json1947318380",
+      "maxSize": 0,
+      "name": "snapshot_comments",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "json"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_2800040823",
+      "help": "",
+      "hidden": false,
+      "id": "relation2232118775",
+      "maxSelect": 10,
+      "minSelect": 0,
+      "name": "topics_rel",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3872544907",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "submitter",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation1653163849",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "author",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1164694065",
+      "maxSelect": 0,
+      "name": "classification",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "عادی",
+        "محرمانه",
+        "خیلی محرمانه",
+        "سری",
+        "به کلی سری"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1655102503",
+      "maxSelect": 0,
+      "name": "priority",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "عادی",
+        "فوری",
+        "آنی"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1493410210",
+      "maxSelect": 0,
+      "name": "news_type",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "آشکار",
+        "رسمی",
+        "فنی",
+        "سایبری",
+        "منبع",
+        "راوی"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select321103221",
+      "maxSelect": 0,
+      "name": "evaluation",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "صحت دارد",
+        "احتمالا صحت دارد",
+        "در دست بررسی",
+        "صحت ندارد"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "date1787879175",
+      "max": "",
+      "min": "",
+      "name": "occurrence_date",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "date"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3441287562",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "department",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "number3206337475",
+      "max": null,
+      "min": null,
+      "name": "version",
+      "onlyInt": false,
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "number"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text484410058",
+      "max": 0,
+      "min": 0,
+      "name": "cover_image",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "json1204091606",
+      "maxSize": 0,
+      "name": "attachments",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "json"
+    }
+  ],
+  "indexes": [],
+  "created": "2026-08-05 14:30:42.864Z",
+  "updated": "2026-08-05 21:42:47.863Z",
+  "system": false
+}
+اسکیمای کالکشن گزارش ها و اخبار:
+{
+  "id": "pbc_1615648943",
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\"",
+  "name": "reports",
+  "type": "base",
+  "fields": [
+    {
+      "autogeneratePattern": "[a-z0-9]{15}",
+      "help": "",
+      "hidden": false,
+      "id": "text3208210256",
+      "max": 15,
+      "min": 15,
+      "name": "id",
+      "pattern": "^[a-z0-9]+$",
+      "presentable": false,
+      "primaryKey": true,
+      "required": true,
+      "system": true,
+      "type": "text"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text724990059",
+      "max": 0,
+      "min": 0,
+      "name": "title",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": true,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text1966432161",
+      "max": 0,
+      "min": 0,
+      "name": "abstract",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": false,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "convertURLs": false,
+      "help": "",
+      "hidden": false,
+      "id": "editor4274335913",
+      "maxSize": 0,
+      "name": "content",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "editor"
+    },
+    {
+      "autogeneratePattern": "",
+      "help": "",
+      "hidden": false,
+      "id": "text3519405507",
+      "max": 0,
+      "min": 0,
+      "name": "automation_id",
+      "pattern": "",
+      "presentable": false,
+      "primaryKey": false,
+      "required": true,
+      "system": false,
+      "type": "text"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "file484410058",
+      "maxSelect": 0,
+      "maxSize": 20000000,
+      "mimeTypes": null,
+      "name": "cover_image",
+      "presentable": false,
+      "protected": false,
+      "required": false,
+      "system": false,
+      "thumbs": null,
+      "type": "file"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_3613244768",
+      "help": "",
+      "hidden": false,
+      "id": "relation1022940913",
+      "maxSelect": 10,
+      "minSelect": 0,
+      "name": "cases_rel",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "file1204091606",
+      "maxSelect": 16,
+      "maxSize": 1200000000,
+      "mimeTypes": null,
+      "name": "attachments",
+      "presentable": false,
+      "protected": false,
+      "required": false,
+      "system": false,
+      "thumbs": null,
+      "type": "file"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "pbc_2800040823",
+      "help": "",
+      "hidden": false,
+      "id": "relation2232118775",
+      "maxSelect": 10,
+      "minSelect": 0,
+      "name": "topics_rel",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3872544907",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "submitter",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3182418120",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "author",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1164694065",
+      "maxSelect": 0,
+      "name": "classification",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "عادی",
+        "محرمانه",
+        "خیلی محرمانه",
+        "سری",
+        "به کلی سری"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1655102503",
+      "maxSelect": 0,
+      "name": "priority",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "عادی",
+        "فوری",
+        "آنی"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select1493410210",
+      "maxSelect": 0,
+      "name": "news_type",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "آشکار",
+        "رسمی",
+        "فنی",
+        "سایبری",
+        "منبع",
+        "راوی"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "select321103221",
+      "maxSelect": 0,
+      "name": "evaluation",
+      "presentable": false,
+      "required": false,
+      "system": false,
+      "type": "select",
+      "values": [
+        "صحت دارد",
+        "احتمالا صحت دارد",
+        "در دست بررسی",
+        "صحت ندارد"
+      ]
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "date1787879175",
+      "max": "",
+      "min": "",
+      "name": "occurrence_date",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "date"
+    },
+    {
+      "cascadeDelete": false,
+      "collectionId": "_pb_users_auth_",
+      "help": "",
+      "hidden": false,
+      "id": "relation3441287562",
+      "maxSelect": 0,
+      "minSelect": 0,
+      "name": "department",
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "relation"
+    },
+    {
+      "help": "",
+      "hidden": false,
+      "id": "number3206337475",
+      "max": null,
+      "min": null,
+      "name": "version",
+      "onlyInt": false,
+      "presentable": false,
+      "required": true,
+      "system": false,
+      "type": "number"
+    },
+    {
+      "hidden": false,
+      "id": "autodate2990389176",
+      "name": "created",
+      "onCreate": true,
+      "onUpdate": false,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    },
+    {
+      "hidden": false,
+      "id": "autodate3332085495",
+      "name": "updated",
+      "onCreate": true,
+      "onUpdate": true,
+      "presentable": false,
+      "system": false,
+      "type": "autodate"
+    }
+  ],
+  "indexes": [
+    "CREATE UNIQUE INDEX `idx_nvv35cti6s` ON `reports` (`automation_id`)"
+  ],
+  "created": "2026-08-02 07:20:22.368Z",
+  "updated": "2026-08-05 13:26:26.434Z",
+  "system": false
+}
+اسکیمای کالکشن موضوعات:
 {
   "id": "pbc_2800040823",
   "listRule": "@request.auth.id != \"\"",
@@ -185,26 +1232,4 @@
   "updated": "2026-08-02 17:59:45.563Z",
   "system": false
 }
-برای فهم تبدیل تاریخ میلادی به شمسی، به فایل پرشین دیت مین دات جی اس مراجعه کن
-
-چند فیلد دیگر مثل تاریخ ثبت، نویسنده، ثبت کننده و... هم هست که در این ورژنینگ فعلی مشاهده نمی شود
-
-
-نکته اول: منطقی که برای کامنت ها و پیوست ها طراحی شده به این شکل است که «اگر تغییری نباشد، می نویسد خالی»
-
-ولی منطق سایر فیلد ها به این شکل است که «همه متن را می آورد، و اگر جایی اختلاف داشت، با رنگ قرمز و فیروزه ای مشخص می کند.»
-
-اصلاحی که من نیاز دارم این است که منطق سایر فیلدها را روی کامنت ها هم پیاده کن، یعنی کامنت ها در هر دو نسخه قبلی و فعلی باشند، و اختلاف آنها با رنگ های قرمز و فیروزه ای مشخص شود ولی منطق فایلها و پیوست ها به همین شکل فعلی باقی بماند.
-
-نکته دوم: الان تاریخ وقوع را به شکل میلادی می نویسد 2026-08-03 08:30:00.000Z
-
-در فیلد موضوعات، به جای عنوان فارسی موضوع، کد آن را می نویسد: 
-
-y97njjlf8ckv9ql, vwfhhofepnikaeu
-
-در فیلد کیس های مرتبط هم به همچنین: s1ulq7e9runs03k, ejfpd0bwhs881uf که باید عنوان فارسی آنها را بنویسد 
-
-
-
-
-چند فیلد دیگر مثل تاریخ ثبت، نویسنده، ثبت کننده و... هم هست که در این ورژنینگ فعلی مشاهده نمی شود 
+سوال: آیا هر 6 کالکشن باید در جیسون خروجی باشند؟ بله، همه فیلدهایشان

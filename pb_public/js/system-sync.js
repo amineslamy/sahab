@@ -277,35 +277,47 @@ async function handleStartImport() {
         // ۲. ایمپورت بر اساس ترتیب منطقی کلیدهای خارجی:
         // ۱. کاربران -> ۲. کیس‌ها -> ۳. موضوعات -> ۴. گزارش‌ها -> ۵. کامنت‌ها -> ۶. نسخه‌ها
 
+// آمارگیری از وضعیت ایمپورت
+        const stats = { created: 0, updated: 0, skipped: 0, failed: 0 };
+
+        const processResult = (res) => {
+            if (res && res.status) {
+                stats[res.status] = (stats[res.status] || 0) + 1;
+            }
+        };
+
         // ۱. کاربران
         for (const user of users) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت کاربر: ${user.name || user.username || user.id}`);
-            await importRecordWithFiles(pbInstance, zip, 'users', user, {
+            updateProgress(processedItems, totalItems, `در حال بررسی کاربر: ${user.name || user.username || user.id}`);
+            const res = await importRecordWithFiles(pbInstance, zip, 'users', user, {
                 avatar: `files/users/${user.id}/${user.avatar}`
             });
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `کاربر ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `کاربر بررسی شد (${processedItems}/${totalItems})`);
         }
 
         // ۲. کیس‌ها
         for (const caseItem of cases) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت کیس: ${caseItem.title || caseItem.id}`);
-            await importRecordWithFiles(pbInstance, zip, 'cases', caseItem, {});
+            updateProgress(processedItems, totalItems, `در حال بررسی کیس: ${caseItem.title || caseItem.id}`);
+            const res = await importRecordWithFiles(pbInstance, zip, 'cases', caseItem, {});
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `کیس ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `کیس بررسی شد (${processedItems}/${totalItems})`);
         }
 
         // ۳. موضوعات
         for (const topic of topics) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت موضوع: ${topic.title || topic.id}`);
-            await importRecordWithFiles(pbInstance, zip, 'topics', topic, {});
+            updateProgress(processedItems, totalItems, `در حال بررسی موضوع: ${topic.title || topic.id}`);
+            const res = await importRecordWithFiles(pbInstance, zip, 'topics', topic, {});
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `موضوع ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `موضوع بررسی شد (${processedItems}/${totalItems})`);
         }
 
         // ۴. گزارش‌ها
         for (const report of reports) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت گزارش: ${report.title || report.id}`);
+            updateProgress(processedItems, totalItems, `در حال بررسی گزارش: ${report.title || report.id}`);
             const filePathsMap = {};
             if (report.cover_image) {
                 filePathsMap['cover_image'] = `files/reports/${report.id}/${report.cover_image}`;
@@ -314,30 +326,40 @@ async function handleStartImport() {
                 filePathsMap['attachments'] = report.attachments.map(att => `files/reports/${report.id}/${att}`);
             }
 
-            await importRecordWithFiles(pbInstance, zip, 'reports', report, filePathsMap);
+            const res = await importRecordWithFiles(pbInstance, zip, 'reports', report, filePathsMap);
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `گزارش ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `گزارش بررسی شد (${processedItems}/${totalItems})`);
         }
 
         // ۵. کامنت‌ها
         for (const comment of comments) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت کامنت (${processedItems + 1}/${totalItems})`);
-            await importRecordWithFiles(pbInstance, zip, 'comments', comment, {});
+            updateProgress(processedItems, totalItems, `در حال بررسی کامنت (${processedItems + 1}/${totalItems})`);
+            const res = await importRecordWithFiles(pbInstance, zip, 'comments', comment, {});
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `کامنت ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `کامنت بررسی شد (${processedItems}/${totalItems})`);
         }
 
         // ۶. نسخه‌های گزارش
         for (const version of report_versions) {
-            updateProgress(processedItems, totalItems, `در حال ایمپورت نسخه گزارش (${processedItems + 1}/${totalItems})`);
-            await importRecordWithFiles(pbInstance, zip, 'report_versions', version, {});
+            updateProgress(processedItems, totalItems, `در حال بررسی نسخه گزارش (${processedItems + 1}/${totalItems})`);
+            const res = await importRecordWithFiles(pbInstance, zip, 'report_versions', version, {});
+            processResult(res);
             processedItems++;
-            updateProgress(processedItems, totalItems, `نسخه گزارش ثبت شد (${processedItems}/${totalItems})`);
+            updateProgress(processedItems, totalItems, `نسخه گزارش بررسی شد (${processedItems}/${totalItems})`);
         }
 
-        updateProgress(totalItems, totalItems, '✅ عملیات ایمپورت با موفقیت تکمیل شد.');
-        alert('✅ عملیات ایمپورت داده‌ها و فایل‌ها با موفقیت انجام شد.');
-
+        // تحلیل و نمایش پیام متناسب با نتیجه واقعی
+        if (stats.created === 0 && stats.updated === 0) {
+            const msg = 'اطلاعات وارد شده تکراری بود و هیچ مطلب جدید یا تغییریافته‌ای در دیتابیس ثبت نشد.';
+            updateProgress(totalItems, totalItems, `ℹ️ ${msg}`);
+            alert(`ℹ️ ${msg}`);
+        } else {
+            const msg = `عملیات ایمپورت انجام شد.\nرکوردهای جدید: ${stats.created}\nرکوردهای بروزرسانی شده: ${stats.updated}\nبدون تغییر/خطا: ${stats.skipped + stats.failed}`;
+            updateProgress(totalItems, totalItems, '✅ عملیات ایمپورت با موفقیت تکمیل شد.');
+            alert(msg);
+        }
         // بازخوانی جدول گزارش‌ها در صورت وجود تابع مربوطه
         if (typeof loadReports === 'function') {
             loadReports();
@@ -363,58 +385,83 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
     const recordId = recordData.id;
     const collection = pbInstance.collection(collectionName);
 
-    // بررسی وجود رکورد در PocketBase (روش Upsert)
-    let exists = false;
-    try {
-        await collection.getOne(recordId);
-        exists = true;
-    } catch (e) {
-        exists = false;
-    }
-
-    const formData = new FormData();
-
-    // ۱. افزودن فیلدهای متنی و آرایه‌ای به FormData
-    for (const [key, value] of Object.entries(recordData)) {
-        // فیلدهای فایل از طریق Zip خوانده می‌شوند، بنابراین فیلدهای خام متنی مرتبط نادیده گرفته می‌شوند
-        if (filePathsMap[key]) continue;
-
-        if (value !== null && value !== undefined) {
-            if (Array.isArray(value)) {
-                value.forEach(item => formData.append(key, item));
-            } else if (typeof value === 'object') {
-                formData.append(key, JSON.stringify(value));
-            } else {
-                formData.append(key, value);
-            }
+    let existingRecord = null;
+    if (recordId) {
+        try {
+            existingRecord = await collection.getOne(recordId);
+        } catch (e) {
+            existingRecord = null;
         }
     }
 
-    // ۲. استخراج و افزودن فایل‌های فیزیکی از Zip به FormData
-    for (const [fieldName, zipPathOrPaths] of Object.entries(filePathsMap)) {
-        if (Array.isArray(zipPathOrPaths)) {
-            for (const path of zipPathOrPaths) {
-                const zipFile = zip.file(path);
+    const buildFormData = (isUpdate) => {
+        const formData = new FormData();
+
+        for (const [key, value] of Object.entries(recordData)) {
+            if (filePathsMap[key] || key === 'created' || key === 'updated' || key === 'collectionId' || key === 'collectionName') {
+                continue;
+            }
+
+            if (!isUpdate && key === 'id') {
+                continue;
+            }
+
+            if (value !== null && value !== undefined) {
+                if (Array.isArray(value)) {
+                    value.forEach(item => formData.append(key, item));
+                } else if (typeof value === 'object') {
+                    formData.append(key, JSON.stringify(value));
+                } else {
+                    formData.append(key, value);
+                }
+            }
+        }
+
+        return formData;
+    };
+
+    const attachFilesToFormData = async (formData) => {
+        for (const [fieldName, zipPathOrPaths] of Object.entries(filePathsMap)) {
+            if (Array.isArray(zipPathOrPaths)) {
+                for (const path of zipPathOrPaths) {
+                    const zipFile = zip.file(path);
+                    if (zipFile) {
+                        const blob = await zipFile.async("blob");
+                        const fileName = path.split('/').pop();
+                        formData.append(fieldName, blob, fileName);
+                    }
+                }
+            } else if (zipPathOrPaths) {
+                const zipFile = zip.file(zipPathOrPaths);
                 if (zipFile) {
                     const blob = await zipFile.async("blob");
-                    const fileName = path.split('/').pop();
+                    const fileName = zipPathOrPaths.split('/').pop();
                     formData.append(fieldName, blob, fileName);
                 }
             }
-        } else if (zipPathOrPaths) {
-            const zipFile = zip.file(zipPathOrPaths);
-            if (zipFile) {
-                const blob = await zipFile.async("blob");
-                const fileName = zipPathOrPaths.split('/').pop();
-                formData.append(fieldName, blob, fileName);
-            }
         }
-    }
+    };
 
-    // ۳. ارسال درخواست ایجاد یا بروزرسانی به PocketBase
-    if (exists) {
-        await collection.update(recordId, formData);
-    } else {
-        await collection.create(formData);
+    try {
+        if (existingRecord) {
+            // اگر رکورد وجود داشته باشد، بررسی می‌شود که آیا بروزرسانی لازم است یا خیر
+            try {
+                const updateData = buildFormData(true);
+                await attachFilesToFormData(updateData);
+                await collection.update(recordId, updateData);
+                return { status: 'updated' };
+            } catch (err) {
+                // در صورت عدم اجازه بروزرسانی (مثلاً 404 یا 403 به خاطر API Rules)، رکورد موجود نادیده گرفته می‌شود
+                return { status: 'skipped', error: err };
+            }
+        } else {
+            const createData = buildFormData(false);
+            await attachFilesToFormData(createData);
+            await collection.create(createData);
+            return { status: 'created' };
+        }
+    } catch (err) {
+        console.warn(`[ایمپورت] عدم امکان ثبت/ویرایش رکورد در ${collectionName} (ID: ${recordId}):`, err?.data || err?.message || err);
+        return { status: 'failed', error: err };
     }
 }

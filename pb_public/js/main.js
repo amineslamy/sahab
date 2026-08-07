@@ -8,6 +8,61 @@ let currentPage = 1;
 let perPage = 10;
 let currentFilterQuery = "";
 
+let selectedReportIds = new Set();
+
+function toggleReportSelection(id, isChecked) {
+    if (isChecked) {
+        selectedReportIds.add(id);
+    } else {
+        selectedReportIds.delete(id);
+    }
+    updateSelectionUI();
+}
+
+function toggleSelectAllPage(isChecked) {
+    const checkboxes = document.querySelectorAll('.report-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        if (isChecked) {
+            selectedReportIds.add(cb.value);
+        } else {
+            selectedReportIds.delete(cb.value);
+        }
+    });
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedReportIds.clear();
+    const selectAllCb = document.getElementById('select-all-page');
+    if (selectAllCb) selectAllCb.checked = false;
+    
+    document.querySelectorAll('.report-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const selectionBar = document.getElementById('selection-bar');
+    const countSpan = document.getElementById('selected-count');
+    const count = selectedReportIds.size;
+
+    if (count > 0) {
+        if (selectionBar) selectionBar.classList.remove('hidden');
+        if (countSpan) countSpan.innerText = count;
+    } else {
+        if (selectionBar) selectionBar.classList.add('hidden');
+    }
+
+    // به‌روزرسانی وضعیت چک‌باکس «انتخاب همه صفحه»
+    const currentPageCheckboxes = Array.from(document.querySelectorAll('.report-checkbox'));
+    const selectAllCb = document.getElementById('select-all-page');
+    if (selectAllCb && currentPageCheckboxes.length > 0) {
+        selectAllCb.checked = currentPageCheckboxes.every(cb => selectedReportIds.has(cb.value));
+    }
+}
+
 // تابع کمکی برای ساخت فیلتر بر اساس نقش کاربر
 function getRoleBasedFilter() {
     const user = pb.authStore.model;
@@ -207,7 +262,7 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
             return;
@@ -227,7 +282,6 @@ async function loadReportsTable() {
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
-            // بررسی داشتن تصویر کاور یا فایل پیوست
             const hasCover = !!rec.cover_image;
             const hasAttachments = Array.isArray(rec.attachments) && rec.attachments.length > 0;
 
@@ -243,13 +297,16 @@ async function loadReportsTable() {
                 ? `<div class="flex items-center gap-1 mt-1 flex-wrap">${coverBadgeHtml}${attachmentBadgeHtml}</div>`
                 : '';
 
-            // رنگ زمینه یکی در میان برای هر دسته سطر
             const isEven = index % 2 === 0;
             const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
+            const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
 
             html += `
                 <!-- سطر اول: عنوان خبر، کیس، نویسنده و دکمه‌های عملیات -->
                 <tr class="${bgRow} border-t-2 border-slate-300">
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
+                        <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                    </td>
                     <td class="p-1.5 sm:p-2.5 font-bold text-slate-900 break-words">
                         <div>${rec.title || 'بدون عنوان'}</div>
                         ${mediaBadgesHtml}
@@ -291,6 +348,7 @@ async function loadReportsTable() {
             `;
         });
         tbody.innerHTML = html;
+        updateSelectionUI();
 
         // به‌روزرسانی Pagination
         document.getElementById('pagination-info').innerText = `صفحه ${result.page} از ${result.totalPages} (مجموع ${result.totalItems} گزارش)`;

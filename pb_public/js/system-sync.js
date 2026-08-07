@@ -135,12 +135,33 @@ async function exportZip() {
             }
         }
 
-        // ۳. تولید و دانلود فایل زیپ
+        // ۳. استخراج نام کاربر جاری و ساخت نام فایل زیپ بر اساس الگوی درخواستی
+        let userName = "unknown";
+        if (pbInstance.authStore && pbInstance.authStore.model && pbInstance.authStore.model.name) {
+            userName = pbInstance.authStore.model.name;
+        }
+
+        let dateStr = "";
+        let timeStr = "";
+
+        if (typeof persianDate !== 'undefined') {
+            const pd = new persianDate();
+            dateStr = pd.format("YYMMDD");
+            timeStr = pd.format("HHmm");
+        } else {
+            const now = new Date();
+            dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
+            timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+        }
+
+        const zipFileName = `${userName}_${dateStr}_${timeStr}.zip`;
+
+        // تولید و دانلود فایل زیپ
         const content = await zip.generateAsync({ type: "blob" });
         const downloadUrl = URL.createObjectURL(content);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `sahab_export_selected_${new Date().toISOString().slice(0, 10)}.zip`;
+        a.download = zipFileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

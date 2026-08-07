@@ -192,3 +192,229 @@ async function fetchAndAddToZip(zipFolder, relativePath, url) {
         console.warn(`فایل در آدرس ${url} دریافت نشد:`, e);
     }
 }
+
+/**
+ * تابع شروع عملیات ایمپورت داده‌ها و فایل‌های فیزیکی از فایل ZIP به همراه نوار پیشرفت
+ */
+async function handleStartImport() {
+    const fileInput = document.getElementById('sync-zip-file');
+    const importBtn = document.getElementById('btn-start-import');
+
+    const progressContainer = document.getElementById('import-progress-container');
+    const progressBar = document.getElementById('import-progress-bar');
+    const progressText = document.getElementById('import-progress-text');
+    const progressPercent = document.getElementById('import-progress-percent');
+
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert('لطفاً یک فایل ZIP انتخاب کنید.');
+        return;
+    }
+
+    const zipFile = fileInput.files[0];
+    const originalBtnText = importBtn ? importBtn.innerHTML : '';
+
+    const updateProgress = (current, total, message) => {
+        if (!progressContainer) return;
+        progressContainer.classList.remove('hidden');
+        const percentage = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressPercent) progressPercent.innerText = `${percentage}%`;
+        if (progressText) progressText.innerText = message;
+    };
+
+    try {
+        if (typeof JSZip === 'undefined') {
+            alert('کتابخانه JSZip بارگذاری نشده است.');
+            return;
+        }
+
+        const pbInstance = window.pb || (typeof PocketBase !== 'undefined' ? new PocketBase(window.location.origin) : null);
+        if (!pbInstance) {
+            throw new Error('نمونه PocketBase یافت نشد.');
+        }
+
+        if (importBtn) {
+            importBtn.disabled = true;
+            importBtn.innerHTML = '⏳ در حال بسته‌بندی داده‌ها...';
+        }
+
+        updateProgress(0, 100, 'در حال خواندن فایل ZIP...');
+
+        // ۱. خواندن فایل زیپ
+        const zip = await JSZip.loadAsync(zipFile);
+        const jsonFile = zip.file("data.json");
+
+        if (!jsonFile) {
+            throw new Error('فایل data.json در ریشه فایل ZIP یافت نشد.');
+        }
+
+        const jsonText = await jsonFile.async("text");
+        const parsedData = JSON.parse(jsonText);
+
+        if (!parsedData || !parsedData.data) {
+            throw new Error('ساختار data.json معتبر نیست.');
+        }
+
+        const {
+            users = [],
+            cases = [],
+            topics = [],
+            reports = [],
+            comments = [],
+            report_versions = []
+        } = parsedData.data;
+
+        // محاسبه مجموع کل آیتم‌ها جهت نمایش دقیق درصد
+        const totalItems = users.length + cases.length + topics.length + reports.length + comments.length + report_versions.length;
+        let processedItems = 0;
+
+        if (totalItems === 0) {
+            updateProgress(100, 100, 'هیچ داده‌ای برای ایمپورت یافت نشد.');
+            alert('فایل ZIP حاوی داده‌ای برای ایمپورت نیست.');
+            return;
+        }
+
+        // ۲. ایمپورت بر اساس ترتیب منطقی کلیدهای خارجی:
+        // ۱. کاربران -> ۲. کیس‌ها -> ۳. موضوعات -> ۴. گزارش‌ها -> ۵. کامنت‌ها -> ۶. نسخه‌ها
+
+        // ۱. کاربران
+        for (const user of users) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت کاربر: ${user.name || user.username || user.id}`);
+            await importRecordWithFiles(pbInstance, zip, 'users', user, {
+                avatar: `files/users/${user.id}/${user.avatar}`
+            });
+            processedItems++;
+            updateProgress(processedItems, totalItems, `کاربر ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        // ۲. کیس‌ها
+        for (const caseItem of cases) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت کیس: ${caseItem.title || caseItem.id}`);
+            await importRecordWithFiles(pbInstance, zip, 'cases', caseItem, {});
+            processedItems++;
+            updateProgress(processedItems, totalItems, `کیس ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        // ۳. موضوعات
+        for (const topic of topics) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت موضوع: ${topic.title || topic.id}`);
+            await importRecordWithFiles(pbInstance, zip, 'topics', topic, {});
+            processedItems++;
+            updateProgress(processedItems, totalItems, `موضوع ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        // ۴. گزارش‌ها
+        for (const report of reports) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت گزارش: ${report.title || report.id}`);
+            const filePathsMap = {};
+            if (report.cover_image) {
+                filePathsMap['cover_image'] = `files/reports/${report.id}/${report.cover_image}`;
+            }
+            if (Array.isArray(report.attachments) && report.attachments.length > 0) {
+                filePathsMap['attachments'] = report.attachments.map(att => `files/reports/${report.id}/${att}`);
+            }
+
+            await importRecordWithFiles(pbInstance, zip, 'reports', report, filePathsMap);
+            processedItems++;
+            updateProgress(processedItems, totalItems, `گزارش ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        // ۵. کامنت‌ها
+        for (const comment of comments) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت کامنت (${processedItems + 1}/${totalItems})`);
+            await importRecordWithFiles(pbInstance, zip, 'comments', comment, {});
+            processedItems++;
+            updateProgress(processedItems, totalItems, `کامنت ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        // ۶. نسخه‌های گزارش
+        for (const version of report_versions) {
+            updateProgress(processedItems, totalItems, `در حال ایمپورت نسخه گزارش (${processedItems + 1}/${totalItems})`);
+            await importRecordWithFiles(pbInstance, zip, 'report_versions', version, {});
+            processedItems++;
+            updateProgress(processedItems, totalItems, `نسخه گزارش ثبت شد (${processedItems}/${totalItems})`);
+        }
+
+        updateProgress(totalItems, totalItems, '✅ عملیات ایمپورت با موفقیت تکمیل شد.');
+        alert('✅ عملیات ایمپورت داده‌ها و فایل‌ها با موفقیت انجام شد.');
+
+        // بازخوانی جدول گزارش‌ها در صورت وجود تابع مربوطه
+        if (typeof loadReports === 'function') {
+            loadReports();
+        }
+
+    } catch (error) {
+        console.error('خطا در فرایند ایمپورت:', error);
+        if (progressText) progressText.innerText = '❌ خطا در ایمپورت: ' + error.message;
+        alert('خطا در ثبت ایمپورت: ' + error.message);
+    } finally {
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = originalBtnText;
+        }
+        fileInput.value = '';
+    }
+}
+
+/**
+ * تابع کمکی برای ثبت/بروزرسانی یک رکورد در PocketBase به همراه فایل‌های فیزیکی (Upsert)
+ */
+async function importRecordWithFiles(pbInstance, zip, collectionName, recordData, filePathsMap = {}) {
+    const recordId = recordData.id;
+    const collection = pbInstance.collection(collectionName);
+
+    // بررسی وجود رکورد در PocketBase (روش Upsert)
+    let exists = false;
+    try {
+        await collection.getOne(recordId);
+        exists = true;
+    } catch (e) {
+        exists = false;
+    }
+
+    const formData = new FormData();
+
+    // ۱. افزودن فیلدهای متنی و آرایه‌ای به FormData
+    for (const [key, value] of Object.entries(recordData)) {
+        // فیلدهای فایل از طریق Zip خوانده می‌شوند، بنابراین فیلدهای خام متنی مرتبط نادیده گرفته می‌شوند
+        if (filePathsMap[key]) continue;
+
+        if (value !== null && value !== undefined) {
+            if (Array.isArray(value)) {
+                value.forEach(item => formData.append(key, item));
+            } else if (typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+            } else {
+                formData.append(key, value);
+            }
+        }
+    }
+
+    // ۲. استخراج و افزودن فایل‌های فیزیکی از Zip به FormData
+    for (const [fieldName, zipPathOrPaths] of Object.entries(filePathsMap)) {
+        if (Array.isArray(zipPathOrPaths)) {
+            for (const path of zipPathOrPaths) {
+                const zipFile = zip.file(path);
+                if (zipFile) {
+                    const blob = await zipFile.async("blob");
+                    const fileName = path.split('/').pop();
+                    formData.append(fieldName, blob, fileName);
+                }
+            }
+        } else if (zipPathOrPaths) {
+            const zipFile = zip.file(zipPathOrPaths);
+            if (zipFile) {
+                const blob = await zipFile.async("blob");
+                const fileName = zipPathOrPaths.split('/').pop();
+                formData.append(fieldName, blob, fileName);
+            }
+        }
+    }
+
+    // ۳. ارسال درخواست ایجاد یا بروزرسانی به PocketBase
+    if (exists) {
+        await collection.update(recordId, formData);
+    } else {
+        await collection.create(formData);
+    }
+}

@@ -400,22 +400,26 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
         const formData = new FormData();
 
         for (const [key, value] of Object.entries(recordData)) {
-            if (filePathsMap[key] || key === 'created' || key === 'updated' || key === 'collectionId' || key === 'collectionName') {
+            // نادیده گرفتن فیلدهای فایل، سیستم و expand
+            if (
+                filePathsMap[key] ||
+                key === 'id' ||
+                key === 'created' ||
+                key === 'updated' ||
+                key === 'collectionId' ||
+                key === 'collectionName' ||
+                key === 'expand'
+            ) {
                 continue;
             }
 
-            if (!isUpdate && key === 'id') {
-                continue;
-            }
-
-            if (value !== null && value !== undefined) {
-                if (Array.isArray(value)) {
-                    value.forEach(item => formData.append(key, item));
-                } else if (typeof value === 'object') {
-                    formData.append(key, JSON.stringify(value));
-                } else {
-                    formData.append(key, value);
-                }
+            if (Array.isArray(value)) {
+                value.forEach(item => formData.append(key, item));
+            } else if (value !== null && typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+            } else {
+                // ارسال مقدار به صورت رشته (در صورت null یا undefined بودن، رشته خالی ارسال می‌شود تا خطای validation رخ ندهد)
+                formData.append(key, value ?? '');
             }
         }
 

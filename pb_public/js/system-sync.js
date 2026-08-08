@@ -192,7 +192,42 @@ async function fetchAndAddToZip(zipFolder, relativePath, url) {
         console.warn(`فایل در آدرس ${url} دریافت نشد:`, e);
     }
 }
+/**
+ * مرتب‌سازی ترتیبی کامنت‌ها (ابتدا کامنت‌های مادر، سپس فرزندان)
+ */
+function sortCommentsByDependency(comments) {
+    const sorted = [];
+    const insertedIds = new Set();
+    let remaining = [...comments];
 
+    let loopSafety = 0;
+    while (remaining.length > 0 && loopSafety < 100) {
+        loopSafety++;
+        const nextBatch = [];
+        const uninserted = [];
+
+        for (const item of remaining) {
+            // اگر کامنت والد ندارد یا والد آن قبلاً پردازش شده است
+            if (!item.parent || insertedIds.has(item.parent)) {
+                nextBatch.push(item);
+                insertedIds.add(item.id);
+            } else {
+                uninserted.push(item);
+            }
+        }
+
+        // در صورت وجود چرخه یا نبود والد، جهت جلوگیری از حلقه بینهایت مابقی اضافه می‌شوند
+        if (nextBatch.length === 0) {
+            sorted.push(...uninserted);
+            break;
+        }
+
+        sorted.push(...nextBatch);
+        remaining = uninserted;
+    }
+
+    return sorted;
+}
 /**
  * تابع شروع عملیات ایمپورت داده‌ها و فایل‌های فیزیکی از فایل ZIP به همراه نوار پیشرفت
  */
@@ -264,8 +299,11 @@ async function handleStartImport() {
             report_versions = []
         } = parsedData.data;
 
+        // مرتب‌سازی ترتیبی کامنت‌ها (والد قبل از فرزند)
+        const sortedComments = sortCommentsByDependency(comments);
+
         // محاسبه مجموع کل آیتم‌ها جهت نمایش دقیق درصد
-        const totalItems = users.length + cases.length + topics.length + reports.length + comments.length + report_versions.length;
+        const totalItems = users.length + cases.length + topics.length + reports.length + sortedComments.length + report_versions.length; 
         let processedItems = 0;
 
         if (totalItems === 0) {
@@ -274,10 +312,7 @@ async function handleStartImport() {
             return;
         }
 
-        // ۲. ایمپورت بر اساس ترتیب منطقی کلیدهای خارجی:
-        // ۱. کاربران -> ۲. کیس‌ها -> ۳. موضوعات -> ۴. گزارش‌ها -> ۵. کامنت‌ها -> ۶. نسخه‌ها
-
-// آمارگیری مجزا برای گزارش‌ها و سایر آیتم‌ها
+        // آمارگیری مجزا برای گزارش‌ها و سایر آیتم‌ها
         const reportStats = {
             created: new Set(),
             updated: new Set(),
@@ -301,68 +336,104 @@ async function handleStartImport() {
             }
         };
 
-        // ۱. کاربران
-        for (const user of users) {
-            updateProgress(processedItems, totalItems, `در حال بررسی کاربر: ${user.name || user.username || user.id}`);
-            const res = await importRecordWithFiles(pbInstance, zip, 'users', user, {
-                avatar: `files/users/${user.id}/${user.avatar}`
-            });
-            processResult(user, res, false);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `کاربر بررسی شد (${processedItems}/${totalItems})`);
-        }
-
-        // ۲. کیس‌ها
-        for (const caseItem of cases) {
-            updateProgress(processedItems, totalItems, `در حال بررسی کیس: ${caseItem.title || caseItem.id}`);
-            const res = await importRecordWithFiles(pbInstance, zip, 'cases', caseItem, {});
-            processResult(caseItem, res, false);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `کیس بررسی شد (${processedItems}/${totalItems})`);
-        }
-
-        // ۳. موضوعات
-        for (const topic of topics) {
-            updateProgress(processedItems, totalItems, `در حال بررسی موضوع: ${topic.title || topic.id}`);
-            const res = await importRecordWithFiles(pbInstance, zip, 'topics', topic, {});
-            processResult(topic, res, false);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `موضوع بررسی شد (${processedItems}/${totalItems})`);
-        }
-
-        // ۴. گزارش‌ها (با کلید isReport = true)
-        for (const report of reports) {
-            updateProgress(processedItems, totalItems, `در حال بررسی گزارش: ${report.title || report.id}`);
-            const filePathsMap = {};
-            if (report.cover_image) {
-                filePathsMap['cover_image'] = `files/reports/${report.id}/${report.cover_image}`;
+        // تعریف فازهای اجرای ترتیبی (Sequential Multi-Phase)
+        const importPhases = [
+            {
+                phaseName: 'فاز ۱: داده‌های پایه (کاربران، کیس‌ها، موضوعات)',
+                collections: [
+                    {
+                        name: 'users',
+                        label: 'کاربر',
+                        items: users,
+                        getFileMap: (u) => ({ avatar: `files/users/${u.id}/${u.avatar}` }),
+                        isReport: false
+                    },
+                    {
+                        name: 'cases',
+                        label: 'کیس',
+                        items: cases,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    },
+                    {
+                        name: 'topics',
+                        label: 'موضوع',
+                        items: topics,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    }
+                ]
+            },
+            {
+                phaseName: 'فاز ۲: داده‌های اصلی (گزارش‌ها)',
+                collections: [
+                    {
+                        name: 'reports',
+                        label: 'گزارش',
+                        items: reports,
+                        getFileMap: (r) => {
+                            const filePathsMap = {};
+                            if (r.cover_image) {
+                                filePathsMap['cover_image'] = `files/reports/${r.id}/${r.cover_image}`;
+                            }
+                            if (Array.isArray(r.attachments) && r.attachments.length > 0) {
+                                filePathsMap['attachments'] = r.attachments.map(att => `files/reports/${r.id}/${att}`);
+                            }
+                            return filePathsMap;
+                        },
+                        isReport: true
+                    }
+                ]
+            },
+            {
+                phaseName: 'فاز ۳: داده‌های وابسته (کامنت‌ها و نسخه‌های گزارش)',
+                collections: [
+                    {
+                        name: 'comments',
+                        label: 'کامنت',
+                        items: sortedComments,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    },
+                    {
+                        name: 'report_versions',
+                        label: 'نسخه گزارش',
+                        items: report_versions,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    }
+                ]
             }
-            if (Array.isArray(report.attachments) && report.attachments.length > 0) {
-                filePathsMap['attachments'] = report.attachments.map(att => `files/reports/${report.id}/${att}`);
+        ];
+
+        // اجرای ترتیبی فاز به فاز
+        for (const phase of importPhases) {
+            updateProgress(processedItems, totalItems, `شروع ${phase.phaseName}...`);
+
+            for (const config of phase.collections) {
+                for (const item of config.items) {
+                    const itemIdentifier = item.title || item.name || item.username || item.id;
+                    updateProgress(processedItems, totalItems, `در حال بررسی ${config.label}: ${itemIdentifier}`);
+
+                    const filePathsMap = config.getFileMap(item);
+                    const res = await importRecordWithFiles(pbInstance, zip, config.name, item, filePathsMap);
+
+                    processResult(item, res, config.isReport);
+                    processedItems++;
+                    updateProgress(processedItems, totalItems, `${config.label} بررسی شد (${processedItems}/${totalItems})`);
+                }
             }
 
-            const res = await importRecordWithFiles(pbInstance, zip, 'reports', report, filePathsMap);
-            processResult(report, res, true);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `گزارش بررسی شد (${processedItems}/${totalItems})`);
-        }
+            // صحت‌سنجی فاز ۲: اگر ثبت گزارش‌های اصلی کلاً با خطا مواجه شد و هیچ گزارشی ثبت/بروزرسانی نشد، ادامه ندهیم
+            if (phase.phaseName.includes('فاز ۲')) {
+                const repCreated = reportStats.created.size;
+                const repUpdated = reportStats.updated.size;
+                const repFailed = reportStats.failed.size;
 
-        // ۵. کامنت‌ها
-        for (const comment of comments) {
-            updateProgress(processedItems, totalItems, `در حال بررسی کامنت (${processedItems + 1}/${totalItems})`);
-            const res = await importRecordWithFiles(pbInstance, zip, 'comments', comment, {});
-            processResult(comment, res, false);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `کامنت بررسی شد (${processedItems}/${totalItems})`);
-        }
-
-        // ۶. نسخه‌های گزارش
-        for (const version of report_versions) {
-            updateProgress(processedItems, totalItems, `در حال بررسی نسخه گزارش (${processedItems + 1}/${totalItems})`);
-            const res = await importRecordWithFiles(pbInstance, zip, 'report_versions', version, {});
-            processResult(version, res, false);
-            processedItems++;
-            updateProgress(processedItems, totalItems, `نسخه گزارش بررسی شد (${processedItems}/${totalItems})`);
+                if (reports.length > 0 && repCreated === 0 && repUpdated === 0 && repFailed === reports.length) {
+                    throw new Error('پردازش فاز ۲ (گزارش‌ها) با خطا مواجه شد. از ثبت داده‌های وابسته (کامنت‌ها و نسخه‌ها) جلوگیری شد.');
+                }
+            }
         }
 
         // محاسبه آمار گزارش‌های اصلی
@@ -394,7 +465,7 @@ async function handleStartImport() {
             progressText.innerText = '❌ خطا در ایمپورت: ' + error.message;
         }
     }
-    
+
     finally {
         if (importBtn) {
             importBtn.disabled = false;
@@ -423,6 +494,11 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
     const buildFormData = (isUpdate) => {
         const formData = new FormData();
 
+        // تعیین شناسه رکورد هنگام ساخت رکورد جدید
+        if (!isUpdate && recordData.id) {
+            formData.append('id', recordData.id);
+        }
+
         for (const [key, value] of Object.entries(recordData)) {
             // نادیده گرفتن فیلدهای فایل، سیستم و expand
             if (
@@ -437,13 +513,28 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
                 continue;
             }
 
+            // مقادیر null یا undefined یا رشته‌های خالی (نظیر parent خالی) نادیده گرفته می‌شوند
+            if (value === null || value === undefined || value === '') {
+                continue;
+            }
+
             if (Array.isArray(value)) {
-                value.forEach(item => formData.append(key, item));
-            } else if (value !== null && typeof value === 'object') {
+                if (value.length === 0) {
+                    // جهت جلوگیری از خطای Validation در فیلدهای آرایه‌ای اجباری
+                    formData.append(key, '');
+                } else {
+                    value.forEach(item => {
+                        if (item !== null && item !== undefined && item !== '') {
+                            formData.append(key, item);
+                        }
+                    });
+                }
+            } else if (typeof value === 'boolean') {
+                formData.append(key, value ? 'true' : 'false');
+            } else if (typeof value === 'object') {
                 formData.append(key, JSON.stringify(value));
             } else {
-                // ارسال مقدار به صورت رشته (در صورت null یا undefined بودن، رشته خالی ارسال می‌شود تا خطای validation رخ ندهد)
-                formData.append(key, value ?? '');
+                formData.append(key, String(value));
             }
         }
 
@@ -474,24 +565,30 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
 
     try {
         if (existingRecord) {
-            // اگر رکورد وجود داشته باشد، بررسی می‌شود که آیا بروزرسانی لازم است یا خیر
             try {
                 const updateData = buildFormData(true);
                 await attachFilesToFormData(updateData);
                 await collection.update(recordId, updateData);
                 return { status: 'updated' };
             } catch (err) {
-                // در صورت عدم اجازه بروزرسانی (مثلاً 404 یا 403 به خاطر API Rules)، رکورد موجود نادیده گرفته می‌شود
                 return { status: 'skipped', error: err };
             }
         } else {
             const createData = buildFormData(false);
             await attachFilesToFormData(createData);
-            await collection.create(createData);
+
+            // در صورتی که ساخت با ID سفارشی ناموفق بود، یک بار بدون ارسال ID صریح تلاش می‌کند
+            try {
+                await collection.create(createData);
+            } catch (createErr) {
+                // چاپ دقیق خطا برای عیب‌یابی فیلدهای نامعتبر
+                console.error(`[ایمپورت] جزییات خطای ۴۰۰ در ساخت ${collectionName}:`, createErr?.response?.data || createErr?.data || createErr);
+                throw createErr;
+            }
             return { status: 'created' };
         }
-    } catch (err) {
-        console.warn(`[ایمپورت] عدم امکان ثبت/ویرایش رکورد در ${collectionName} (ID: ${recordId}):`, err?.data || err?.message || err);
-        return { status: 'failed', error: err };
+    } catch (error) {
+        console.error(`خطا در پردازش رکورد در مجموعه ${collectionName}:`, error);
+        return { status: 'failed', error: error };
     }
 }

@@ -11,7 +11,6 @@
     <script src="js/tailwindcss.js"></script>
     <link rel="stylesheet" href="css/persian-datepicker.min.css">
     <script src="js/apexcharts.min.js"></script>
-    <script src="js/jszip.min.js"></script>
 
     <!-- ۲. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
     <style>
@@ -40,7 +39,7 @@
         }
 
         html {
-            font-size: 20px;
+            font-size: 17px;
             /* سایز پایه فونت برای افزایش سایز کل عناصر بر مبنای rem */
         }
 
@@ -66,28 +65,21 @@
     <!-- ۱. هدر سراسری سامانه سحاب -->
     <div id="app-header"></div>
 
-    <!-- کانتینر نمایش وضعیت و لوگ‌های سیستم -->
-    <div id="status-container"
-        class="hidden bg-slate-900 text-slate-100 p-4 rounded-2xl shadow-lg border border-slate-800 space-y-2 mb-4">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-            <span class="text-xs font-black text-indigo-400">📋 وضعیت عملیات سیستم</span>
-            <button onclick="document.getElementById('status-container').classList.add('hidden')"
-                class="text-xs text-slate-400 hover:text-white">✕ بستن</button>
-        </div>
-        <div id="status-log" class="max-h-32 overflow-y-auto font-mono text-xs space-y-1 dir-ltr text-right"></div>
-    </div>
-
-    <!-- ۲. نوار تب‌های اصلی (تنها ۲ تب اصلی) -->
+    <!-- ۲. نوار تب‌های اصلی -->
     <div class="flex justify-center my-4">
         <div
-            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-md w-full justify-between">
+            class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-md flex gap-2 max-w-lg w-full justify-between">
             <button onclick="switchTab('tab-overview')" id="btn-tab-overview"
                 class="tab-btn active flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
                 📊 خلاصه عملیاتی
             </button>
             <button onclick="switchTab('tab-analytics')" id="btn-tab-analytics"
                 class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
-                📈 تحلیل و آمار گزارش‌ها
+                📈 آمار
+            </button>
+            <button onclick="switchTab('tab-sync')" id="btn-tab-sync"
+                class="tab-btn flex-1 py-3 px-4 rounded-xl text-sm font-black text-center transition">
+                🔄 همگام سازی
             </button>
         </div>
     </div>
@@ -157,29 +149,6 @@
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm">
                         + ثبت گزارش جدید
                     </a>
-                </div>
-            </div>
-
-            <!-- نوار اطلاع‌رسانی و عملیات دسته‌جمعی اخبار انتخاب‌شده -->
-            <div id="selection-bar"
-                class="hidden bg-indigo-900 text-white px-5 py-3 border-b border-indigo-800 flex justify-between items-center transition-all">
-                <div class="flex items-center gap-3">
-                    <span class="bg-indigo-700 text-indigo-100 px-3 py-1 rounded-lg text-xs font-black"
-                        id="selected-count-badge">
-                        ۰ مورد انتخاب شده
-                    </span>
-                    <span class="text-xs text-indigo-200">می‌توانید از تمامی موارد انتخاب‌شده خروجی زیپ دریافت
-                        کنید.</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="btn-batch-export-zip" onclick="exportDataToZIP()"
-                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition shadow-sm flex items-center gap-1.5">
-                        خروجی Zip
-                    </button>
-                    <button onclick="clearAllSelections()"
-                        class="bg-indigo-800 hover:bg-indigo-700 text-indigo-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                        انصراف / پاک‌سازی انتخاب‌ها
-                    </button>
                 </div>
             </div>
 
@@ -273,27 +242,45 @@
                         فیلترها</button>
                 </div>
             </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-right text-xs text-slate-700 whitespace-nowrap">
+            <!-- نوار اعلان تعداد ردیف‌های انتخاب‌شده و دکمه‌های خروجی -->
+            <div id="selection-bar"
+                class="hidden bg-indigo-50 border-b border-indigo-100 p-3 flex flex-wrap justify-between items-center text-xs font-bold text-indigo-900 gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-indigo-600 text-white px-2 py-0.5 rounded-md text-[11px]"
+                            id="selected-count">0</span>
+                        <span>مورد انتخاب شده است.</span>
+                    </div>
+                    <button onclick="clearSelection()" class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
+                        لغو انتخاب‌ها
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="exportBulletin()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                        📄 خروجی بولتن
+                    </button>
+                    <button onclick="exportZip()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                        📦 خروجی Zip
+                    </button>
+                </div>
+            </div>
+            <div class="w-full overflow-hidden">
+                <table class="w-full text-right text-[11px] sm:text-xs text-slate-700 table-fixed">
                     <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
                         <tr>
-                            <th class="p-3 w-10 text-center">
-                                <input type="checkbox" id="select-all-checkbox"
-                                    onchange="toggleSelectAllCurrentPage(this.checked)"
-                                    class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                            <th class="p-2 sm:p-3 w-1/12 text-center">
+                                <input type="checkbox" id="select-all-page" onchange="toggleSelectAllPage(this.checked)" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                             </th>
-                            <th class="p-3">عنوان خبر / شماره اتوماسیون</th>
-                            <th class="p-3">موضوع / نوع خبر</th>
-                            <th class="p-3">کیس</th>
-                            <th class="p-3">نویسنده و اداره / تاریخ وقوع</th>
-                            <th class="p-3">تاریخ انتشار</th>
-                            <th class="p-3 text-center">عملیات</th>
+                            <th class="p-2 sm:p-3 w-4/12">اطلاعات خبر / عنوان</th>
+                            <th class="p-2 sm:p-3 w-3/12">نویسنده / موضوعات / کیس‌ها</th>
+                            <th class="p-2 sm:p-3 w-2/12">تاریخ انتشار / تاریخ وقوع / بروزرسانی</th>
+                            <th class="p-2 sm:p-3 w-2/12 text-center">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="table-reports-body" class="divide-y divide-slate-100 font-medium">
                         <tr>
-                            <td colspan="11" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
+                            <td colspan="5" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -414,6 +401,41 @@
 
     </div>
 
+    <!-- ==================== تب سوم: همگام سازی ==================== -->
+    <div id="tab-sync" class="tab-content hidden space-y-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-6">
+            <div class="border-b border-slate-100 pb-4">
+                <h3 class="font-black text-slate-800 text-base">ورود اطلاعات به سامانه (Import)</h3>
+                <p class="text-xs text-slate-500 mt-1">جهت وارد کردن داده‌ها، فایل ZIP حاوی اطلاعات را انتخاب کرده و دکمه شروع ایمپورت را بزنید.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black text-slate-700 mb-2">انتخاب فایل ZIP:</label>
+                    <input type="file" id="sync-zip-file" accept=".zip"
+                        class="block w-full text-xs text-slate-500 file:mr-0 file:ml-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-xl p-2 cursor-pointer bg-slate-50">
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button id="btn-start-import" onclick="handleStartImport()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-xs font-black transition shadow-sm flex items-center gap-2">
+                        📥 شروع ایمپورت داده‌ها
+                    </button>
+                </div>
+                <!-- نوار پیشرفت ایمپورت -->
+                <div id="import-progress-container" class="hidden space-y-2 pt-3 border-t border-slate-100">
+                    <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                        <span id="import-progress-text">در حال آماده‌سازی...</span>
+                        <span id="import-progress-percent" class="text-indigo-600 font-black">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+                        <div id="import-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== مودال پیش‌نمایش کامل جزئیات خبر ==================== -->
     <div id="detail-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
@@ -439,14 +461,15 @@
         </div>
     </div>
 
-    <!-- اسکریپت‌های محلی سیستم -->
+<!-- اسکریپت‌های محلی سیستم -->
     <script src="js/jquery-3.6.4.min.js"></script>
     <script src="js/pocketbase.umd.js?v=1"></script>
+    <script src="js/jszip.min.js"></script>
     <script src="js/persian-date.min.js"></script>
     <script src="js/persian-datepicker.min.js"></script>
     <script src="js/header.js"></script>
-    <script src="js/system-sync.js"></script>
     <script src="js/main.js?v=3"></script>
+    <script src="js/system-sync.js"></script>
 </body>
 
 </html>

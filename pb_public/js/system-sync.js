@@ -1,472 +1,594 @@
-// تابع کمکی برای اطمینان از دسترسی به نمونه سراسری PocketBase
-function getPb() {
-    if (!window.pb && typeof PocketBase !== 'undefined') {
-        window.pb = new PocketBase(window.location.origin);
-    }
-    return window.pb;
-}
+/**
+ * سیستم خروجی جامع (اطلاعات و فایل‌های فیزیکی) به‌صورت Zip
+ */
+async function exportZip() {
+    const exportBtn = document.querySelector('button[onclick="exportZip()"]');
+    const originalBtnText = exportBtn ? exportBtn.innerHTML : '';
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const pbInstance = getPb();
-
-    // بررسی وجود pb و اعتبارسنجی نشست کاربر
-    if (!pbInstance || !pbInstance.authStore || !pbInstance.authStore.isValid) {
-        window.location.href = 'login.html';
-        return;
-    }
-
-    // فراخوانی مجدد رندر هدر پس از اطمینان از مقداردهی pb
-    if (typeof window.renderGlobalHeader === 'function') {
-        window.renderGlobalHeader();
-    }
-});
-
-// تابع ثبت لوگ در UI
-function logStatus(message, isError = false) {
-    const container = document.getElementById('status-container');
-    const logBox = document.getElementById('status-log');
-    if (container) container.classList.remove('hidden');
-    
-    const time = new Date().toLocaleTimeString('fa-IR');
-    const colorClass = isError ? 'text-rose-400' : 'text-emerald-400';
-    
-    if (logBox) {
-        const item = document.createElement('div');
-        item.className = colorClass;
-        item.innerText = `[${time}] ${message}`;
-        logBox.appendChild(item);
-        logBox.scrollTop = logBox.scrollHeight;
-    } else {
-        // در صورت عدم وجود باکس لوگ در صفحه، پیام در کنسول نمایش داده می‌شود
-        if (isError) {
-            console.error(`[${time}] ${message}`);
-        } else {
-            console.log(`[${time}] ${message}`);
+    try {
+        if (typeof JSZip === 'undefined') {
+            alert('کتابخانه JSZip بارگذاری نشده است.');
+            return;
         }
-    }
-}
 
-// ------------------- Export JSON -------------------
-async function exportDataToJSON() {
-    try {
-        logStatus("شروع فرایند استخراج داده‌ها (JSON)...");
-        
-        const activePb = getPb();
-        if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
+        // استخراج شناسه گزارش‌های انتخاب‌شده از Set مربوطه
+        const selectedIds = Array.from(window.selectedReportIds || []);
+        if (selectedIds.length === 0) {
+            alert('لطفاً حداقل یک گزارش را از جدول انتخاب کنید.');
+            return;
+        }
 
-        // استخراج کلیه داده‌های مربوطه بر اساس ۶ اسکیما با مدیریت خطای مستقل
-        const fetchCollection = async (name, options = {}) => {
-            try {
-                return await activePb.collection(name).getFullList({ requestKey: null, ...options });
-            } catch (e) {
-                console.warn(`خطا در دریافت کلکشن ${name}:`, e.message);
-                return [];
-            }
-        };
+        if (exportBtn) {
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = '⏳ در حال بسته‌بندی...';
+        }
 
-        const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
-            fetchCollection('users'),
-            fetchCollection('topics'),
-            fetchCollection('cases'),
-            fetchCollection('reports', { sort: '-created' }),
-            fetchCollection('comments'),
-            fetchCollection('report_versions')
-        ]);
-
-        // نگه‌داشتن تمامی فیلدها و حفظ ساختار کامل رکوردها
-        const mapRecords = (list) => list.map(record => ({ ...record }));
-
-        const exportPayload = {
-            version: "1.0",
-            exportedAt: new Date().toISOString(),
-            data: {
-                users: mapRecords(users),
-                topics: mapRecords(topics),
-                cases: mapRecords(cases),
-                reports: mapRecords(reports),
-                comments: mapRecords(comments),
-                report_versions: mapRecords(reportVersions)
-            }
-        };
-        const jsonString = JSON.stringify(exportPayload, null, 2);
-        const blob = new Blob([jsonString], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sahab_export_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        logStatus(`خروجی موفقیت‌آمیز انجام شد. تعداد کل گزارش‌ها: ${reports.length}`);
-    } catch (err) {
-        console.error("Export error:", err);
-        logStatus(`خطا در خروجی گرفتن: ${err.message}`, true);
-    }
-}
-
-// ------------------- Export ZIP (شامل پیوست‌ها) -------------------
-async function exportDataToZIP() {
-    if (typeof JSZip === 'undefined') {
-        logStatus("کتابخانه JSZip بارگذاری نشده است.", true);
-        return;
-    }
-
-    try {
-        logStatus("در حال جمع‌آوری داده‌ها و فایل‌های پیوست...");
         const zip = new JSZip();
+        const pbInstance = window.pb || (typeof PocketBase !== 'undefined' ? new PocketBase(window.location.origin) : null);
 
-        const activePb = getPb();
-        if (!activePb) throw new Error("ارتباط با PocketBase برقرار نیست.");
+        if (!pbInstance) {
+            throw new Error('نمونه PocketBase یافت نشد.');
+        }
 
-        const fetchCollection = async (name, options = {}) => {
-            try {
-                return await activePb.collection(name).getFullList({ requestKey: null, ...options });
-            } catch (e) {
-                console.warn(`خطا در دریافت کلکشن ${name}:`, e.message);
-                return [];
-            }
-        };
+        // ساخت شرط فیلتر PocketBase برای دریافت فقط گزارش‌های انتخاب‌شده
+        const reportsFilter = selectedIds.map(id => `id = "${id}"`).join(' || ');
 
-        const [users, topics, cases, reports, comments, reportVersions] = await Promise.all([
-            fetchCollection('users'),
-            fetchCollection('topics'),
-            fetchCollection('cases'),
-            fetchCollection('reports', { sort: '-created' }),
-            fetchCollection('comments'),
-            fetchCollection('report_versions')
-        ]);
-
-
-        const cleanRecords = (list) => list.map(record => {
-            const clean = { ...record };
-            delete clean.expand;
-            return clean;
+        // ۱. دریافت داده‌های گزارش‌های انتخاب‌شده و موارد وابسته
+        const reports = await pbInstance.collection('reports').getFullList({
+            filter: reportsFilter,
+            sort: '-created'
         });
 
-        const exportPayload = {
-            version: "1.0",
-            exportedAt: new Date().toISOString(),
+        const [reportVersions, comments, cases, topics, usersRaw] = await Promise.all([
+            pbInstance.collection('report_versions').getFullList({ sort: '-created' }),
+            pbInstance.collection('comments').getFullList({ sort: '-created' }),
+            pbInstance.collection('cases').getFullList({ sort: '-created' }),
+            pbInstance.collection('topics').getFullList({ sort: '-created' }),
+            pbInstance.collection('users').getFullList({ sort: '-created' })
+        ]);
+
+        // استخراج کلیه شناسه‌های ریلیشن‌های وابسته به گزارش‌های انتخاب‌شده
+        const validReportIds = new Set(reports.map(r => r.id));
+        const relatedCaseIds = new Set();
+        const relatedTopicIds = new Set();
+        const relatedUserIds = new Set();
+
+        reports.forEach(r => {
+            if (r.author) relatedUserIds.add(r.author);
+            if (r.department) relatedUserIds.add(r.department);
+            if (r.submitter) relatedUserIds.add(r.submitter);
+
+            if (Array.isArray(r.cases_rel)) {
+                r.cases_rel.forEach(id => relatedCaseIds.add(id));
+            }
+            if (Array.isArray(r.topics_rel)) {
+                r.topics_rel.forEach(id => relatedTopicIds.add(id));
+            }
+        });
+
+        // فیلتر کردن نسخه گزارش‌ها و کامنت‌های مربوط به گزارش‌های انتخاب‌شده
+        const filteredVersions = reportVersions.filter(v => validReportIds.has(v.report));
+        const filteredComments = comments.filter(c => validReportIds.has(c.report));
+
+        // اضافه کردن شناسه نویسندگان کامنت‌ها و نسخه‌ها به کاربران مرتبط
+        filteredVersions.forEach(v => { if (v.author) relatedUserIds.add(v.author); });
+        filteredComments.forEach(c => { if (c.author) relatedUserIds.add(c.author); });
+
+        // فیلتر کردن کیس‌ها، موضوعات و کاربران متمایز و مرتبط
+        const filteredCases = cases.filter(c => relatedCaseIds.has(c.id));
+        const filteredTopics = topics.filter(t => relatedTopicIds.has(t.id));
+        const filteredUsersRaw = usersRaw.filter(u => relatedUserIds.has(u.id));
+
+        // حذف فیلدهای حساس کاربران
+        const safeUsers = filteredUsersRaw.map(user => {
+            const { password, tokenKey, ...safeUser } = user;
+            return safeUser;
+        });
+
+        // ساخت شیء اصلی JSON
+        const exportData = {
+            exported_at: new Date().toISOString(),
             data: {
-                users: cleanRecords(users),
-                topics: cleanRecords(topics),
-                cases: cleanRecords(cases),
-                reports: cleanRecords(reports),
-                comments: cleanRecords(comments),
-                report_versions: cleanRecords(reportVersions)
+                reports,
+                report_versions: filteredVersions,
+                comments: filteredComments,
+                cases: filteredCases,
+                topics: filteredTopics,
+                users: safeUsers
             }
         };
-        // افزودن دیتای متنی JSON به ZIP
-        zip.file("data.json", JSON.stringify(exportPayload, null, 2));
 
-        // فولدر اختصاصی رسانه‌ها
-        const mediaFolder = zip.folder("media");
+        zip.file("data.json", JSON.stringify(exportData, null, 2));
 
-        logStatus("در حال دریافت فایل‌های پیوست از سرور...");
-        
-        // استخراج آواتار کاربران
-        for (const u of users) {
-            if (u.avatar) {
-                try {
-                    const avatarUrl = activePb.files.getUrl(u, u.avatar);
-                    const res = await fetch(avatarUrl);
-                    if (res.ok) {
-                        const blob = await res.blob();
-                        mediaFolder.file(`users/${u.id}/${u.avatar}`, blob);
-                    }
-                } catch (e) {
-                    console.warn(`امکان دانلود آواتار کاربر ${u.id} وجود نداشت.`);
+        // ۲. دانلود فایل‌های فیزیکی مرتبط
+        const filesFolder = zip.folder("files");
+
+        const getFileUrlSafe = (record, filename) => {
+            if (typeof pbInstance.getFileUrl === 'function') {
+                return pbInstance.getFileUrl(record, filename);
+            }
+            if (pbInstance.files && typeof pbInstance.files.getUrl === 'function') {
+                return pbInstance.files.getUrl(record, filename);
+            }
+            return `/api/files/${record.collectionId || record.collectionName}/${record.id}/${filename}`;
+        };
+
+        // الف) فایل‌های فیزیکی گزارش‌های انتخاب شده (کاور و پیوست‌ها)
+        for (const report of reports) {
+            if (report.cover_image) {
+                const url = getFileUrlSafe(report, report.cover_image);
+                await fetchAndAddToZip(filesFolder, `reports/${report.id}/${report.cover_image}`, url);
+            }
+            if (Array.isArray(report.attachments)) {
+                for (const fileName of report.attachments) {
+                    const url = getFileUrlSafe(report, fileName);
+                    await fetchAndAddToZip(filesFolder, `reports/${report.id}/${fileName}`, url);
                 }
             }
         }
 
-        // استخراج کاور و پیوست‌های گزارش‌ها
-        for (const r of reports) {
-            if (r.cover_image) {
-                try {
-                    const imgUrl = activePb.files.getUrl(r, r.cover_image);
-                    const res = await fetch(imgUrl);
-                    if (res.ok) {
-                        const blob = await res.blob();
-                        mediaFolder.file(`reports/${r.id}/${r.cover_image}`, blob);
-                    }
-                } catch (e) {
-                    console.warn(`امکان دانلود فایل ${r.cover_image} وجود نداشت.`);
-                }
-            }
-
-            if (r.attachments && Array.isArray(r.attachments)) {
-                for (const file of r.attachments) {
-                    try {
-                        const fileUrl = activePb.files.getUrl(r, file);
-                        const res = await fetch(fileUrl);
-                        if (res.ok) {
-                            const blob = await res.blob();
-                            mediaFolder.file(`reports/${r.id}/${file}`, blob);
-                        }
-                    } catch (e) {
-                        console.warn(`امکان دانلود پیوست ${file} وجود نداشت.`);
-                    }
-                }
+        // ب) آواتار کاربران مرتبط
+        for (const user of filteredUsersRaw) {
+            if (user.avatar) {
+                const url = getFileUrlSafe(user, user.avatar);
+                await fetchAndAddToZip(filesFolder, `users/${user.id}/${user.avatar}`, url);
             }
         }
 
-        logStatus("در حال فشرده‌سازی و ایجاد فایل ZIP...");
+        // ۳. استخراج نام کاربر جاری و ساخت نام فایل زیپ بر اساس الگوی درخواستی
+        let userName = "unknown";
+        if (pbInstance.authStore && pbInstance.authStore.model && pbInstance.authStore.model.name) {
+            userName = pbInstance.authStore.model.name;
+        }
+
+        let dateStr = "";
+        let timeStr = "";
+
+        if (typeof persianDate !== 'undefined') {
+            const pd = new persianDate();
+            dateStr = pd.format("YYMMDD");
+            timeStr = pd.format("HHmm");
+        } else {
+            const now = new Date();
+            dateStr = now.toISOString().slice(2, 10).replace(/-/g, "");
+            timeStr = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+        }
+
+        const zipFileName = `${userName}_${dateStr}_${timeStr}.zip`;
+
+        // تولید و دانلود فایل زیپ
         const content = await zip.generateAsync({ type: "blob" });
-        
-        const url = URL.createObjectURL(content);
+        const downloadUrl = URL.createObjectURL(content);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `sahab_full_export_${new Date().toISOString().slice(0, 10)}.zip`;
+        a.href = downloadUrl;
+        a.download = zipFileName;
         document.body.appendChild(a);
         a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
 
-        logStatus("فایل ZIP با موفقیت دانلود شد.");
-    } catch (err) {
-        console.error("ZIP Export Error:", err);
-        logStatus(`خطا در ساخت ZIP: ${err.message}`, true);
+    } catch (error) {
+        console.error('خطا در خروجی زیپ:', error);
+        alert('خطا در دریافت خروجی: ' + error.message);
+    } finally {
+        if (exportBtn) {
+            exportBtn.disabled = false;
+            exportBtn.innerHTML = originalBtnText;
+        }
     }
 }
 
-// ------------------- Import Data -------------------
-async function importDataFromFile() {
-    const fileInput = document.getElementById('import-file-input');
-    if (!fileInput || !fileInput.files.length) {
-        alert("لطفاً ابتدا یک فایل JSON یا ZIP انتخاب کنید.");
-        return;
-    }
-
-    const file = fileInput.files[0];
-    const isZip = file.name.endsWith('.zip');
-    const isJson = file.name.endsWith('.json');
-
-    if (!isZip && !isJson) {
-        alert("فرمت فایل انتخاب‌شده معتبر نیست. (فقط json یا zip)");
-        return;
-    }
-
+/**
+ * دریافت فایل از سرور و افزودن آن به Zip
+ */
+async function fetchAndAddToZip(zipFolder, relativePath, url) {
     try {
-        logStatus(`در حال پردازش فایل ${file.name}...`);
+        const response = await fetch(url);
+        if (response.ok) {
+            const blob = await response.blob();
+            zipFolder.file(relativePath, blob);
+        }
+    } catch (e) {
+        console.warn(`فایل در آدرس ${url} دریافت نشد:`, e);
+    }
+}
+/**
+ * مرتب‌سازی ترتیبی کامنت‌ها (ابتدا کامنت‌های مادر، سپس فرزندان)
+ */
+function sortCommentsByDependency(comments) {
+    const sorted = [];
+    const insertedIds = new Set();
+    let remaining = [...comments];
 
-        if (isJson) {
-            const text = await file.text();
-            const parsed = JSON.parse(text);
-            await processImportData(parsed.data || parsed);
-        } else if (isZip) {
-            if (typeof JSZip === 'undefined') {
-                logStatus("کتابخانه JSZip برای پردازش ZIP آماده نیست.", true);
-                return;
-            }
-            const zip = await JSZip.loadAsync(file);
-            
-            // پیدا کردن اولویت‌دار data.json یا اولین فایل json موجود در آرشیو
-            let targetJsonFile = zip.file("data.json");
-            
-            if (!targetJsonFile) {
-                const jsonFiles = zip.file(/\.json$/i);
-                if (jsonFiles && jsonFiles.length > 0) {
-                    targetJsonFile = jsonFiles[0];
-                }
-            }
-            
-            if (!targetJsonFile) {
-                logStatus("هیچ فایل داده با پسوند JSON در آرشیو ZIP یافت نشد.", true);
-                return;
-            }
+    let loopSafety = 0;
+    while (remaining.length > 0 && loopSafety < 100) {
+        loopSafety++;
+        const nextBatch = [];
+        const uninserted = [];
 
-            logStatus(`در حال خواندن داده‌ها از فایل ${targetJsonFile.name}...`);
-            const jsonText = await targetJsonFile.async("string");
-            const parsed = JSON.parse(jsonText);
-            
-            // پردازش داده‌های متنی و فایل‌های رسانه‌ای نمونه زیپ
-            await processImportData(parsed.data || parsed, zip);
+        for (const item of remaining) {
+            // اگر کامنت والد ندارد یا والد آن قبلاً پردازش شده است
+            if (!item.parent || insertedIds.has(item.parent)) {
+                nextBatch.push(item);
+                insertedIds.add(item.id);
+            } else {
+                uninserted.push(item);
+            }
         }
 
-        logStatus("عملیات ورود اطلاعات با موفقیت پایان یافت.");
-    } catch (err) {
-        console.error("Import Error:", err);
-        logStatus(`خطا در ورود داده‌ها: ${err.message}`, true);
+        // در صورت وجود چرخه یا نبود والد، جهت جلوگیری از حلقه بینهایت مابقی اضافه می‌شوند
+        if (nextBatch.length === 0) {
+            sorted.push(...uninserted);
+            break;
+        }
+
+        sorted.push(...nextBatch);
+        remaining = uninserted;
     }
+
+    return sorted;
 }
+/**
+ * تابع شروع عملیات ایمپورت داده‌ها و فایل‌های فیزیکی از فایل ZIP به همراه نوار پیشرفت
+ */
+async function handleStartImport() {
+    const fileInput = document.getElementById('sync-zip-file');
+    const importBtn = document.getElementById('btn-start-import');
 
-// تابع اصلی ایجاد/بروزرسانی داده‌ها در دیتابیس (پشتیبانی از آرایه مختلط و پیوست‌های ZIP)
-async function processImportData(payload, zipInstance = null) {
-    const overwrite = document.getElementById('overwrite-existing')?.checked || false;
+    const progressContainer = document.getElementById('import-progress-container');
+    const progressBar = document.getElementById('import-progress-bar');
+    const progressText = document.getElementById('import-progress-text');
+    const progressPercent = document.getElementById('import-progress-percent');
 
-    let collectionsMap = {
-        users: [],
-        topics: [],
-        cases: [],
-        reports: [],
-        comments: [],
-        report_versions: []
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert('لطفاً یک فایل ZIP انتخاب کنید.');
+        return;
+    }
+
+    const zipFile = fileInput.files[0];
+    const originalBtnText = importBtn ? importBtn.innerHTML : '';
+
+    const updateProgress = (current, total, message) => {
+        if (!progressContainer) return;
+        progressContainer.classList.remove('hidden');
+        const percentage = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+        if (progressBar) progressBar.style.width = `${percentage}%`;
+        if (progressPercent) progressPercent.innerText = `${percentage}%`;
+        if (progressText) progressText.innerText = message;
     };
 
-    // تفکیک داده‌ها همراه با تطابق هوشمند بر اساس اسکیماهای ۶ کلکشن
-    if (Array.isArray(payload)) {
-        payload.forEach(item => {
-            let cName = item.collectionName;
+    try {
+        if (typeof JSZip === 'undefined') {
+            alert('کتابخانه JSZip بارگذاری نشده است.');
+            return;
+        }
 
-            if (!cName) {
-                // نگاشت بر اساس فیلدهای اختصاصی هر اسکیما (اولویت با report_versions نسبت به reports)
-                if (item.snapshot_comments !== undefined || item.cases_rel !== undefined || (item.automation_id !== undefined && item.report !== undefined)) {
-                    cName = 'report_versions';
-                } else if (item.text !== undefined && item.author !== undefined && item.report !== undefined) {
-                    cName = 'comments';
-                } else if (item.automation_id !== undefined || item.occurrence_date !== undefined) {
-                    cName = 'reports';
-                } else if (item.user_code !== undefined || item.dept_code !== undefined || item.email !== undefined) {
-                    cName = 'users';
-                } else if (item.parent_case !== undefined) {
-                    cName = 'cases';
-                } else if (item.title !== undefined) {
-                    cName = 'topics';
-                } else {
-                    cName = 'reports';
+        const pbInstance = window.pb || (typeof PocketBase !== 'undefined' ? new PocketBase(window.location.origin) : null);
+        if (!pbInstance) {
+            throw new Error('نمونه PocketBase یافت نشد.');
+        }
+
+        if (importBtn) {
+            importBtn.disabled = true;
+            importBtn.innerHTML = '⏳ در حال بسته‌بندی داده‌ها...';
+        }
+
+        updateProgress(0, 100, 'در حال خواندن فایل ZIP...');
+
+        // ۱. خواندن فایل زیپ
+        const zip = await JSZip.loadAsync(zipFile);
+        const jsonFile = zip.file("data.json");
+
+        if (!jsonFile) {
+            throw new Error('فایل data.json در ریشه فایل ZIP یافت نشد.');
+        }
+
+        const jsonText = await jsonFile.async("text");
+        const parsedData = JSON.parse(jsonText);
+
+        if (!parsedData || !parsedData.data) {
+            throw new Error('ساختار data.json معتبر نیست.');
+        }
+
+        const {
+            users = [],
+            cases = [],
+            topics = [],
+            reports = [],
+            comments = [],
+            report_versions = []
+        } = parsedData.data;
+
+        // مرتب‌سازی ترتیبی کامنت‌ها (والد قبل از فرزند)
+        const sortedComments = sortCommentsByDependency(comments);
+
+        // محاسبه مجموع کل آیتم‌ها جهت نمایش دقیق درصد
+        const totalItems = users.length + cases.length + topics.length + reports.length + sortedComments.length + report_versions.length; 
+        let processedItems = 0;
+
+        if (totalItems === 0) {
+            updateProgress(100, 100, 'هیچ داده‌ای برای ایمپورت یافت نشد.');
+            alert('فایل ZIP حاوی داده‌ای برای ایمپورت نیست.');
+            return;
+        }
+
+        // آمارگیری مجزا برای گزارش‌ها و سایر آیتم‌ها
+        const reportStats = {
+            created: new Set(),
+            updated: new Set(),
+            skipped: new Set(),
+            failed: new Set()
+        };
+
+        const otherStats = {
+            created: new Set(),
+            updated: new Set(),
+            skipped: new Set(),
+            failed: new Set()
+        };
+
+        const processResult = (record, res, isReport = false) => {
+            if (res && res.status && record && record.id) {
+                const targetStats = isReport ? reportStats : otherStats;
+                if (targetStats[res.status]) {
+                    targetStats[res.status].add(record.id);
+                }
+            }
+        };
+
+        // تعریف فازهای اجرای ترتیبی (Sequential Multi-Phase)
+        const importPhases = [
+            {
+                phaseName: 'فاز ۱: داده‌های پایه (کاربران، کیس‌ها، موضوعات)',
+                collections: [
+                    {
+                        name: 'users',
+                        label: 'کاربر',
+                        items: users,
+                        getFileMap: (u) => ({ avatar: `files/users/${u.id}/${u.avatar}` }),
+                        isReport: false
+                    },
+                    {
+                        name: 'cases',
+                        label: 'کیس',
+                        items: cases,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    },
+                    {
+                        name: 'topics',
+                        label: 'موضوع',
+                        items: topics,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    }
+                ]
+            },
+            {
+                phaseName: 'فاز ۲: داده‌های اصلی (گزارش‌ها)',
+                collections: [
+                    {
+                        name: 'reports',
+                        label: 'گزارش',
+                        items: reports,
+                        getFileMap: (r) => {
+                            const filePathsMap = {};
+                            if (r.cover_image) {
+                                filePathsMap['cover_image'] = `files/reports/${r.id}/${r.cover_image}`;
+                            }
+                            if (Array.isArray(r.attachments) && r.attachments.length > 0) {
+                                filePathsMap['attachments'] = r.attachments.map(att => `files/reports/${r.id}/${att}`);
+                            }
+                            return filePathsMap;
+                        },
+                        isReport: true
+                    }
+                ]
+            },
+            {
+                phaseName: 'فاز ۳: داده‌های وابسته (کامنت‌ها و نسخه‌های گزارش)',
+                collections: [
+                    {
+                        name: 'comments',
+                        label: 'کامنت',
+                        items: sortedComments,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    },
+                    {
+                        name: 'report_versions',
+                        label: 'نسخه گزارش',
+                        items: report_versions,
+                        getFileMap: () => ({}),
+                        isReport: false
+                    }
+                ]
+            }
+        ];
+
+        // اجرای ترتیبی فاز به فاز
+        for (const phase of importPhases) {
+            updateProgress(processedItems, totalItems, `شروع ${phase.phaseName}...`);
+
+            for (const config of phase.collections) {
+                for (const item of config.items) {
+                    const itemIdentifier = item.title || item.name || item.username || item.id;
+                    updateProgress(processedItems, totalItems, `در حال بررسی ${config.label}: ${itemIdentifier}`);
+
+                    const filePathsMap = config.getFileMap(item);
+                    const res = await importRecordWithFiles(pbInstance, zip, config.name, item, filePathsMap);
+
+                    processResult(item, res, config.isReport);
+                    processedItems++;
+                    updateProgress(processedItems, totalItems, `${config.label} بررسی شد (${processedItems}/${totalItems})`);
                 }
             }
 
-            if (collectionsMap[cName]) {
-                collectionsMap[cName].push(item);
-            } else {
-                collectionsMap[cName] = [item];
+            // صحت‌سنجی فاز ۲: اگر ثبت گزارش‌های اصلی کلاً با خطا مواجه شد و هیچ گزارشی ثبت/بروزرسانی نشد، ادامه ندهیم
+            if (phase.phaseName.includes('فاز ۲')) {
+                const repCreated = reportStats.created.size;
+                const repUpdated = reportStats.updated.size;
+                const repFailed = reportStats.failed.size;
+
+                if (reports.length > 0 && repCreated === 0 && repUpdated === 0 && repFailed === reports.length) {
+                    throw new Error('پردازش فاز ۲ (گزارش‌ها) با خطا مواجه شد. از ثبت داده‌های وابسته (کامنت‌ها و نسخه‌ها) جلوگیری شد.');
+                }
             }
-        });
-    } else if (typeof payload === 'object' && payload !== null) {
-        Object.keys(collectionsMap).forEach(key => {
-            if (Array.isArray(payload[key])) {
-                collectionsMap[key] = payload[key];
-            }
-        });
-    }
+        }
 
-    const { users, topics, cases, reports, comments, report_versions } = collectionsMap;
+        // محاسبه آمار گزارش‌های اصلی
+        const repCreated = reportStats.created.size;
+        const repUpdated = reportStats.updated.size;
+        const repOther = reportStats.skipped.size + reportStats.failed.size;
 
-    // ۱. ورود کاربران (Users)
-    if (users.length > 0) {
-        logStatus(`بررسی و ورود ${users.length} کاربر...`);
-        for (const item of users) {
-            await upsertRecord('users', item, overwrite, zipInstance);
+        // محاسبه آمار آیتم‌های وابسته
+        const otherCreated = otherStats.created.size;
+        const otherUpdated = otherStats.updated.size;
+
+        // نمایش گزارش دقیق تفکیک شده
+        if (repCreated === 0 && repUpdated === 0 && otherCreated === 0 && otherUpdated === 0) {
+            const msg = 'اطلاعات وارد شده تکراری بود و هیچ مطلب جدید یا تغییریافته‌ای در دیتابیس ثبت نشد.';
+            updateProgress(totalItems, totalItems, `ℹ️ ${msg}`);
+        } else {
+            const msg = `عملیات ایمپورت انجام شد | گزارش‌های جدید: ${repCreated} | گزارش‌های بروزرسانی‌شده: ${repUpdated} (موارد وابسته: ${otherUpdated} بروزرسانی، ${otherCreated} جدید)`;
+            updateProgress(totalItems, totalItems, `✅ ${msg}`);
+        }
+
+        // بازخوانی جدول گزارش‌ها در صورت وجود تابع مربوطه
+        if (typeof loadReports === 'function') {
+            loadReports();
+        }
+
+    } catch (error) {
+        console.error('خطا در فرایند ایمپورت:', error);
+        if (progressText) {
+            progressText.innerText = '❌ خطا در ایمپورت: ' + error.message;
         }
     }
 
-    // ۲. ورود موضوعات (Topics)
-    if (topics.length > 0) {
-        logStatus(`بررسی و ورود ${topics.length} موضوع...`);
-        for (const item of topics) {
-            await upsertRecord('topics', item, overwrite, zipInstance);
+    finally {
+        if (importBtn) {
+            importBtn.disabled = false;
+            importBtn.innerHTML = originalBtnText;
         }
-    }
-
-    // ۳. ورود کیس‌ها (Cases)
-    if (cases.length > 0) {
-        logStatus(`بررسی و ورود ${cases.length} کیس...`);
-        for (const item of cases) {
-            await upsertRecord('cases', item, overwrite, zipInstance);
-        }
-    }
-
-    // ۴. ورود گزارش‌ها (Reports)
-    if (reports.length > 0) {
-        logStatus(`بررسی و ورود ${reports.length} گزارش...`);
-        for (const item of reports) {
-            await upsertRecord('reports', item, overwrite, zipInstance);
-        }
-    }
-
-    // ۵. ورود کامنت‌ها (Comments)
-    if (comments.length > 0) {
-        logStatus(`بررسی و ورود ${comments.length} کامنت...`);
-        for (const item of comments) {
-            await upsertRecord('comments', item, overwrite, zipInstance);
-        }
-    }
-
-    // ۶. ورود نسخه‌های گزارش (Report Versions)
-    if (report_versions && report_versions.length > 0) {
-        logStatus(`بررسی و ورود ${report_versions.length} نسخه گزارش...`);
-        for (const item of report_versions) {
-            await upsertRecord('report_versions', item, overwrite, zipInstance);
-        }
+        fileInput.value = '';
     }
 }
 
-// تابع کمکی برای ایجاد یا بروزرسانی رکوردها همراه با بارگذاری رسانه
-async function upsertRecord(collectionName, itemData, overwrite, zipInstance = null) {
-    const activePb = getPb();
-    if (!activePb) return;
+/**
+ * تابع کمکی برای ثبت/بروزرسانی یک رکورد در PocketBase به همراه فایل‌های فیزیکی (Upsert)
+ */
+async function importRecordWithFiles(pbInstance, zip, collectionName, recordData, filePathsMap = {}) {
+    const recordId = recordData.id;
+    const collection = pbInstance.collection(collectionName);
+
+    let existingRecord = null;
+    if (recordId) {
+        try {
+            existingRecord = await collection.getOne(recordId);
+        } catch (e) {
+            existingRecord = null;
+        }
+    }
+
+    const buildFormData = (isUpdate) => {
+        const formData = new FormData();
+
+        // تعیین شناسه رکورد هنگام ساخت رکورد جدید
+        if (!isUpdate && recordData.id) {
+            formData.append('id', recordData.id);
+        }
+
+        for (const [key, value] of Object.entries(recordData)) {
+            // نادیده گرفتن فیلدهای فایل، سیستم و expand
+            if (
+                filePathsMap[key] ||
+                key === 'id' ||
+                key === 'created' ||
+                key === 'updated' ||
+                key === 'collectionId' ||
+                key === 'collectionName' ||
+                key === 'expand'
+            ) {
+                continue;
+            }
+
+            // مقادیر null یا undefined یا رشته‌های خالی (نظیر parent خالی) نادیده گرفته می‌شوند
+            if (value === null || value === undefined || value === '') {
+                continue;
+            }
+
+            if (Array.isArray(value)) {
+                if (value.length === 0) {
+                    // جهت جلوگیری از خطای Validation در فیلدهای آرایه‌ای اجباری
+                    formData.append(key, '');
+                } else {
+                    value.forEach(item => {
+                        if (item !== null && item !== undefined && item !== '') {
+                            formData.append(key, item);
+                        }
+                    });
+                }
+            } else if (typeof value === 'boolean') {
+                formData.append(key, value ? 'true' : 'false');
+            } else if (typeof value === 'object') {
+                formData.append(key, JSON.stringify(value));
+            } else {
+                formData.append(key, String(value));
+            }
+        }
+
+        return formData;
+    };
+
+    const attachFilesToFormData = async (formData) => {
+        for (const [fieldName, zipPathOrPaths] of Object.entries(filePathsMap)) {
+            if (Array.isArray(zipPathOrPaths)) {
+                for (const path of zipPathOrPaths) {
+                    const zipFile = zip.file(path);
+                    if (zipFile) {
+                        const blob = await zipFile.async("blob");
+                        const fileName = path.split('/').pop();
+                        formData.append(fieldName, blob, fileName);
+                    }
+                }
+            } else if (zipPathOrPaths) {
+                const zipFile = zip.file(zipPathOrPaths);
+                if (zipFile) {
+                    const blob = await zipFile.async("blob");
+                    const fileName = zipPathOrPaths.split('/').pop();
+                    formData.append(fieldName, blob, fileName);
+                }
+            }
+        }
+    };
 
     try {
-        if (!itemData.id) return;
-
-        // پاک‌سازی فیلدهای غیرمجاز برای ارسال به PocketBase (مانند expand) با حفظ تمامی فیلدهای اصلی اسکیما
-        const cleanData = { ...itemData };
-        delete cleanData.expand;
-        delete cleanData.collectionId;
-        delete cleanData.collectionName;
-
-        let formData = null;
-
-        // اگر زیپ وجود داشته باشد، فایل‌های مرتبط از فولدر media خوانده می‌شوند
-        if (zipInstance && collectionName === 'reports') {
-            formData = new FormData();
-            
-            // افزودن تمام فیلدهای متنی به FormData
-            Object.keys(cleanData).forEach(key => {
-                if (key !== 'cover_image' && key !== 'attachments') {
-                    if (Array.isArray(cleanData[key]) || typeof cleanData[key] === 'object') {
-                        formData.append(key, JSON.stringify(cleanData[key]));
-                    } else if (cleanData[key] !== null && cleanData[key] !== undefined) {
-                        formData.append(key, cleanData[key]);
-                    }
-                }
-            });
-
-            // خواندن تصویر کاور
-            if (cleanData.cover_image) {
-                const coverPath = `media/reports/${cleanData.id}/${cleanData.cover_image}`;
-                const coverZipFile = zipInstance.file(coverPath);
-                if (coverZipFile) {
-                    const blob = await coverZipFile.async('blob');
-                    formData.append('cover_image', blob, cleanData.cover_image);
-                }
-            }
-
-            // خواندن پیوست‌های چندگانه
-            if (cleanData.attachments && Array.isArray(cleanData.attachments)) {
-                for (const file of cleanData.attachments) {
-                    const attachPath = `media/reports/${cleanData.id}/${file}`;
-                    const attachZipFile = zipInstance.file(attachPath);
-                    if (attachZipFile) {
-                        const blob = await attachZipFile.async('blob');
-                        formData.append('attachments', blob, file);
-                    }
-                }
-            }
-        }
-
-        const dataToSend = formData || cleanData;
-
-        let exists = false;
-        try {
-            await activePb.collection(collectionName).getOne(itemData.id, { requestKey: null });
-            exists = true;
-        } catch (e) {
-            exists = false;
-        }
-
-        if (exists) {
-            if (overwrite) {
-                await activePb.collection(collectionName).update(itemData.id, dataToSend, { requestKey: null });
+        if (existingRecord) {
+            try {
+                const updateData = buildFormData(true);
+                await attachFilesToFormData(updateData);
+                await collection.update(recordId, updateData);
+                return { status: 'updated' };
+            } catch (err) {
+                return { status: 'skipped', error: err };
             }
         } else {
-            await activePb.collection(collectionName).create(dataToSend, { requestKey: null });
+            const createData = buildFormData(false);
+            await attachFilesToFormData(createData);
+
+            // در صورتی که ساخت با ID سفارشی ناموفق بود، یک بار بدون ارسال ID صریح تلاش می‌کند
+            try {
+                await collection.create(createData);
+            } catch (createErr) {
+                // چاپ دقیق خطا برای عیب‌یابی فیلدهای نامعتبر
+                console.error(`[ایمپورت] جزییات خطای ۴۰۰ در ساخت ${collectionName}:`, createErr?.response?.data || createErr?.data || createErr);
+                throw createErr;
+            }
+            return { status: 'created' };
         }
-    } catch (err) {
-        console.warn(`خطا در پردازش رکورد ${itemData.id} در کلکسیون ${collectionName}:`, err.message);
+    } catch (error) {
+        console.error(`خطا در پردازش رکورد در مجموعه ${collectionName}:`, error);
+        return { status: 'failed', error: error };
     }
 }

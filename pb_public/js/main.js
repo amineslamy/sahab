@@ -8,8 +8,86 @@ let currentPage = 1;
 let perPage = 10;
 let currentFilterQuery = "";
 
-// متغیر سراسری مدیریت انتخاب‌ها (حفظ ID خبرها در پجینیشن و فیلترها)
-const selectedReportIds = new Set();
+window.selectedReportIds = new Set();
+const selectedReportIds = window.selectedReportIds;
+
+function toggleReportSelection(id, isChecked) {
+    if (isChecked) {
+        selectedReportIds.add(id);
+    } else {
+        selectedReportIds.delete(id);
+    }
+    updateSelectionUI();
+}
+
+function toggleSelectAllPage(isChecked) {
+    const checkboxes = document.querySelectorAll('.report-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+        if (isChecked) {
+            selectedReportIds.add(cb.value);
+        } else {
+            selectedReportIds.delete(cb.value);
+        }
+    });
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    selectedReportIds.clear();
+    const selectAllCb = document.getElementById('select-all-page');
+    if (selectAllCb) selectAllCb.checked = false;
+    
+    document.querySelectorAll('.report-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    updateSelectionUI();
+}
+function exportZip() {
+    const ids = Array.from(selectedReportIds);
+    if (ids.length === 0) return;
+    console.log("درخواست خروجی Zip برای شناسه ها:", ids);
+    // منطق اتصال به API خروجی Zip اینجا قرار می‌گیرد
+}
+
+function exportBulletin() {
+    const ids = Array.from(selectedReportIds);
+    if (ids.length === 0) return;
+    console.log("درخواست خروجی بولتن برای شناسه ها:", ids);
+    // منطق اتصال به API خروجی بولتن اینجا قرار می‌گیرد
+}
+
+async function deleteReport(id) {
+    if (!confirm("آیا از حذف این گزارش اطمینان دارید؟")) return;
+    try {
+        await pb.collection('reports').delete(id);
+        selectedReportIds.delete(id);
+        loadReportsTable();
+    } catch (err) {
+        console.error("خطا در حذف گزارش:", err);
+        alert("خطا در حذف گزارش انجام نشد.");
+    }
+}
+
+function updateSelectionUI() {
+    const selectionBar = document.getElementById('selection-bar');
+    const countSpan = document.getElementById('selected-count');
+    const count = selectedReportIds.size;
+
+    if (count > 0) {
+        if (selectionBar) selectionBar.classList.remove('hidden');
+        if (countSpan) countSpan.innerText = count;
+    } else {
+        if (selectionBar) selectionBar.classList.add('hidden');
+    }
+
+    // به‌روزرسانی وضعیت چک‌باکس «انتخاب همه صفحه»
+    const currentPageCheckboxes = Array.from(document.querySelectorAll('.report-checkbox'));
+    const selectAllCb = document.getElementById('select-all-page');
+    if (selectAllCb && currentPageCheckboxes.length > 0) {
+        selectAllCb.checked = currentPageCheckboxes.every(cb => selectedReportIds.has(cb.value));
+    }
+}
 
 // تابع کمکی برای ساخت فیلتر بر اساس نقش کاربر
 function getRoleBasedFilter() {
@@ -210,10 +288,9 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
-            updateSelectionUI();
             return;
         }
 
@@ -231,44 +308,76 @@ async function loadReportsTable() {
                 ? (deptObj.name || deptObj.username || '---')
                 : '---';
 
-            // بررسی انتخاب شدن خبر در حافظه
-            const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
+            const hasCover = !!rec.cover_image;
+            const hasAttachments = Array.isArray(rec.attachments) && rec.attachments.length > 0;
 
-            // رنگ زمینه یکدست و یکی در میان برای هر کارت خبر
+            const coverBadgeHtml = hasCover
+                ? `<span class="inline-flex items-center gap-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200" title="دارای تصویر شاخص">🖼️ عکس</span>`
+                : '';
+
+            const attachmentBadgeHtml = hasAttachments
+                ? `<span class="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="دارای فایل پیوست (${rec.attachments.length} مورد)">📎 پیوست (${rec.attachments.length})</span>`
+                : '';
+
+            const mediaBadgesHtml = (hasCover || hasAttachments)
+                ? `<div class="flex items-center gap-1 mt-1 flex-wrap">${coverBadgeHtml}${attachmentBadgeHtml}</div>`
+                : '';
+
             const isEven = index % 2 === 0;
             const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
+            const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
 
             html += `
-                <!-- سطر اصلی خبر -->
+                <!-- ردیف ۱: عنوان | نویسنده | تاریخ انتشار | جزئیات -->
                 <tr class="${bgRow} border-t-2 border-slate-300">
-                    <td class="p-3 text-center" rowspan="2">
-                        <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
+                        <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                     </td>
-                    <td class="p-3 font-bold text-slate-900">${rec.title || 'بدون عنوان'}</td>
-                    <td class="p-3"><span class="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded inline-block">${topicTitles}</span></td>
-                    <td class="p-3" rowspan="2"><span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded inline-block">${caseTitles}</span></td>
-                    <td class="p-3 font-semibold text-slate-700">${authorName} <span class="text-xs text-slate-400">(${deptName})</span></td>
-                    <td class="p-3 text-slate-600">${formatDateToFa(rec.created)}</td>
-                    <td class="p-3 text-center" rowspan="2">
-                        <div class="flex flex-col gap-1.5 justify-center items-center">
-                            <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-black px-3 py-1.5 rounded-lg transition w-full">جزئیات</button>
-                            <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-black px-3 py-1.5 rounded-lg transition w-full text-center">ویرایش</a>
-                        </div>
+                    <td class="p-1.5 sm:p-2.5 font-bold text-slate-900 break-words">
+                        <div>${rec.title || 'بدون عنوان'}</div>
+                        ${mediaBadgesHtml}
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 font-semibold text-slate-700 break-words">
+                        ${authorName} <span class="text-[10px] text-slate-400 block sm:inline">(${deptName})</span>
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-slate-700 font-medium break-words">
+                        انتشار: ${formatDateToFa(rec.created)}
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">جزئیات</button>
                     </td>
                 </tr>
-                <!-- سطر مکمل (اطلاعات تکمیلی زیر هر خبر) -->
-                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-xs">
-                    <td class="px-3 pb-3 pt-0">
-                        <span class="font-mono text-slate-600 bg-slate-200/60 px-1.5 py-0.5 rounded">اتوماسیون: ${rec.automation_id || '---'}</span>
+
+                <!-- ردیف ۲: ادامه عنوان (خالی) | موضوعات | تاریخ وقوع | ویرایش -->
+                <tr class="${bgRow} text-slate-600 text-[10px] sm:text-xs">
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <!-- فضای خالی برای ادامه عنوان طولانی -->
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span>نوع خبر: <strong>${rec.news_type || '---'}</strong></span>
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${topicTitles}</span>
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span>تاریخ وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
+                    <td class="px-1.5 sm:px-2.5 py-1">
+                        <span>وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
                     </td>
-                    <td class="px-3 pb-3 pt-0">
-                        <span class="text-slate-400">بروزرسانی: ${formatDateToFa(rec.updated)}</span>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition block text-center">ویرایش</a>
+                    </td>
+                </tr>
+
+                <!-- ردیف ۳: شماره اتوماسیون و نوع خبر | کیس‌ها | تاریخ به روزرسانی | دکمه حذف -->
+                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-[10px] sm:text-xs">
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span class="font-mono bg-slate-200/60 px-1 py-0.5 rounded text-[10px]">اتوماسیون: ${rec.automation_id || '---'}</span>
+                        <span class="text-slate-600 font-bold mr-1">(${rec.news_type || '---'})</span>
+                    </td>
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span class="bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${caseTitles}</span>
+                    </td>
+                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
+                        <span>به‌روزرسانی: ${formatDateToFa(rec.updated)}</span>
+                    </td>
+                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
+                        <button onclick="deleteReport('${rec.id}')" class="bg-red-500 hover:bg-red-600 text-white text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">حذف</button>
                     </td>
                 </tr>
             `;
@@ -294,189 +403,7 @@ function goToPage(page) {
     currentPage = page;
     loadReportsTable();
 }
-// ------------------- مدیریت حافظه انتخاب‌ها (Selection Manager) -------------------
 
-// تغییر وضعیت انتخاب یک خبر منفرد
-function toggleReportSelection(id, isChecked) {
-    if (isChecked) {
-        selectedReportIds.add(id);
-    } else {
-        selectedReportIds.delete(id);
-    }
-    updateSelectionUI();
-}
-
-// تغییر وضعیت انتخاب کل خبرهای صفحه جاری
-function toggleSelectAllCurrentPage(isChecked) {
-    const checkboxes = document.querySelectorAll('.report-checkbox');
-    checkboxes.forEach(cb => {
-        cb.checked = isChecked;
-        if (isChecked) {
-            selectedReportIds.add(cb.value);
-        } else {
-            selectedReportIds.delete(cb.value);
-        }
-    });
-    updateSelectionUI();
-}
-
-// پاک‌سازی کامل تمام انتخاب‌ها
-function clearAllSelections() {
-    selectedReportIds.clear();
-    const selectAllCb = document.getElementById('select-all-checkbox');
-    if (selectAllCb) selectAllCb.checked = false;
-
-    document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = false);
-    updateSelectionUI();
-}
-
-// به‌روزرسانی نوار اطلاع‌رسانی بالای جدول و چک‌باکس هدر
-function updateSelectionUI() {
-    const count = selectedReportIds.size;
-    const badge = document.getElementById('selected-count-badge');
-    const bar = document.getElementById('selection-bar');
-    const selectAllCb = document.getElementById('select-all-checkbox');
-
-    if (badge) {
-        badge.innerText = `${count.toLocaleString('fa-IR')} مورد انتخاب شده`;
-    }
-
-    if (bar) {
-        if (count > 0) {
-            bar.classList.remove('hidden');
-        } else {
-            bar.classList.add('hidden');
-        }
-    }
-
-    // همگام‌سازی چک‌باکس "انتخاب همه" در هدر صفحه جاری
-    if (selectAllCb) {
-        const currentPageCheckboxes = Array.from(document.querySelectorAll('.report-checkbox'));
-        if (currentPageCheckboxes.length > 0) {
-            const allCheckedOnPage = currentPageCheckboxes.every(cb => cb.checked);
-            selectAllCb.checked = allCheckedOnPage;
-        } else {
-            selectAllCb.checked = false;
-        }
-    }
-}
-
-// تابع عملیاتی دریافت خروجی زیپ دسته‌جمعی به همراه فایل‌های رسانه‌ای (Media)
-async function exportBatchZip() {
-    if (selectedReportIds.size === 0) {
-        alert("لطفاً حداقل یک خبر را برای دریافت خروجی انتخاب کنید.");
-        return;
-    }
-
-    if (typeof JSZip === 'undefined') {
-        alert("کتابخانه JSZip بارگذاری نشده است. لطفاً اسکریپت JSZip را به فایل HTML اضافه کنید.");
-        return;
-    }
-
-    const ids = Array.from(selectedReportIds);
-    const zip = new JSZip();
-    const mediaFolder = zip.folder("media");
-
-    try {
-        // دریافت اطلاعات کامل اخبار انتخاب‌شده از پاکت‌بیس
-        const filterQuery = ids.map(id => `id = "${id}"`).join(' || ');
-        const reports = await pb.collection('reports').getFullList({
-            filter: filterQuery,
-            expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
-            requestKey: null
-        });
-
-        if (!reports || reports.length === 0) {
-            alert("هیچ داده‌ای برای اخبار انتخاب‌شده یافت نشد.");
-            return;
-        }
-
-        // ۱. دریافت کد کاربر جاری از پاکت‌بیس با پشتیبانی از تمامی نسخه‌ها و بازیابی مطمئن
-        let userCode = "unknown";
-        let currentUser = pb.authStore.record || pb.authStore.model;
-
-        // اگر AuthStore خالی بود یا name را نداشت، مجدداً از سرور Refresh می‌کنیم
-        if (!currentUser?.name && pb.authStore.isValid) {
-            try {
-                currentUser = await pb.collection('users').authRefresh();
-                currentUser = currentUser?.record || currentUser?.model || pb.authStore.record || pb.authStore.model;
-            } catch (err) {
-                console.warn("خطا در به روزرسانی اطلاعات کاربر جاری:", err);
-            }
-        }
-
-        userCode = currentUser?.name || currentUser?.id || "unknown";
-
-        // ۲. تولید timestamp شمسی به فرمت YYYYMMDD_HHMMSS
-        let timestamp = "";
-        if (window.persianDate) {
-            const pd = new window.persianDate();
-            timestamp = pd.format('YYYYMMDD_HHmmss');
-        } else {
-            const now = new Date();
-            timestamp = now.getFullYear().toString() +
-                String(now.getMonth() + 1).padStart(2, '0') +
-                String(now.getDate()).padStart(2, '0') + '_' +
-                String(now.getHours()).padStart(2, '0') +
-                String(now.getMinutes()).padStart(2, '0') +
-                String(now.getSeconds()).padStart(2, '0');
-        }
-
-        // ۳. ساخت نام پویا برای فایل JSON
-        const dynamicFileName = `${userCode}_${timestamp}.json`;
-
-        // ۴. قرار دادن فایل اصلی شامل تمام اطلاعات اخبار انتخاب‌شده با نام پویا
-        zip.file(dynamicFileName, JSON.stringify(reports, null, 2));
-        // ۲. دانلود و افزودن فایل‌های رسانه‌ای (تصویر شاخص و پیوست‌ها) به پوشه media
-        for (const report of reports) {
-            // الف) دانلود تصویر شاخص (Cover Image)
-            if (report.cover_image) {
-                const coverUrl = pb.files.getUrl(report, report.cover_image);
-                try {
-                    const response = await fetch(coverUrl);
-                    if (response.ok) {
-                        const blob = await response.blob();
-                        mediaFolder.file(report.cover_image, blob);
-                    }
-                } catch (imgErr) {
-                    console.error(`خطا در دریافت تصویر شاخص ${report.cover_image}:`, imgErr);
-                }
-            }
-
-            // ب) دانلود فایل‌های پیوست (Attachments)
-            if (report.attachments && Array.isArray(report.attachments)) {
-                for (const file of report.attachments) {
-                    const fileUrl = pb.files.getUrl(report, file);
-                    try {
-                        const response = await fetch(fileUrl);
-                        if (response.ok) {
-                            const blob = await response.blob();
-                            mediaFolder.file(file, blob);
-                        }
-                    } catch (attErr) {
-                        console.error(`خطا در دریافت فایل پیوست ${file}:`, attErr);
-                    }
-                }
-            }
-        }
-
-        // ۳. تولید نام پویا برای فایل ZIP (دقیقاً مشابه ساختار نام فایل JSON)
-        //const zipFileName = `report_user${userCode}_${timestamp}.zip`;
-        const zipFileName = `${userCode}_${timestamp}.zip`;
-        // ۴. تولید فایل ZIP و دانلود آن با نام جدید
-        const content = await zip.generateAsync({ type: "blob" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(content);
-        link.download = zipFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-    } catch (err) {
-        console.error("خطا در ایجاد فایل زیپ:", err);
-        alert("خطایی هنگام دانلود و بسته‌بندی فایل زیپ رخ داد.");
-    }
-}
 // ------------------- نمودارها -------------------
 function renderChart(elementSelector, options) {
     if (typeof ApexCharts === 'undefined') {
@@ -497,8 +424,8 @@ function renderChart(elementSelector, options) {
 
 // پالت رنگی گسترده (۱۵ رنگ هماهنگ و متمایز)
 const extendedPalette = [
-    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4',
-    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
+    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4', 
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
     '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b'
 ];
 
@@ -572,9 +499,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-timeline", {
         series: [{ name: 'تعداد اخبار', data: timelineValues }],
-        chart: {
-            type: 'area',
-            height: 260,
+        chart: { 
+            type: 'area', 
+            height: 260, 
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -642,9 +569,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(caseMap).length ? Object.values(caseMap) : [1],
         labels: Object.keys(caseMap).length ? Object.keys(caseMap) : ['بدون کیس'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b',
-            '#f97316', '#14b8a6', '#eab308', '#ef4444',
-            '#3b82f6', '#84cc16', '#d97706', '#64748b']
+        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', 
+    '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#3b82f6', '#84cc16', '#d97706', '#64748b']
     });
 
     // موضوعات
@@ -656,9 +583,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(topicMap).length ? Object.values(topicMap) : [1],
         labels: Object.keys(topicMap).length ? Object.keys(topicMap) : ['بدون موضوع'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4',
-            '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
-            '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
+        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', 
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
     });
 
     // ثبت کننده
@@ -730,9 +657,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-occurrence-timeline", {
         series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
-        chart: {
-            type: 'area',
-            height: 260,
+        chart: { 
+            type: 'area', 
+            height: 260, 
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -762,7 +689,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 fromStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) { }
+        } catch (e) {}
     }
 
     if (!toStr && toVal && window.persianDate) {
@@ -773,7 +700,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 toStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) { }
+        } catch (e) {}
     }
 
     let filtered = allReports;
@@ -792,7 +719,7 @@ function applyAnalyticsDateFilter() {
             const parts = toStr.split('-');
             const endDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             endDate.setDate(endDate.getDate() + 1);
-
+            
             const nextDayStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
             filtered = filtered.filter(r => {
@@ -919,7 +846,7 @@ async function openDetailModal(id) {
             commentsHtml = comments.map(c => {
                 const cAuthor = c.expand?.author ? (c.expand.author.name || c.expand.author.username) : 'کاربر نامشخص';
                 const cType = c.type || 'کامنت عمومی';
-
+                
                 // استایل‌دهی بر اساس نوع (ملاحظه، نظریه، پاسخ، کامنت)
                 let badgeStyle = 'bg-slate-200 text-slate-800';
                 if (cType === 'ملاحظه') badgeStyle = 'bg-amber-100 text-amber-800 border border-amber-300';

@@ -136,6 +136,7 @@ async function exportBulletin() {
                 submitter_name: report.expand?.submitter?.name || report.expand?.submitter?.username || '---',
                 department_name: report.expand?.department?.name || '---',
                 created_jalali: formatJalaliDate(report.created),
+                updated_jalali: formatJalaliDate(report.updated),
                 topics_names: topicsNames,
                 cases_names: casesNames,
                 abstract: convertHtmlToCleanText(report.abstract || ''),
@@ -180,8 +181,31 @@ async function exportBulletin() {
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         });
 
-        const fileName = `بولتن_خبری_${todayJalali.replace(/\//g, '-')}.docx`;
+        // دریافت اطلاعات کاربر جاری از PocketBase
+        const currentUser = pb.authStore?.model;
+        const userName = currentUser?.name || currentUser?.username || 'کاربر';
 
+        // استخراج تاریخ به فرمت YYMMDD و زمان به فرمت HHMM
+        let formattedDateStr = '';
+        let formattedTimeStr = '';
+
+        try {
+            const now = new Date();
+            if (typeof persianDate !== 'undefined') {
+                const pDate = new persianDate(now);
+                formattedDateStr = pDate.format('YYMMDD');
+                formattedTimeStr = pDate.format('HHmm');
+            } else {
+                formattedDateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
+                formattedTimeStr = now.toTimeString().slice(0, 5).replace(':', '');
+            }
+        } catch (e) {
+            formattedDateStr = '000000';
+            formattedTimeStr = '0000';
+        }
+
+        const cleanUserName = userName.replace(/\s+/g, '_');
+        const fileName = `${cleanUserName}-${formattedDateStr}-${formattedTimeStr}.docx`;
         if (typeof saveAs === 'function') {
             saveAs(blob, fileName);
         } else {

@@ -251,16 +251,19 @@
                             id="selected-count">0</span>
                         <span>مورد انتخاب شده است.</span>
                     </div>
-                    <button onclick="clearSelection()" class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
+                    <button onclick="clearSelection()"
+                        class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
                         لغو انتخاب‌ها
                     </button>
                 </div>
-                
+
                 <div class="flex items-center gap-2">
-                    <button onclick="exportBulletin()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                    <button onclick="exportBulletin()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
                         📄 خروجی بولتن
                     </button>
-                    <button onclick="exportZip()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
+                    <button onclick="exportZip()"
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl text-[11px] font-black transition shadow-sm flex items-center gap-1.5">
                         📦 خروجی Zip
                     </button>
                 </div>
@@ -270,7 +273,8 @@
                     <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
                         <tr>
                             <th class="p-2 sm:p-3 w-1/12 text-center">
-                                <input type="checkbox" id="select-all-page" onchange="toggleSelectAllPage(this.checked)" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                                <input type="checkbox" id="select-all-page" onchange="toggleSelectAllPage(this.checked)"
+                                    class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                             </th>
                             <th class="p-2 sm:p-3 w-4/12">اطلاعات خبر / عنوان</th>
                             <th class="p-2 sm:p-3 w-3/12">نویسنده / موضوعات / کیس‌ها</th>
@@ -406,7 +410,8 @@
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-6">
             <div class="border-b border-slate-100 pb-4">
                 <h3 class="font-black text-slate-800 text-base">ورود اطلاعات به سامانه (Import)</h3>
-                <p class="text-xs text-slate-500 mt-1">جهت وارد کردن داده‌ها، فایل ZIP حاوی اطلاعات را انتخاب کرده و دکمه شروع ایمپورت را بزنید.</p>
+                <p class="text-xs text-slate-500 mt-1">جهت وارد کردن داده‌ها، فایل ZIP حاوی اطلاعات را انتخاب کرده و
+                    دکمه شروع ایمپورت را بزنید.</p>
             </div>
 
             <div class="space-y-4">
@@ -429,7 +434,8 @@
                         <span id="import-progress-percent" class="text-indigo-600 font-black">0%</span>
                     </div>
                     <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
-                        <div id="import-progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                        <div id="import-progress-bar"
+                            class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 w-0"></div>
                     </div>
                 </div>
             </div>
@@ -461,7 +467,7 @@
         </div>
     </div>
 
-<!-- اسکریپت‌های محلی سیستم -->
+    <!-- اسکریپت‌های محلی سیستم -->
     <script src="js/jquery-3.6.4.min.js"></script>
     <script src="js/pocketbase.umd.js?v=1"></script>
     <script src="js/jszip.min.js"></script>
@@ -470,6 +476,10 @@
     <script src="js/header.js"></script>
     <script src="js/main.js?v=3"></script>
     <script src="js/system-sync.js"></script>
+    <!-- اسکریپت‌های خروجی ورد بر اساس الگو -->
+    <script src="js/FileSaver.min.js"></script>
+    <script src="js/docx-templates.min.js"></script>
+    <script src="js/bulletin.js"></script>
 </body>
 
 </html>

@@ -28,7 +28,36 @@ function formatJalaliDate(dateString) {
 //         return null;
 //     }
 // }
+// تابع کمکی برای تبدیل کدهای HTML به متن ساختاریافته و پاراگراف‌بندی‌شده
+function convertHtmlToCleanText(htmlString) {
+    if (!htmlString) return '';
 
+    // ۱. ایجاد یک DOM Parser موقت برای پیمایش تگ‌ها
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, 'text/html');
+
+    // ۲. تبدیل تگ‌های جداکننده و پاراگراف‌ها به خط جدید
+    const blockElements = doc.querySelectorAll('p, div, br, h1, h2, h3, h4, h5, h6, li');
+    blockElements.forEach(el => {
+        if (el.tagName.toLowerCase() === 'br') {
+            el.replaceWith('\n');
+        } else {
+            el.prepend('\n');
+        }
+    });
+
+    // ۳. استخراج متن تمیز و حذف تگ‌های اضافه
+    let cleanText = doc.body.textContent || doc.body.innerText || '';
+
+    // ۴. اصلاح فواصل و خطوط خالی متوالی
+    cleanText = cleanText
+        .split('\n')
+        .map(line => line.trim())
+        .filter((line, index, arr) => line !== '' || (index > 0 && arr[index - 1] !== ''))
+        .join('\n');
+
+    return cleanText.trim();
+}
 // ۳. تابع اصلی خروجی گرفتن از بولتن
 async function exportBulletin() {
     // ۱. بررسی انتخاب اخبار توسط کاربر
@@ -109,8 +138,8 @@ async function exportBulletin() {
                 created_jalali: formatJalaliDate(report.created),
                 topics_names: topicsNames,
                 cases_names: casesNames,
-                abstract: report.abstract || '',
-                content: report.content || '',
+                abstract: convertHtmlToCleanText(report.abstract || ''),
+                content: convertHtmlToCleanText(report.content || ''),
                 comments: comments
             });
         }

@@ -436,23 +436,32 @@ async function handleStartImport() {
             }
         }
 
-        // محاسبه آمار گزارش‌های اصلی
+// محاسبه آمار گزارش‌های اصلی
         const repCreated = reportStats.created.size;
         const repUpdated = reportStats.updated.size;
-        const repOther = reportStats.skipped.size + reportStats.failed.size;
 
-        // محاسبه آمار آیتم‌های وابسته
-        const otherCreated = otherStats.created.size;
-        const otherUpdated = otherStats.updated.size;
+        // ابتدا درصد و نوار پیشرفت را روی ۱۰۰٪ تنظیم می‌کنیم
+        updateProgress(totalItems, totalItems, '');
 
-        // نمایش گزارش دقیق تفکیک شده
-        if (repCreated === 0 && repUpdated === 0 && otherCreated === 0 && otherUpdated === 0) {
-            const msg = 'اطلاعات وارد شده تکراری بود و هیچ مطلب جدید یا تغییریافته‌ای در دیتابیس ثبت نشد.';
-            updateProgress(totalItems, totalItems, `ℹ️ ${msg}`);
-        } else {
-            const msg = `عملیات ایمپورت انجام شد | گزارش‌های جدید: ${repCreated} | گزارش‌های بروزرسانی‌شده: ${repUpdated} (موارد وابسته: ${otherUpdated} بروزرسانی، ${otherCreated} جدید)`;
-            updateProgress(totalItems, totalItems, `✅ ${msg}`);
+        // سپس گزارش نهایی را به‌صورت HTML قرار می‌دهیم
+        if (progressText) {
+            if (repCreated === 0 && repUpdated === 0) {
+                progressText.innerHTML = 'ℹ️ اطلاعات وارد شده تکراری بود و هیچ گزارش جدید یا تغییریافته‌ای ثبت نشد.';
+            } else {
+                let reportHTML = '✅ عملیات ایمپورت با موفقیت انجام شد:<br>';
+                
+                if (repCreated > 0) {
+                    reportHTML += `<span style="color: #10b981; font-weight: bold;">• گزارش‌های جدید: ${repCreated}</span><br>`;
+                }
+                
+                if (repUpdated > 0) {
+                    reportHTML += `<span style="color: #3b82f6; font-weight: bold;">• گزارش‌های بروزرسانی‌شده: ${repUpdated}</span>`;
+                }
+
+                progressText.innerHTML = reportHTML;
+            }
         }
+        
 
         // بازخوانی جدول گزارش‌ها در صورت وجود تابع مربوطه
         if (typeof loadReports === 'function') {

@@ -16,18 +16,88 @@ function formatJalaliDate(dateString) {
     }
 }
 
-// // ۲. تابع کمکی تبدیل تصویر از URL به ArrayBuffer برای تزریق به docx
-// async function fetchImageAsBuffer(imageUrl) {
-//     try {
-//         const response = await fetch(imageUrl);
-//         if (!response.ok) return null;
-//         const arrayBuffer = await response.arrayBuffer();
-//         return new Uint8Array(arrayBuffer);
-//     } catch (e) {
-//         console.warn('خطا در دریافت تصویر:', e);
-//         return null;
-//     }
-// }
+// توابع کمکی جهت پردازش، دانلود و ساخت ساختار OpenXML تصویر در فایل Word
+async function fetchImageAsBuffer(imageUrl) {
+    try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) return null;
+        return await response.arrayBuffer();
+    } catch (e) {
+        console.warn('خطا در دریافت تصویر:', e);
+        return null;
+    }
+}
+
+function getImageDimensions(arrayBuffer) {
+    try {
+        const bytes = new Uint8Array(arrayBuffer);
+        // بررسی هدر PNG
+        if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+            const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+            const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+            return { width, height };
+        }
+        // بررسی هدر JPEG/JPG
+        if (bytes[0] === 0xFF && bytes[1] === 0xD8) {
+            let offset = 2;
+            while (offset < bytes.length) {
+                if (bytes[offset] !== 0xFF) break;
+                const marker = bytes[offset + 1];
+                if (marker === 0xC0 || marker === 0xC2) {
+                    const height = (bytes[offset + 5] << 8) | bytes[offset + 6];
+                    const width = (bytes[offset + 7] << 8) | bytes[offset + 8];
+                    return { width, height };
+                }
+                offset += 2 + ((bytes[offset + 2] << 8) | bytes[offset + 3]);
+            }
+        }
+    } catch (e) {
+        console.warn('خطا در محاسبه ابعاد تصویر:', e);
+    }
+    return { width: 400, height: 300 }; // مقدار پیش‌فرض
+}
+
+function buildDrawingXml(relId, imgId, widthPx, heightPx) {
+    const maxWidthPx = 500; // حداکثر عرض تصویر در سند (بر حسب پیکسل)
+    if (widthPx > maxWidthPx) {
+        heightPx = Math.round((heightPx * maxWidthPx) / widthPx);
+        widthPx = maxWidthPx;
+    }
+    const cx = Math.round(widthPx * 9525);
+    const cy = Math.round(heightPx * 9525);
+
+    return `<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+        <w:pPr><w:jc w:val="center"/></w:pPr>
+        <w:r>
+            <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                    <wp:extent cx="${cx}" cy="${cy}"/>
+                    <wp:docPr id="${imgId}" name="Image ${imgId}"/>
+                    <wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>
+                    <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                            <pic:pic>
+                                <pic:nvPicPr>
+                                    <pic:cNvPr id="${imgId}" name="Picture ${imgId}"/>
+                                    <pic:cNvPicPr/>
+                                </pic:nvPicPr>
+                                <pic:blipFill>
+                                    <a:blip r:embed="${relId}"/>
+                                    <a:stretch><a:fillRect/></a:stretch>
+                                </pic:blipFill>
+                                <pic:spPr>
+                                    <a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>
+                                    <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                                </pic:spPr>
+                            </pic:pic>
+                        </a:graphicData>
+                    </a:graphic>
+                </wp:inline>
+            </w:drawing>
+        </w:r>
+    </w:p>`;
+}
+
 // تابع کمکی برای تبدیل کدهای HTML به متن ساختاریافته و پاراگراف‌بندی‌شده
 function convertHtmlToCleanText(htmlString) {
     if (!htmlString) return '';
@@ -116,14 +186,33 @@ async function exportBulletin() {
                 ? (Array.isArray(report.expand.cases_rel) ? report.expand.cases_rel.map(c => c.title || c.name).join('، ') : report.expand.cases_rel.title)
                 : '---';
 
-            // // پردازش تصویر کاور (در صورت وجود)
-            // let coverImageData = null;
-            // if (report.cover_image) {
-            //     const imageUrl = pb.files.getUrl(report, report.cover_image);
-            //     coverImageData = await fetchImageAsBuffer(imageUrl);
-            // }
+            // آماده‌سازی آرایه تصاویر این خبر
+            const reportImages = [];
 
-            // ساخت شیء نهایی داده‌های این خبر برای الگو
+            // پردازش تصویر شاخص (کاور)
+            if (report.cover_image) {
+                const coverUrl = pb.files.getUrl(report, report.cover_image);
+                const buffer = await fetchImageAsBuffer(coverUrl);
+                if (buffer) {
+                    reportImages.push({ type: 'cover', buffer, ext: report.cover_image.split('.').pop().toLowerCase() });
+                }
+            }
+
+            // پردازش پیوست‌های تصویری
+            const attachmentImages = [];
+            if (Array.isArray(report.attachments)) {
+                for (const attFile of report.attachments) {
+                    const ext = attFile.split('.').pop().toLowerCase();
+                    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        const attUrl = pb.files.getUrl(report, attFile);
+                        const buffer = await fetchImageAsBuffer(attUrl);
+                        if (buffer) {
+                            attachmentImages.push({ buffer, ext });
+                        }
+                    }
+                }
+            }
+
             reportsData.push({
                 title: report.title || 'بدون عنوان',
                 automation_id: report.automation_id || '---',
@@ -141,7 +230,12 @@ async function exportBulletin() {
                 cases_names: casesNames,
                 abstract: convertHtmlToCleanText(report.abstract || ''),
                 content: convertHtmlToCleanText(report.content || ''),
-                comments: comments
+                comments: comments,
+                // نگهداری موقت برای تزریق XML
+                _coverImage: reportImages.find(i => i.type === 'cover'),
+                _attachmentImages: attachmentImages,
+                cover_image_xml: '',
+                attachments_images: []
             });
         }
 
@@ -161,6 +255,70 @@ async function exportBulletin() {
         }
 
         const zip = new PizZip(templateBuffer);
+
+        // ۱. ویرایش [Content_Types].xml برای اطمینان از ثبت انواع پسوندهای تصویر
+        let contentTypesXml = zip.file("[Content_Types].xml") ? zip.file("[Content_Types].xml").asText() : "";
+        if (contentTypesXml) {
+            const imageExtensions = [
+                { ext: 'png', mime: 'image/png' },
+                { ext: 'jpg', mime: 'image/jpeg' },
+                { ext: 'jpeg', mime: 'image/jpeg' },
+                { ext: 'gif', mime: 'image/gif' },
+                { ext: 'webp', mime: 'image/webp' }
+            ];
+            for (const { ext, mime } of imageExtensions) {
+                if (!contentTypesXml.includes(`Extension="${ext}"`)) {
+                    contentTypesXml = contentTypesXml.replace(
+                        '</Types>',
+                        `<Default Extension="${ext}" ContentType="${mime}"/></Types>`
+                    );
+                }
+            }
+            zip.file("[Content_Types].xml", contentTypesXml);
+        }
+
+        // ۲. آماده‌سازی فایل روابط word/_rels/document.xml.rels
+        let relsXml = zip.file("word/_rels/document.xml.rels") ? zip.file("word/_rels/document.xml.rels").asText() : "";
+        if (!relsXml) {
+            relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+        }
+
+        let imgCounter = 1;
+
+        // تزریق فایل‌های تصویر به zip و تعریف رابطه
+        for (const rep of reportsData) {
+            if (rep._coverImage) {
+                const relId = `rImgId${imgCounter}`;
+                const imgPath = `word/media/image_${imgCounter}.${rep._coverImage.ext}`;
+                zip.file(imgPath, rep._coverImage.buffer);
+
+                relsXml = relsXml.replace('</Relationships>', `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image_${imgCounter}.${rep._coverImage.ext}"/></Relationships>`);
+
+                const dims = getImageDimensions(rep._coverImage.buffer);
+                rep.cover_image_xml = buildDrawingXml(relId, imgCounter, dims.width, dims.height);
+                imgCounter++;
+            }
+
+            if (rep._attachmentImages && rep._attachmentImages.length > 0) {
+                rep.attachments_images = [];
+                for (const attImg of rep._attachmentImages) {
+                    const relId = `rImgId${imgCounter}`;
+                    const imgPath = `word/media/image_${imgCounter}.${attImg.ext}`;
+                    zip.file(imgPath, attImg.buffer);
+
+                    relsXml = relsXml.replace('</Relationships>', `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image_${imgCounter}.${attImg.ext}"/></Relationships>`);
+
+                    const dims = getImageDimensions(attImg.buffer);
+                    rep.attachments_images.push({
+                        attachment_xml: buildDrawingXml(relId, imgCounter, dims.width, dims.height)
+                    });
+                    imgCounter++;
+                }
+            }
+        }
+
+        zip.file("word/_rels/document.xml.rels", relsXml);
+
         const doc = new window.docxtemplater(zip, {
             paragraphLoop: true,
             linebreaks: true

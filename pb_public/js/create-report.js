@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quill: null,
         selectedCoverFile: null,
         selectedAttachments: [],
+        existingAttachments: [], // 👈 ذخیره اسامی فایل‌های پیوست قبلی سرور
         selectedTopics: [],
         selectedCases: [],
         selectedAuthor: null, // 👈 کارشناس انتخاب‌شده
@@ -249,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ۸. نمایش فایل‌های پیوست قبلی در صورت وجود
             if (Array.isArray(report.attachments) && report.attachments.length > 0) {
+                state.existingAttachments = [...report.attachments];
                 renderExistingAttachmentsList(report, report.attachments);
             }
 
@@ -808,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onFiles: (files) => {
                 const incomingFiles = Array.from(files);
 
-                if (state.selectedAttachments.length + incomingFiles.length > LIMITS.attachmentsMaxCount) {
+                if (state.existingAttachments.length + state.selectedAttachments.length + incomingFiles.length > LIMITS.attachmentsMaxCount) {
                     showError('حداکثر ۱۶ فایل پیوست قابل انتخاب است.');
                     return;
                 }
@@ -895,12 +897,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
         listContainer.innerHTML = '';
 
+        // ۱. رندر فایل‌های موجود قبلی روی سرور
+        state.existingAttachments.forEach((fileName, index) => {
+            const item = document.createElement('div');
+            item.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between gap-3 text-xs';
+
+            const info = document.createElement('div');
+            info.className = 'min-w-0 flex items-center gap-2';
+
+            const badge = document.createElement('span');
+            badge.className = 'text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded shrink-0';
+            badge.textContent = 'موجود در سرور';
+
+            const name = document.createElement('span');
+            name.className = 'font-semibold text-slate-700 truncate';
+            name.textContent = `📎 ${fileName}`;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'text-rose-600 hover:text-rose-700 font-bold shrink-0';
+            removeBtn.textContent = 'حذف';
+
+            removeBtn.addEventListener('click', () => {
+                state.existingAttachments.splice(index, 1);
+                renderAttachmentsList();
+            });
+
+            info.appendChild(badge);
+            info.appendChild(name);
+            item.appendChild(info);
+            item.appendChild(removeBtn);
+            listContainer.appendChild(item);
+        });
+
+        // ۲. رندر فایل‌های جدید انتخاب‌شده
         state.selectedAttachments.forEach((file, index) => {
             const item = document.createElement('div');
             item.className = 'p-3 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-3 text-xs';
 
             const info = document.createElement('div');
             info.className = 'min-w-0 flex items-center gap-2';
+
+            const badge = document.createElement('span');
+            badge.className = 'text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded shrink-0 font-bold';
+            badge.textContent = 'جدید';
 
             const name = document.createElement('span');
             name.className = 'font-semibold text-slate-700 truncate';
@@ -920,12 +960,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderAttachmentsList();
             });
 
+            info.appendChild(badge);
             info.appendChild(name);
             info.appendChild(size);
             item.appendChild(info);
             item.appendChild(removeBtn);
             listContainer.appendChild(item);
         });
+    }
+
+    function renderExistingCoverPreview(fileUrl, fileName) {
+        const previewContainer = $id('cover-preview-container');
+        const previewImg = $id('cover-preview-img');
+        const filenameText = $id('cover-filename');
+        const filesizeText = $id('cover-filesize');
+
+        if (previewImg) previewImg.src = fileUrl;
+        if (filenameText) filenameText.textContent = fileName || 'تصویر شاخص قبلی';
+        if (filesizeText) filesizeText.textContent = 'ذخیره شده در سرور';
+        if (previewContainer) previewContainer.classList.remove('hidden');
+    }
+
+    function renderExistingAttachmentsList(report, attachmentNames) {
+        renderAttachmentsList();
     }
 
     function renderExistingCoverPreview(fileUrl, fileName) {
@@ -1064,6 +1121,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('cover_image', state.selectedCoverFile);
             }
 
+            // ارسال اسامی فایل‌های قبلی جهت جلوگیری از پاک شدن در PocketBase
+            state.existingAttachments.forEach((fileName) => {
+                formData.append('attachments', fileName);
+            });
+
+            // ارسال فایل‌های جدید
             state.selectedAttachments.forEach((file) => {
                 formData.append('attachments', file);
             });
@@ -1232,6 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.selectedCoverFile = null;
         state.selectedAttachments = [];
+        state.existingAttachments = [];
         state.selectedTopics.length = 0;
         state.selectedCases.length = 0;
 

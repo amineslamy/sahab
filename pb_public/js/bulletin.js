@@ -198,8 +198,10 @@ async function exportBulletin() {
                 }
             }
 
-            // پردازش پیوست‌های تصویری
+            // پردازش انواع پیوست‌ها (تصویری و غیرتصویری)
             const attachmentImages = [];
+            const otherAttachments = [];
+
             if (Array.isArray(report.attachments)) {
                 for (const attFile of report.attachments) {
                     const ext = attFile.split('.').pop().toLowerCase();
@@ -209,6 +211,9 @@ async function exportBulletin() {
                         if (buffer) {
                             attachmentImages.push({ buffer, ext });
                         }
+                    } else {
+                        // افزودن فایل‌های غیرتصویری جهت نمایش در الگو
+                        otherAttachments.push({ name: attFile });
                     }
                 }
             }
@@ -231,6 +236,7 @@ async function exportBulletin() {
                 abstract: convertHtmlToCleanText(report.abstract || ''),
                 content: convertHtmlToCleanText(report.content || ''),
                 comments: comments,
+                other_attachments: otherAttachments,
                 // نگهداری موقت برای تزریق XML
                 _coverImage: reportImages.find(i => i.type === 'cover'),
                 _attachmentImages: attachmentImages,

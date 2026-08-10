@@ -37,7 +37,7 @@ function clearSelection() {
     selectedReportIds.clear();
     const selectAllCb = document.getElementById('select-all-page');
     if (selectAllCb) selectAllCb.checked = false;
-    
+
     document.querySelectorAll('.report-checkbox').forEach(cb => {
         cb.checked = false;
     });
@@ -310,6 +310,7 @@ async function loadReportsTable() {
             const authorName = exp.author ? (exp.author.name || exp.author.username || '---') : '---';
             const deptObj = exp.author?.expand?.department_rel;
             const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : '---';
+            const submitterName = exp.submitter ? (exp.submitter.name || exp.submitter.username || '---') : '---';
 
             const hasCover = !!rec.cover_image;
             const hasAttachments = Array.isArray(rec.attachments) && rec.attachments.length > 0;
@@ -359,10 +360,11 @@ async function loadReportsTable() {
                         </div>
                     </td>
 
-                    <!-- ۴. نویسنده و اداره -->
+                    <!-- ۴. نویسنده، اداره و ثبت‌کننده -->
                     <td class="p-2.5 align-middle">
                         <div class="font-bold text-slate-800">${authorName}</div>
                         <div class="text-[10px] text-slate-500">${deptName}</div>
+                        <div class="text-[10px] text-indigo-600 mt-0.5">ثبت: <span class="font-medium text-slate-600">${submitterName}</span></div>
                     </td>
 
                     <!-- ۵. تاریخ‌ها (وقوع، انتشار، به‌روزرسانی) -->
@@ -438,8 +440,8 @@ function renderChart(elementSelector, options) {
 
 // پالت رنگی گسترده (۱۵ رنگ هماهنگ و متمایز)
 const extendedPalette = [
-    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4', 
-    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
+    '#10b981', '#6366f1', '#ec4899', '#f59e0b', '#06b6d4',
+    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
     '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b'
 ];
 
@@ -513,9 +515,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-timeline", {
         series: [{ name: 'تعداد اخبار', data: timelineValues }],
-        chart: { 
-            type: 'area', 
-            height: 260, 
+        chart: {
+            type: 'area',
+            height: 260,
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -583,9 +585,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(caseMap).length ? Object.values(caseMap) : [1],
         labels: Object.keys(caseMap).length ? Object.keys(caseMap) : ['بدون کیس'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', 
-    '#f97316', '#14b8a6', '#eab308', '#ef4444', 
-    '#3b82f6', '#84cc16', '#d97706', '#64748b']
+        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b',
+            '#f97316', '#14b8a6', '#eab308', '#ef4444',
+            '#3b82f6', '#84cc16', '#d97706', '#64748b']
     });
 
     // موضوعات
@@ -597,9 +599,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
         series: Object.values(topicMap).length ? Object.values(topicMap) : [1],
         labels: Object.keys(topicMap).length ? Object.keys(topicMap) : ['بدون موضوع'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', 
-    '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', 
-    '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
+        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4',
+            '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
+            '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
     });
 
     // ثبت کننده
@@ -671,9 +673,9 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     renderChart("#chart-occurrence-timeline", {
         series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
-        chart: { 
-            type: 'area', 
-            height: 260, 
+        chart: {
+            type: 'area',
+            height: 260,
             toolbar: { show: false },
             zoom: { enabled: false }
         },
@@ -703,7 +705,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 fromStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     if (!toStr && toVal && window.persianDate) {
@@ -714,7 +716,7 @@ function applyAnalyticsDateFilter() {
                 const d = pd.toDate();
                 toStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     let filtered = allReports;
@@ -733,7 +735,7 @@ function applyAnalyticsDateFilter() {
             const parts = toStr.split('-');
             const endDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
             endDate.setDate(endDate.getDate() + 1);
-            
+
             const nextDayStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
             filtered = filtered.filter(r => {
@@ -854,13 +856,17 @@ async function openDetailModal(id) {
             ? (deptObj.name || deptObj.username || '---')
             : '---';
 
+        const submitterName = exp.submitter
+            ? (exp.submitter.name || exp.submitter.username || '---')
+            : '---';
+
         // ساخت HTML برای بخش کامنت‌ها، نظریه‌ها و ملاحظات
         let commentsHtml = '';
         if (comments && comments.length > 0) {
             commentsHtml = comments.map(c => {
                 const cAuthor = c.expand?.author ? (c.expand.author.name || c.expand.author.username) : 'کاربر نامشخص';
                 const cType = c.type || 'کامنت عمومی';
-                
+
                 // استایل‌دهی بر اساس نوع (ملاحظه، نظریه، پاسخ، کامنت)
                 let badgeStyle = 'bg-slate-200 text-slate-800';
                 if (cType === 'ملاحظه') badgeStyle = 'bg-amber-100 text-amber-800 border border-amber-300';
@@ -944,7 +950,7 @@ async function openDetailModal(id) {
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">کیس:</span><strong class="text-slate-900 font-bold">${caseTitles}</strong></div>
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نوع خبر / ارزیابی:</span><strong class="text-slate-900 font-bold">${report.news_type || '---'} / ${report.evaluation || '---'}</strong></div>
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">طبقه‌بندی / اولویت:</span><strong class="text-slate-900 font-bold">${report.classification || '---'} / ${report.priority || '---'}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نویسنده / اداره:</span><strong class="text-slate-900 font-bold">${authorName} - ${deptName}</strong></div>
+            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نویسنده / اداره / ثبت‌کننده:</span><strong class="text-slate-900 font-bold">${authorName} - ${deptName} (ثبت: ${submitterName})</strong></div>
             <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">تاریخ وقوع:</span><strong class="text-slate-900 font-bold">${formatDateToFa(report.occurrence_date)}</strong></div>
             ${coverImageHtml}     
 

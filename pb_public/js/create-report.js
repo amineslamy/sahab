@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const departmentId = currentUser.department_rel || currentUser.department || '';
 
             if (!departmentId) {
-                showError("نشست شما معتبر است، اما دپارتمانی برای حساب کاربری شما تعریف نشده است. لطفا با مدیر سیستم تماس بگیرید.");
+                showError("نشست شما معتبر است، اما اداره ای برای حساب کاربری شما تعریف نشده است. لطفا با مدیر سیستم تماس بگیرید.");
                 const submitBtn = $id('submit-btn');
                 if (submitBtn) submitBtn.disabled = true;
                 return false;

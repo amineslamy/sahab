@@ -337,9 +337,8 @@
                     </label>
                     <div
                         class="relative w-full h-40 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center group">
-                        <img id="featured-image-preview"
-                            src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=800&q=80"
-                            alt="تصویر شاخص" class="w-full h-full object-cover transition duration-300">
+                        <img id="featured-image-preview" src="images/default.jpg" alt="تصویر شاخص"
+                            class="w-full h-full object-cover transition duration-300">
             
                         <div
                             class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
@@ -451,12 +450,15 @@
                 </div>
             
             </aside>
-
-        </div>
-
-    </div>
-
-    <!-- Fixed Bottom Action Bar (Compact, Glowing & Swap Position) -->
+            
+            </div>
+            
+            <!-- Margin Spacer to prevent Fixed Bottom Bar overlay on maximum scroll -->
+            <div class="h-28 w-full aria-hidden:true"></div>
+            
+            </div>
+            
+            <!-- Fixed Bottom Action Bar (Compact, Glowing & Swap Position) -->
     <div class="fixed bottom-4 left-0 right-0 z-50 floating-bar px-4">
         <div
             class="max-w-3xl mx-auto glass-card card-glow-purple border-2 border-purple-300/80 rounded-2xl px-5 py-2.5 shadow-2xl flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md">

@@ -57,12 +57,19 @@ function getImageDimensions(arrayBuffer) {
     return { width: 400, height: 300 }; // مقدار پیش‌فرض
 }
 
-function buildDrawingXml(relId, imgId, widthPx, heightPx) {
-    const maxWidthPx = 500; // حداکثر عرض تصویر در سند (بر حسب پیکسل)
-    if (widthPx > maxWidthPx) {
-        heightPx = Math.round((heightPx * maxWidthPx) / widthPx);
-        widthPx = maxWidthPx;
+function buildDrawingXml(relId, imgId, widthPx, heightPx, maxCustomWidth = 450, maxCustomHeight = 300) {
+    // ۱. بررسی و اصلاح ابعاد بر اساس حداکثر عرض مجاز
+    if (widthPx > maxCustomWidth) {
+        heightPx = Math.round((heightPx * maxCustomWidth) / widthPx);
+        widthPx = maxCustomWidth;
     }
+
+    // ۲. بررسی و اصلاح ابعاد بر اساس حداکثر ارتفاع مجاز (مخصوص تصاویر عمودی و استوری‌ها)
+    if (heightPx > maxCustomHeight) {
+        widthPx = Math.round((widthPx * maxCustomHeight) / heightPx);
+        heightPx = maxCustomHeight;
+    }
+
     const cx = Math.round(widthPx * 9525);
     const cy = Math.round(heightPx * 9525);
 
@@ -301,7 +308,8 @@ async function exportBulletin() {
                 relsXml = relsXml.replace('</Relationships>', `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image_${imgCounter}.${rep._coverImage.ext}"/></Relationships>`);
 
                 const dims = getImageDimensions(rep._coverImage.buffer);
-                rep.cover_image_xml = buildDrawingXml(relId, imgCounter, dims.width, dims.height);
+                // تصویر شاخص: حداکثر عرض ۴۵۰ پیکسل و حداکثر ارتفاع ۳۰۰ پیکسل
+                rep.cover_image_xml = buildDrawingXml(relId, imgCounter, dims.width, dims.height, 450, 300);
                 imgCounter++;
             }
 
@@ -315,8 +323,9 @@ async function exportBulletin() {
                     relsXml = relsXml.replace('</Relationships>', `<Relationship Id="${relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image_${imgCounter}.${attImg.ext}"/></Relationships>`);
 
                     const dims = getImageDimensions(attImg.buffer);
+                    // تصاویر پیوست (مانند استوری): حداکثر عرض ۳۰۰ پیکسل و حداکثر ارتفاع ۲۵۰ پیکسل
                     rep.attachments_images.push({
-                        attachment_xml: buildDrawingXml(relId, imgCounter, dims.width, dims.height)
+                        attachment_xml: buildDrawingXml(relId, imgCounter, dims.width, dims.height, 300, 250)
                     });
                     imgCounter++;
                 }

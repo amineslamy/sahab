@@ -35,9 +35,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // تنظیم فرم اختصاصی کارشناس
 async function setupExpertProfile(currentUser) {
-    // دریافت مجدد آخرین داده‌های کاربر جاری همراه با اداره
+    // دریافت مجدد آخرین داده‌های کاربر جاری همراه با اداره (مقاوم در برابر خطای expand)
     try {
-        const freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
+        let freshUser;
+        try {
+            freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
+        } catch (expandErr) {
+            // در صورت عدم دسترسی به expand یا نبود رابطه، بدون expand دریافت می‌شود
+            freshUser = await pb.collection('users').getOne(currentUser.id);
+        }
 
         document.getElementById('profile-name').value = freshUser.name || '';
         const profileUsernameInput = document.getElementById('profile-username');
@@ -89,11 +95,6 @@ async function handleProfileFormSubmit(event) {
         formData.append('avatar', avatarInput.files[0]);
     }
 
-    if (password) {
-        formData.append('password', password);
-        formData.append('passwordConfirm', password);
-    }
-
     const btnSave = document.getElementById('btn-save-profile');
     btnSave.disabled = true;
     btnSave.innerText = 'در حال ذخیره‌سازی...';
@@ -101,6 +102,18 @@ async function handleProfileFormSubmit(event) {
     try {
         const updatedUser = await pb.collection('users').update(currentUser.id, formData);
         pb.authStore.save(pb.authStore.token, updatedUser); // بروزرسانی authStore محلی
+
+        // تغییر کلمه عبور از طریق مسیر اختصاصی جدید بدون الزام ارسال oldPassword
+        if (password) {
+            await pb.send('/api/custom-change-password', {
+                method: 'POST',
+                body: {
+                    targetUserId: currentUser.id,
+                    newPassword: password
+                }
+            });
+        }
+
         alert('اطلاعات حساب کاربری با موفقیت بروزرسانی شد.');
         await setupExpertProfile(updatedUser);
         document.getElementById('profile-password').value = '';
@@ -427,11 +440,6 @@ async function handleUserFormSubmit(event) {
         formData.append('avatar', avatarInput.files[0]);
     }
 
-    if (password) {
-        formData.append('password', password);
-        formData.append('passwordConfirm', password);
-    }
-
     const btnSave = document.getElementById('btn-save-user');
     btnSave.disabled = true;
     btnSave.innerText = 'در حال ذخیره...';
@@ -439,7 +447,21 @@ async function handleUserFormSubmit(event) {
     try {
         if (userId) {
             await pb.collection('users').update(userId, formData);
+            // در صورتی که پسورد جدید وارد شده باشد، از طریق مسیر سفارشی به روز می‌شود
+            if (password) {
+                await pb.send('/api/custom-change-password', {
+                    method: 'POST',
+                    body: {
+                        targetUserId: userId,
+                        newPassword: password
+                    }
+                });
+            }
         } else {
+            if (password) {
+                formData.append('password', password);
+                formData.append('passwordConfirm', password);
+            }
             await pb.collection('users').create(formData);
         }
 

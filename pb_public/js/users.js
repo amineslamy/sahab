@@ -466,6 +466,14 @@ async function handleUserFormSubmit(event) {
                         newPassword: password
                     }
                 });
+
+                // اگر کاربر کلمه عبور خودش را تغییر داده باشد، باید خارج شود
+                if (userId === currentUser.id) {
+                    alert('کلمه عبور شما با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+                    pb.authStore.clear();
+                    window.location.href = 'login.html';
+                    return;
+                }
             }
         } else {
             if (password) {

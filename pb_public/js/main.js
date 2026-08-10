@@ -5,7 +5,7 @@ let allCases = [];
 let allUsers = [];
 let chartInstances = {};
 let currentPage = 1;
-let perPage = 10;
+let perPage = 100;
 let currentFilterQuery = "";
 
 window.selectedReportIds = new Set();
@@ -288,7 +288,7 @@ async function loadReportsTable() {
         });
 
         if (result.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-500 font-bold">هیچ گزارشی یافت نشد.</td></tr>`;
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
             return;
@@ -297,87 +297,102 @@ async function loadReportsTable() {
         let html = '';
         result.items.forEach((rec, index) => {
             const exp = rec.expand || {};
-            const topicTitles = exp.topics_rel ? exp.topics_rel.map(t => t.title).join('، ') : '---';
-            const caseTitles = exp.cases_rel ? exp.cases_rel.map(c => c.title).join('، ') : '---';
-            const authorName = exp.author
-                ? (exp.author.name || exp.author.username || '---')
-                : '---';
 
+            // موضوعات و کیس‌ها در قالب Badgeهای رنگی
+            const topicsHtml = exp.topics_rel && exp.topics_rel.length > 0
+                ? exp.topics_rel.map(t => `<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-100">${t.title}</span>`).join(' ')
+                : '<span class="text-slate-400">---</span>';
+
+            const casesHtml = exp.cases_rel && exp.cases_rel.length > 0
+                ? exp.cases_rel.map(c => `<span class="bg-purple-50 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-purple-100">${c.title}</span>`).join(' ')
+                : '<span class="text-slate-400">---</span>';
+
+            const authorName = exp.author ? (exp.author.name || exp.author.username || '---') : '---';
             const deptObj = exp.author?.expand?.department_rel;
-            const deptName = deptObj
-                ? (deptObj.name || deptObj.username || '---')
-                : '---';
+            const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : '---';
 
             const hasCover = !!rec.cover_image;
             const hasAttachments = Array.isArray(rec.attachments) && rec.attachments.length > 0;
 
-            const coverBadgeHtml = hasCover
-                ? `<span class="inline-flex items-center gap-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200" title="دارای تصویر شاخص">🖼️ عکس</span>`
-                : '';
+            const coverIcon = hasCover ? `<span title="دارای تصویر شاخص">🖼️</span>` : '';
+            const attachmentIcon = hasAttachments ? `<span title="دارای فایل پیوست (${rec.attachments.length} مورد)">📎</span>` : '';
+            const mediaIcons = (hasCover || hasAttachments) ? `<span class="inline-flex gap-1 text-[11px]">${coverIcon}${attachmentIcon}</span>` : '';
 
-            const attachmentBadgeHtml = hasAttachments
-                ? `<span class="inline-flex items-center gap-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-200" title="دارای فایل پیوست (${rec.attachments.length} مورد)">📎 پیوست (${rec.attachments.length})</span>`
-                : '';
+            // استایل طبقه‌بندی
+            let classBadgeClass = 'bg-slate-100 text-slate-700';
+            if (rec.classification === 'محرمانه') classBadgeClass = 'bg-amber-100 text-amber-800 border border-amber-200';
+            else if (rec.classification === 'خیلی محرمانه') classBadgeClass = 'bg-orange-100 text-orange-800 border border-orange-200';
+            else if (rec.classification === 'سری' || rec.classification === 'به کلی سری') classBadgeClass = 'bg-red-100 text-red-800 border border-red-200';
 
-            const mediaBadgesHtml = (hasCover || hasAttachments)
-                ? `<div class="flex items-center gap-1 mt-1 flex-wrap">${coverBadgeHtml}${attachmentBadgeHtml}</div>`
-                : '';
+            // استایل اولویت
+            let prioBadgeClass = 'bg-slate-100 text-slate-600';
+            if (rec.priority === 'فوری') prioBadgeClass = 'bg-amber-50 text-amber-700 border border-amber-200';
+            else if (rec.priority === 'آنی') prioBadgeClass = 'bg-red-50 text-red-700 font-black border border-red-200';
 
             const isEven = index % 2 === 0;
-            const bgRow = isEven ? 'bg-white' : 'bg-slate-100/60';
+            const bgRow = isEven ? 'bg-white' : 'bg-slate-50/70';
             const isChecked = selectedReportIds.has(rec.id) ? 'checked' : '';
 
             html += `
-                <!-- ردیف ۱: عنوان | نویسنده | تاریخ انتشار | جزئیات -->
-                <tr class="${bgRow} border-t-2 border-slate-300">
-                    <td class="p-1.5 sm:p-2.5 text-center align-middle" rowspan="3">
+                <tr class="${bgRow} hover:bg-indigo-50/40 transition-colors">
+                    <!-- ۱. چک‌باکس انتخاب -->
+                    <td class="p-2.5 text-center align-middle">
                         <input type="checkbox" value="${rec.id}" ${isChecked} onchange="toggleReportSelection('${rec.id}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                     </td>
-                    <td class="p-1.5 sm:p-2.5 font-bold text-slate-900 break-words">
-                        <div>${rec.title || 'بدون عنوان'}</div>
-                        ${mediaBadgesHtml}
-                    </td>
-                    <td class="p-1.5 sm:p-2.5 font-semibold text-slate-700 break-words">
-                        ${authorName} <span class="text-[10px] text-slate-400 block sm:inline">(${deptName})</span>
-                    </td>
-                    <td class="p-1.5 sm:p-2.5 text-slate-700 font-medium break-words">
-                        انتشار: ${formatDateToFa(rec.created)}
-                    </td>
-                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
-                        <button onclick="openDetailModal('${rec.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">جزئیات</button>
-                    </td>
-                </tr>
 
-                <!-- ردیف ۲: ادامه عنوان (خالی) | موضوعات | تاریخ وقوع | ویرایش -->
-                <tr class="${bgRow} text-slate-600 text-[10px] sm:text-xs">
-                    <td class="px-1.5 sm:px-2.5 py-1">
-                        <!-- فضای خالی برای ادامه عنوان طولانی -->
+                    <!-- ۲. عنوان خبر و شناسه -->
+                    <td class="p-2.5 align-middle">
+                        <div class="flex items-center gap-1.5 font-bold text-slate-900">
+                            <span class="truncate max-w-[280px]" title="${rec.title || 'بدون عنوان'}">${rec.title || 'بدون عنوان'}</span>
+                            ${mediaIcons}
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                            اتوماسیون: <span class="text-slate-600 font-semibold">${rec.automation_id || '---'}</span>
+                        </div>
                     </td>
-                    <td class="px-1.5 sm:px-2.5 py-1">
-                        <span class="bg-indigo-50 text-indigo-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${topicTitles}</span>
-                    </td>
-                    <td class="px-1.5 sm:px-2.5 py-1">
-                        <span>وقوع: <strong>${formatDateToFa(rec.occurrence_date)}</strong></span>
-                    </td>
-                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
-                        <a href="create-report.html?id=${rec.id}" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[10px] sm:text-xs font-black px-2 py-1 rounded transition block text-center">ویرایش</a>
-                    </td>
-                </tr>
 
-                <!-- ردیف ۳: شماره اتوماسیون و نوع خبر | کیس‌ها | تاریخ به روزرسانی | دکمه حذف -->
-                <tr class="${bgRow} border-b-2 border-slate-300 text-slate-500 text-[10px] sm:text-xs">
-                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
-                        <span class="font-mono bg-slate-200/60 px-1 py-0.5 rounded text-[10px]">اتوماسیون: ${rec.automation_id || '---'}</span>
-                        <span class="text-slate-600 font-bold mr-1">(${rec.news_type || '---'})</span>
+                    <!-- ۳. موضوعات و کیس‌ها -->
+                    <td class="p-2.5 align-middle">
+                        <div class="flex flex-col gap-1 max-w-[220px]">
+                            <div class="flex flex-wrap gap-1">${topicsHtml}</div>
+                            <div class="flex flex-wrap gap-1">${casesHtml}</div>
+                        </div>
                     </td>
-                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
-                        <span class="bg-purple-50 text-purple-700 font-bold px-1.5 py-0.5 rounded inline-block text-[10px] sm:text-xs break-words">${caseTitles}</span>
+
+                    <!-- ۴. نویسنده و اداره -->
+                    <td class="p-2.5 align-middle">
+                        <div class="font-bold text-slate-800">${authorName}</div>
+                        <div class="text-[10px] text-slate-500">${deptName}</div>
                     </td>
-                    <td class="px-1.5 sm:px-2.5 pb-2 pt-0">
-                        <span>به‌روزرسانی: ${formatDateToFa(rec.updated)}</span>
+
+                    <!-- ۵. تاریخ‌ها (وقوع، انتشار، به‌روزرسانی) -->
+                    <td class="p-2.5 align-middle text-[10px] leading-tight space-y-0.5">
+                        <div class="text-slate-700">وقوع: <strong class="text-slate-900">${formatDateToFa(rec.occurrence_date)}</strong></div>
+                        <div class="text-slate-500">انتشار: ${formatDateToFa(rec.created)}</div>
+                        <div class="text-slate-400">به‌روزرسانی: ${formatDateToFa(rec.updated)}</div>
                     </td>
-                    <td class="p-1.5 sm:p-2.5 text-center align-middle">
-                        <button onclick="deleteReport('${rec.id}')" class="bg-red-500 hover:bg-red-600 text-white text-[10px] sm:text-xs font-black px-2 py-1 rounded transition w-full">حذف</button>
+
+                    <!-- ۶. وضعیت / طبقه‌بندی / اولویت -->
+                    <td class="p-2.5 align-middle">
+                        <div class="flex flex-wrap gap-1">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${classBadgeClass}">${rec.classification || 'عادی'}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${prioBadgeClass}">${rec.priority || 'عادی'}</span>
+                        </div>
+                    </td>
+
+                    <!-- ۷. عملیات -->
+                    <td class="p-2.5 text-center align-middle">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="openDetailModal('${rec.id}')" title="مشاهده جزئیات" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+                                🔍
+                            </button>
+                            <a href="create-report.html?id=${rec.id}" title="ویرایش" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">
+                                ✏️
+                            </a>
+                            <button onclick="deleteReport('${rec.id}')" title="حذف" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition">
+                                ❌
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -397,7 +412,6 @@ async function loadReportsTable() {
         console.error("خطا در لود جدول:", err);
     }
 }
-
 function goToPage(page) {
     if (page < 1) return;
     currentPage = page;

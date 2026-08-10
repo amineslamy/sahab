@@ -138,10 +138,11 @@
                         نمایش:
                         <select id="per-page-select" onchange="changePerPage(this.value)"
                             class="border border-slate-300 rounded-lg text-xs p-1.5 bg-white font-bold text-slate-700 outline-none">
-                            <option value="10" selected>۱۰ مورد</option>
+                            <option value="10">۱۰ مورد</option>
                             <option value="25">۲۵ مورد</option>
                             <option value="50">۵۰ مورد</option>
-                            <option value="100">۱۰۰ مورد</option>
+                            <option value="100" selected>۱۰۰ مورد</option>
+                            <option value="1000">همه</option>
                         </select>
                     </label>
 
@@ -252,8 +253,8 @@
                         <span>مورد انتخاب شده است.</span>
                     </div>
                     <button onclick="clearSelection()"
-                        class="text-indigo-600 hover:text-indigo-800 text-[11px] underline">
-                        لغو انتخاب‌ها
+                        class="text-indigo-600 hover:text-indigo-800 text-[11px] underline flex items-center gap-1">
+                        ❌ لغو انتخاب‌ها
                     </button>
                 </div>
 
@@ -268,23 +269,25 @@
                     </button>
                 </div>
             </div>
-            <div class="w-full overflow-hidden">
-                <table class="w-full text-right text-[11px] sm:text-xs text-slate-700 table-fixed">
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-right text-[11px] sm:text-xs text-slate-700 whitespace-nowrap">
                     <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
                         <tr>
-                            <th class="p-2 sm:p-3 w-1/12 text-center">
+                            <th class="p-2.5 text-center w-10">
                                 <input type="checkbox" id="select-all-page" onchange="toggleSelectAllPage(this.checked)"
                                     class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                             </th>
-                            <th class="p-2 sm:p-3 w-4/12">اطلاعات خبر / عنوان</th>
-                            <th class="p-2 sm:p-3 w-3/12">نویسنده / موضوعات / کیس‌ها</th>
-                            <th class="p-2 sm:p-3 w-2/12">تاریخ انتشار / تاریخ وقوع / بروزرسانی</th>
-                            <th class="p-2 sm:p-3 w-2/12 text-center">عملیات</th>
+                            <th class="p-2.5 min-w-[220px]">عنوان خبر / شناسه</th>
+                            <th class="p-2.5 min-w-[180px]">موضوعات و کیس‌ها</th>
+                            <th class="p-2.5 min-w-[140px]">نویسنده و اداره</th>
+                            <th class="p-2.5 min-w-[160px]">تاریخ‌ها</th>
+                            <th class="p-2.5 min-w-[150px]">وضعیت / طبقه‌بندی</th>
+                            <th class="p-2.5 text-center w-28">عملیات</th>
                         </tr>
                     </thead>
-                    <tbody id="table-reports-body" class="divide-y divide-slate-100 font-medium">
+                    <tbody id="table-reports-body" class="divide-y divide-slate-200 font-medium">
                         <tr>
-                            <td colspan="5" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
+                            <td colspan="7" class="text-center p-8 text-slate-400">در حال دریافت داده‌ها...</td>
                         </tr>
                     </tbody>
                 </table>

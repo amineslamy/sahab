@@ -1,5 +1,12 @@
 let allUsersData = [];
 
+const ROLE_LABELS = {
+    'admin_site': 'مدیر سایت',
+    'admin_general': 'مدیر کل',
+    'department': 'مدیر اداره',
+    'expert': 'کارشناس'
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     // بررسی وضعیت ورود کاربر
     if (typeof pb === 'undefined' || !pb.authStore.isValid) {
@@ -7,8 +14,100 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    await loadUsers();
+    const currentUser = pb.authStore.model;
+    const currentRole = currentUser?.role || 'expert';
+
+    // تفکیک رابط کاربری بر اساس نقش
+    if (currentRole === 'expert') {
+        const tableContainer = document.getElementById('users-table-container');
+        const btnCreate = document.getElementById('btn-open-create-modal');
+        const expertProfile = document.getElementById('expert-profile-container');
+
+        if (tableContainer) tableContainer.classList.add('hidden');
+        if (btnCreate) btnCreate.classList.add('hidden');
+        if (expertProfile) expertProfile.classList.remove('hidden');
+
+        await setupExpertProfile(currentUser);
+    } else {
+        await loadUsers();
+    }
 });
+
+// تنظیم فرم اختصاصی کارشناس
+async function setupExpertProfile(currentUser) {
+    // دریافت مجدد آخرین داده‌های کاربر جاری همراه با اداره
+    try {
+        const freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
+
+        document.getElementById('profile-name').value = freshUser.name || '';
+        document.getElementById('profile-username').value = freshUser.email || freshUser.username || '';
+
+        const avatarUrl = freshUser.avatar
+            ? pb.files.getUrl(freshUser, freshUser.avatar, { thumb: '100x100' })
+            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(freshUser.name || 'User') + '&background=random';
+
+        const avatarImg = document.getElementById('profile-avatar-preview');
+        if (avatarImg) avatarImg.src = avatarUrl;
+
+        const roleText = ROLE_LABELS[freshUser.role] || freshUser.role || 'کارشناس';
+        const roleBadge = document.getElementById('profile-role-badge');
+        if (roleBadge) roleBadge.innerHTML = `<span class="bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-200">${roleText}</span>`;
+
+        const infoRole = document.getElementById('profile-info-role');
+        if (infoRole) infoRole.innerText = roleText;
+
+        const deptObj = freshUser.expand?.department_rel;
+        const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : 'تعیین نشده';
+        const infoDept = document.getElementById('profile-info-department');
+        if (infoDept) infoDept.innerText = deptName;
+
+    } catch (err) {
+        console.error("خطا در دریافت پروفایل کاربر:", err);
+    }
+}
+
+// ثبت تغییرات فرم اختصاصی کارشناس
+async function handleProfileFormSubmit(event) {
+    event.preventDefault();
+
+    const currentUser = pb.authStore.model;
+    const name = document.getElementById('profile-name').value.trim();
+    const username = document.getElementById('profile-username').value.trim();
+    const password = document.getElementById('profile-password').value;
+    const avatarInput = document.getElementById('profile-avatar');
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('username', username);
+
+    if (avatarInput && avatarInput.files && avatarInput.files[0]) {
+        formData.append('avatar', avatarInput.files[0]);
+    }
+
+    if (password) {
+        formData.append('password', password);
+        formData.append('passwordConfirm', password);
+    }
+
+    const btnSave = document.getElementById('btn-save-profile');
+    btnSave.disabled = true;
+    btnSave.innerText = 'در حال ذخیره‌سازی...';
+
+    try {
+        const updatedUser = await pb.collection('users').update(currentUser.id, formData);
+        pb.authStore.save(pb.authStore.token, updatedUser); // بروزرسانی authStore محلی
+        alert('اطلاعات حساب کاربری با موفقیت بروزرسانی شد.');
+        await setupExpertProfile(updatedUser);
+        document.getElementById('profile-password').value = '';
+    } catch (err) {
+        console.error("خطا در بروزرسانی پروفایل:", err);
+        const errDetails = err.data?.data ? JSON.stringify(err.data.data) : (err.message || 'مشکلی رخ داده است.');
+        alert("خطا در ثبت تغییرات: " + errDetails);
+    } finally {
+        btnSave.disabled = false;
+        btnSave.innerText = 'بروزرسانی اطلاعات';
+    }
+}
 
 // پر کردن دراپ‌داون اداره‌ها از روی کاربران با نقش department
 function populateDepartmentDropdown(users) {
@@ -33,8 +132,7 @@ async function loadUsers() {
         });
         allUsersData = records;
         populateDepartmentDropdown(allUsersData);
-        
-        // در صورت وجود فیلتر مجدداً اعمال می‌شود، در غیر این صورت کل کاربران رندر می‌شوند
+
         filterUsersTable();
     } catch (err) {
         console.error("خطا در بارگذاری لیست کاربران:", err);
@@ -50,26 +148,30 @@ function renderUsersTable(users) {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
 
-    if (!users || users.length === 0) {
+    const currentUser = pb.authStore.model;
+    const currentRole = currentUser?.role || '';
+
+    // فیلتر کاربران اختصاصی برای نقش اداره (فقط کاربران زیرمجموعه خود)
+    let displayUsers = users;
+    if (currentRole === 'department') {
+        displayUsers = users.filter(u => u.department_rel === currentUser.id);
+    }
+
+    if (!displayUsers || displayUsers.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400 font-bold">هیچ کاربری یافت نشد.</td></tr>`;
         return;
     }
 
-    const currentUser = pb.authStore.model;
-    const currentRole = currentUser?.role || '';
-
     let html = '';
-    users.forEach((user, index) => {
+    displayUsers.forEach((user, index) => {
         const isEven = index % 2 === 0;
         const bgRow = isEven ? 'bg-white' : 'bg-slate-50/70';
 
-        // نام اداره از رابطه department_rel
         const deptObj = user.expand?.department_rel;
         const deptName = deptObj
             ? (deptObj.name || deptObj.username || '---')
             : (user.department_rel || '---');
 
-        // برچسب فارسی نقش‌ها
         const roleBadges = {
             'admin_site': '<span class="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200">مدیر سایت</span>',
             'admin_general': '<span class="bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded border border-purple-200">مدیر کل</span>',
@@ -83,15 +185,13 @@ function renderUsersTable(users) {
         const canEdit = (
             currentRole === 'admin_site' ||
             currentRole === 'admin_general' ||
-            currentUser.id === user.id ||
             (currentRole === 'department' && user.department_rel === currentUser.id)
         );
 
-        // ۲. بررسی دسترسی حذف
+        // ۲. بررسی دسترسی حذف (مدیر سایت و مدیر کل)
         const canDelete = (
             currentRole === 'admin_site' ||
-            currentRole === 'admin_general' ||
-            (currentRole === 'department' && user.department_rel === currentUser.id)
+            currentRole === 'admin_general'
         );
 
         let actionButtons = '';
@@ -105,7 +205,6 @@ function renderUsersTable(users) {
             actionButtons = `<span class="text-slate-400 text-xs italic">بدون دسترسی</span>`;
         }
 
-        // آدرس تصویر آواتار در صورت وجود
         const avatarUrl = user.avatar
             ? pb.files.getUrl(user, user.avatar, { thumb: '100x100' })
             : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || 'User') + '&background=random';
@@ -132,7 +231,7 @@ function renderUsersTable(users) {
     tbody.innerHTML = html;
 }
 
-// فیلتر آنی جدول کاربران بر اساس متن جستجو و نقش
+// فیلتر آنی جدول کاربران
 function filterUsersTable() {
     const searchVal = (document.getElementById('user-search-input')?.value || '').trim().toLowerCase();
     const roleVal = document.getElementById('user-role-filter')?.value || '';
@@ -160,6 +259,7 @@ function openUserModal(userId = null) {
     const passInput = document.getElementById('user-password');
     const passStar = document.getElementById('password-required-star');
     const passHint = document.getElementById('password-hint');
+    const avatarPreview = document.getElementById('modal-avatar-preview');
 
     const currentUser = pb.authStore.model;
     const currentRole = currentUser?.role || '';
@@ -169,11 +269,10 @@ function openUserModal(userId = null) {
 
     form.reset();
 
-    // مدیریت دسترسی فیلدهای فرم بر اساس نقش کاربر لاگین شده
+    // تنظیم وضعیت کنترل‌های فرم بر اساس نقش
     if (roleSelect) {
         const adminSiteOpt = roleSelect.querySelector('option[value="admin_site"]');
         if (adminSiteOpt) {
-            // مدیر کل نباید بتواند کاربر با نقش مدیر سایت بسازد
             if (currentRole === 'admin_general') {
                 adminSiteOpt.disabled = true;
                 adminSiteOpt.classList.add('hidden');
@@ -184,8 +283,7 @@ function openUserModal(userId = null) {
         }
 
         if (currentRole === 'department') {
-            roleSelect.value = 'expert';
-            roleSelect.disabled = true; // مدیر اداره فقط کارشناس می‌سازد
+            roleSelect.disabled = true; // عدم امکان تغییر نقش دسترسی توسط نقش اداره
         } else {
             roleSelect.disabled = false;
         }
@@ -193,8 +291,8 @@ function openUserModal(userId = null) {
 
     if (deptSelect) {
         if (currentRole === 'department') {
-            deptSelect.value = currentUser.id; // خودکار انتخاب شدن خود اداره
-            deptSelect.disabled = true; // غیرقابل تغییر
+            deptSelect.value = currentUser.id;
+            deptSelect.disabled = true; // عدم امکان تغییر اداره
         } else {
             deptSelect.disabled = false;
         }
@@ -208,12 +306,21 @@ function openUserModal(userId = null) {
         modalTitle.innerText = 'ویرایش کاربر';
         document.getElementById('user-id').value = user.id;
         document.getElementById('user-name').value = user.name || '';
-        
+
         const usernameInput = document.getElementById('user-username');
-        if (usernameInput) usernameInput.value = user.username || '';
+        if (usernameInput) usernameInput.value = user.email || user.username || '';
+
+        const passwordLabel = document.getElementById('password-label-text');
+        if (passwordLabel) passwordLabel.innerText = 'کلمه عبور جدید';
 
         if (roleSelect) roleSelect.value = user.role || 'expert';
         if (deptSelect) deptSelect.value = user.department_rel || '';
+
+        // بارگذاری تصویر آواتار قبلی در پیش‌نمایش مودال
+        const avatarUrl = user.avatar
+            ? pb.files.getUrl(user, user.avatar, { thumb: '100x100' })
+            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.name || 'User') + '&background=random';
+        if (avatarPreview) avatarPreview.src = avatarUrl;
 
         passInput.removeAttribute('required');
         if (passStar) passStar.classList.add('hidden');
@@ -222,9 +329,14 @@ function openUserModal(userId = null) {
         // حالت ایجاد کاربر جدید
         modalTitle.innerText = 'ایجاد کاربر جدید';
         document.getElementById('user-id').value = '';
-        
+
         const usernameInput = document.getElementById('user-username');
         if (usernameInput) usernameInput.value = '';
+
+        const passwordLabel = document.getElementById('password-label-text');
+        if (passwordLabel) passwordLabel.innerText = 'کلمه عبور';
+
+        if (avatarPreview) avatarPreview.src = 'https://ui-avatars.com/api/?name=New+User&background=random';
 
         passInput.setAttribute('required', 'required');
         if (passStar) passStar.classList.remove('hidden');
@@ -257,10 +369,15 @@ async function handleUserFormSubmit(event) {
     const roleSelect = document.getElementById('user-role');
     const deptSelect = document.getElementById('user-department');
 
-    // استخراج دقیق نقش و اداره حتی در صورت disabled بودن selectها
+    // تعیین مقدار نقش در حالت ویرایش/ایجاد
     let role = roleSelect ? roleSelect.value : 'expert';
     if (currentRole === 'department') {
-        role = 'expert';
+        if (userId) {
+            const userToEdit = allUsersData.find(u => u.id === userId);
+            role = userToEdit ? userToEdit.role : 'expert';
+        } else {
+            role = 'expert';
+        }
     }
 
     let departmentRel = deptSelect ? deptSelect.value : '';
@@ -276,13 +393,11 @@ async function handleUserFormSubmit(event) {
     formData.append('department_rel', departmentRel);
     formData.append('emailVisibility', 'true');
 
-    // افزودن تصویر آواتار در صورت انتخاب فایل
     const avatarInput = document.getElementById('user-avatar');
     if (avatarInput && avatarInput.files && avatarInput.files[0]) {
         formData.append('avatar', avatarInput.files[0]);
     }
 
-    // اضافه کردن کلمه عبور فقط در صورت پر بودن یا هنگام ساخت جدید
     if (password) {
         formData.append('password', password);
         formData.append('passwordConfirm', password);
@@ -294,10 +409,8 @@ async function handleUserFormSubmit(event) {
 
     try {
         if (userId) {
-            // ویرایش کاربر موجود
             await pb.collection('users').update(userId, formData);
         } else {
-            // ایجاد کاربر جدید
             await pb.collection('users').create(formData);
         }
 
@@ -312,6 +425,7 @@ async function handleUserFormSubmit(event) {
         btnSave.innerText = 'ذخیره کاربر';
     }
 }
+
 // حذف کاربر
 async function deleteUser(userId, userName) {
     if (!confirm(`آیا از حذف کاربر «${userName}» اطمینان دارید؟`)) {

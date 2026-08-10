@@ -40,7 +40,12 @@ async function setupExpertProfile(currentUser) {
         const freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
 
         document.getElementById('profile-name').value = freshUser.name || '';
-        document.getElementById('profile-username').value = freshUser.email || freshUser.username || '';
+        const profileUsernameInput = document.getElementById('profile-username');
+        if (profileUsernameInput) {
+            profileUsernameInput.value = freshUser.email || freshUser.username || '';
+            profileUsernameInput.disabled = true;
+            profileUsernameInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+        }
 
         const avatarUrl = freshUser.avatar
             ? pb.files.getUrl(freshUser, freshUser.avatar, { thumb: '100x100' })
@@ -78,7 +83,7 @@ async function handleProfileFormSubmit(event) {
 
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('username', username);
+    // عدم ارسال username در صورت عدم تغییر جهت جلوگیری از خطاهای ولیدیشن
 
     if (avatarInput && avatarInput.files && avatarInput.files[0]) {
         formData.append('avatar', avatarInput.files[0]);
@@ -308,7 +313,17 @@ function openUserModal(userId = null) {
         document.getElementById('user-name').value = user.name || '';
 
         const usernameInput = document.getElementById('user-username');
-        if (usernameInput) usernameInput.value = user.email || user.username || '';
+        if (usernameInput) {
+            usernameInput.value = user.email || user.username || '';
+            // فقط مدیر سایت و مدیر کل مجاز به ویرایش نام کاربری/ایمیل در حالت ویرایش هستند
+            if (currentRole === 'admin_site' || currentRole === 'admin_general') {
+                usernameInput.disabled = false;
+                usernameInput.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+            } else {
+                usernameInput.disabled = true;
+                usernameInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+            }
+        }
 
         const passwordLabel = document.getElementById('password-label-text');
         if (passwordLabel) passwordLabel.innerText = 'کلمه عبور جدید';
@@ -331,7 +346,11 @@ function openUserModal(userId = null) {
         document.getElementById('user-id').value = '';
 
         const usernameInput = document.getElementById('user-username');
-        if (usernameInput) usernameInput.value = '';
+        if (usernameInput) {
+            usernameInput.value = '';
+            usernameInput.disabled = false;
+            usernameInput.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+        }
 
         const passwordLabel = document.getElementById('password-label-text');
         if (passwordLabel) passwordLabel.innerText = 'کلمه عبور';
@@ -387,8 +406,18 @@ async function handleUserFormSubmit(event) {
 
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('username', username);
-    formData.append('email', `${username}@sahab.local`);
+
+    // اگر در حالت ایجاد جدید هستیم یا فیلد غیرفعال نیست، مقادیر نام‌کاربری/ایمیل ارسال شوند
+    const usernameInput = document.getElementById('user-username');
+    if (!userId || (usernameInput && !usernameInput.disabled)) {
+        formData.append('username', username);
+        if (!username.includes('@')) {
+            formData.append('email', `${username}@sahab.local`);
+        } else {
+            formData.append('email', username);
+        }
+    }
+
     formData.append('role', role);
     formData.append('department_rel', departmentRel);
     formData.append('emailVisibility', 'true');

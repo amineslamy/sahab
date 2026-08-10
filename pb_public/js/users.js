@@ -8,8 +8,18 @@ const ROLE_LABELS = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // بررسی وضعیت ورود کاربر
+    // بررسی اولیه وجود SDK و توکن محلی
     if (typeof pb === 'undefined' || !pb.authStore.isValid) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // استعلام صحت توکن از سرور PocketBase
+    try {
+        await pb.collection('users').authRefresh();
+    } catch (authErr) {
+        console.warn("نشست کاربر منقضی یا باطل شده است:", authErr);
+        pb.authStore.clear();
         window.location.href = 'login.html';
         return;
     }
@@ -35,46 +45,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // تنظیم فرم اختصاصی کارشناس
 async function setupExpertProfile(currentUser) {
-    // دریافت مجدد آخرین داده‌های کاربر جاری همراه با اداره (مقاوم در برابر خطای expand)
+    if (!currentUser) return;
+
+    let freshUser = currentUser;
+
     try {
-        let freshUser;
-        try {
-            freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
-        } catch (expandErr) {
-            // در صورت عدم دسترسی به expand یا نبود رابطه، بدون expand دریافت می‌شود
-            freshUser = await pb.collection('users').getOne(currentUser.id);
-        }
-
-        document.getElementById('profile-name').value = freshUser.name || '';
-        const profileUsernameInput = document.getElementById('profile-username');
-        if (profileUsernameInput) {
-            profileUsernameInput.value = freshUser.email || freshUser.username || '';
-            profileUsernameInput.disabled = true;
-            profileUsernameInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
-        }
-
-        const avatarUrl = freshUser.avatar
-            ? pb.files.getUrl(freshUser, freshUser.avatar, { thumb: '100x100' })
-            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(freshUser.name || 'User') + '&background=random';
-
-        const avatarImg = document.getElementById('profile-avatar-preview');
-        if (avatarImg) avatarImg.src = avatarUrl;
-
-        const roleText = ROLE_LABELS[freshUser.role] || freshUser.role || 'کارشناس';
-        const roleBadge = document.getElementById('profile-role-badge');
-        if (roleBadge) roleBadge.innerHTML = `<span class="bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-200">${roleText}</span>`;
-
-        const infoRole = document.getElementById('profile-info-role');
-        if (infoRole) infoRole.innerText = roleText;
-
-        const deptObj = freshUser.expand?.department_rel;
-        const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : 'تعیین نشده';
-        const infoDept = document.getElementById('profile-info-department');
-        if (infoDept) infoDept.innerText = deptName;
-
-    } catch (err) {
-        console.error("خطا در دریافت پروفایل کاربر:", err);
+        freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
+    } catch (fetchErr) {
+        console.warn("عدم موفقیت در بروزرسانی اطلاعات از سرور، استفاده از داده‌های محلی:", fetchErr);
     }
+
+    document.getElementById('profile-name').value = freshUser.name || '';
+    const profileUsernameInput = document.getElementById('profile-username');
+    if (profileUsernameInput) {
+        profileUsernameInput.value = freshUser.email || freshUser.username || '';
+        profileUsernameInput.disabled = true;
+        profileUsernameInput.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+    }
+
+    const avatarUrl = freshUser.avatar
+        ? pb.files.getUrl(freshUser, freshUser.avatar, { thumb: '100x100' })
+        : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(freshUser.name || 'User') + '&background=random';
+
+    const avatarImg = document.getElementById('profile-avatar-preview');
+    if (avatarImg) avatarImg.src = avatarUrl;
+
+    const roleText = ROLE_LABELS[freshUser.role] || freshUser.role || 'کارشناس';
+    const roleBadge = document.getElementById('profile-role-badge');
+    if (roleBadge) roleBadge.innerHTML = `<span class="bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-lg border border-emerald-200">${roleText}</span>`;
+
+    const infoRole = document.getElementById('profile-info-role');
+    if (infoRole) infoRole.innerText = roleText;
+
+    const deptObj = freshUser.expand?.department_rel;
+    const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : 'تعیین نشده';
+    const infoDept = document.getElementById('profile-info-department');
+    if (infoDept) infoDept.innerText = deptName;
 }
 
 // ثبت تغییرات فرم اختصاصی کارشناس
@@ -103,7 +109,6 @@ async function handleProfileFormSubmit(event) {
         const updatedUser = await pb.collection('users').update(currentUser.id, formData);
         pb.authStore.save(pb.authStore.token, updatedUser); // بروزرسانی authStore محلی
 
-        // تغییر کلمه عبور از طریق مسیر اختصاصی جدید بدون الزام ارسال oldPassword
         if (password) {
             await pb.send('/api/custom-change-password', {
                 method: 'POST',
@@ -112,6 +117,11 @@ async function handleProfileFormSubmit(event) {
                     newPassword: password
                 }
             });
+
+            alert('کلمه عبور با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+            pb.authStore.clear();
+            window.location.href = 'login.html';
+            return;
         }
 
         alert('اطلاعات حساب کاربری با موفقیت بروزرسانی شد.');

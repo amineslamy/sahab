@@ -934,20 +934,20 @@ async function openDetailModal(id) {
         if (report.cover_image) {
             const coverUrl = pb.files.getUrl(report, report.cover_image);
             coverImageHtml = `
-                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
-                    <span class="text-slate-500 block mb-2">تصویر شاخص (کاور):</span>
+                <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-500 text-[10px] block mb-1.5 font-bold">تصویر شاخص (کاور):</span>
                     <div class="flex justify-center items-center w-full">
                         <a href="${coverUrl}" target="_blank" class="inline-block max-w-full">
-                            <img src="${coverUrl}" alt="تصویر شاخص" class="max-h-48 max-w-full object-contain rounded-lg border border-slate-200 shadow-sm hover:opacity-90 transition mx-auto">
+                            <img src="${coverUrl}" alt="تصویر شاخص" class="max-h-40 max-w-full object-contain rounded-lg border border-slate-200 shadow-sm hover:opacity-90 transition mx-auto">
                         </a>
                     </div>
                 </div>
             `;
         } else {
             coverImageHtml = `
-                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
-                    <span class="text-slate-500 block">تصویر شاخص (کاور):</span>
-                    <p class="text-slate-400 italic mt-1">بدون تصویر شاخص</p>
+                <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-500 text-[10px] block font-bold">تصویر شاخص (کاور):</span>
+                    <p class="text-slate-400 text-[10px] italic mt-0.5">بدون تصویر شاخص</p>
                 </div>
             `;
         }
@@ -959,7 +959,7 @@ async function openDetailModal(id) {
                 const fileUrl = pb.files.getUrl(report, file);
                 return `
                     <li>
-                        <a href="${fileUrl}" target="_blank" download class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline inline-flex items-center gap-1">
+                        <a href="${fileUrl}" target="_blank" download class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline inline-flex items-center gap-1 text-[11px]">
                             📎 ${file}
                         </a>
                     </li>
@@ -967,40 +967,39 @@ async function openDetailModal(id) {
             }).join('');
 
             attachmentsHtml = `
-                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
-                    <span class="text-slate-500 block mb-2">فایل‌های پیوست:</span>
-                    <ul class="space-y-1 text-xs">${fileItems}</ul>
+                <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-500 text-[10px] block mb-1 font-bold">فایل‌های پیوست:</span>
+                    <ul class="space-y-1 text-[11px]">${fileItems}</ul>
                 </div>
             `;
         } else {
             attachmentsHtml = `
-                <div class="col-span-2 bg-slate-50 p-3 rounded-xl">
-                    <span class="text-slate-500 block">فایل‌های پیوست:</span>
-                    <p class="text-slate-400 italic mt-1">بدون فایل پیوست</p>
+                <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-slate-500 text-[10px] block font-bold">فایل‌های پیوست:</span>
+                    <p class="text-slate-400 text-[10px] italic mt-0.5">بدون فایل پیوست</p>
                 </div>
             `;
         }
 
         const modalContainer = document.getElementById('modal-content-container');
         modalContainer.innerHTML = `
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">عنوان:</span><strong class="text-slate-900 font-bold">${report.title || '---'}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">شماره اتوماسیون:</span><strong class="text-slate-900 font-bold">${report.automation_id || '---'}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">موضوع:</span><strong class="text-slate-900 font-bold">${topicTitles}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">کیس:</span><strong class="text-slate-900 font-bold">${caseTitles}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نوع خبر / ارزیابی:</span><strong class="text-slate-900 font-bold">${report.news_type || '---'} / ${report.evaluation || '---'}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">طبقه‌بندی / اولویت:</span><strong class="text-slate-900 font-bold">${report.classification || '---'} / ${report.priority || '---'}</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">نویسنده / اداره / ثبت‌کننده:</span><strong class="text-slate-900 font-bold">${authorName} - ${deptName} (ثبت: ${submitterName})</strong></div>
-            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">تاریخ وقوع:</span><strong class="text-slate-900 font-bold">${formatDateToFa(report.occurrence_date)}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">عنوان:</span><strong class="text-slate-900 font-bold text-xs">${report.title || '---'}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">شماره اتوماسیون:</span><strong class="text-slate-900 font-bold text-xs">${report.automation_id || '---'}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">موضوع:</span><strong class="text-slate-900 font-bold text-[11px]">${topicTitles}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">کیس:</span><strong class="text-slate-900 font-bold text-[11px]">${caseTitles}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">نوع خبر / ارزیابی:</span><strong class="text-slate-900 font-bold text-[11px]">${report.news_type || '---'} / ${report.evaluation || '---'}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">طبقه‌بندی / اولویت:</span><strong class="text-slate-900 font-bold text-[11px]">${report.classification || '---'} / ${report.priority || '---'}</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">نویسنده / اداره / ثبت‌کننده:</span><strong class="text-slate-900 font-bold text-[11px]">${authorName} - ${deptName} (ثبت: ${submitterName})</strong></div>
+            <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">تاریخ وقوع:</span><strong class="text-slate-900 font-bold text-[11px]">${formatDateToFa(report.occurrence_date)}</strong></div>
             ${coverImageHtml}     
 
-
-            <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">چکیده:</span><p class="text-slate-800 leading-relaxed mt-1">${report.abstract || 'بدون چکیده'}</p></div>
-            <div class="col-span-2 bg-slate-50 p-3 rounded-xl"><span class="text-slate-500 block">متن کامل:</span><div class="text-slate-800 leading-relaxed mt-1 overflow-x-auto">${report.content || 'بدون متن'}</div></div>
+            <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5 font-bold">چکیده:</span><p class="text-slate-800 leading-relaxed text-[11px]">${report.abstract || 'بدون چکیده'}</p></div>
+            <div class="col-span-2 bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5 font-bold">متن کامل:</span><div class="text-slate-800 leading-relaxed text-[11px] overflow-x-auto">${report.content || 'بدون متن'}</div></div>
          
             <!-- بخش کامنت‌ها، نظریه‌ها و ملاحظات -->
-            <div class="col-span-2 bg-slate-100/70 p-4 rounded-xl space-y-3 border border-slate-200">
-                <h4 class="font-black text-slate-800 text-xs border-b border-slate-200 pb-2">💬 کامنت‌ها، نظریه‌ها و ملاحظات ثبت‌شده:</h4>
-                <div class="space-y-2">
+            <div class="col-span-2 bg-slate-100/70 p-3 rounded-xl space-y-2 border border-slate-200">
+                <h4 class="font-black text-slate-800 text-[11px] border-b border-slate-200 pb-1.5">💬 کامنت‌ها، نظریه‌ها و ملاحظات ثبت‌شده:</h4>
+                <div class="space-y-1.5">
                     ${commentsHtml}
                 </div>
             </div>

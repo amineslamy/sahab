@@ -58,17 +58,56 @@ function exportBulletin() {
 }
 
 async function deleteReport(id) {
-    if (!confirm("آیا از حذف این گزارش اطمینان دارید؟")) return;
+    if (!confirm("آیا از انتقال این گزارش و کامنت‌های آن به سطل آشغال و حذف نهایی اطمینان دارید؟")) return;
     try {
-        await pb.collection('reports').delete(id);
+        // ۱. دریافت اطلاعات کامل گزارش فعلی
+        const reportData = await pb.collection('reports').getOne(id, { requestKey: null });
+
+        // ۲. دریافت تمام کامنت‌های مرتبط با این گزارش
+        const relatedComments = await pb.collection('comments').getFullList({
+            filter: `report ~ "${id}" || report = "${id}"`,
+            requestKey: null
+        });
+
+        // ۳. ارسال داده‌های گزارش و کامنت‌ها به کالکشن سطل آشغال (trash_reports)
+        const currentUser = pb.authStore.model;
+        await pb.collection('trash_reports').create({
+            original_id: id,
+            report_data: reportData,
+            comments_data: relatedComments,
+            deleted_by: currentUser ? currentUser.id : null
+        }, { requestKey: null });
+
+        // ۴. حذف تمامی کامنت‌های پیدا شده از کالکشن اصلی
+        for (const comment of relatedComments) {
+            await pb.collection('comments').delete(comment.id, { requestKey: null });
+        }
+
+        // ۵. حذف خودِ گزارش از کالکشن اصلی
+        await pb.collection('reports').delete(id, { requestKey: null });
+
         selectedReportIds.delete(id);
         loadReportsTable();
+        alert("گزارش و کامنت‌های مربوطه با موفقیت به سطل آشغال منتقل و پاک شدند.");
     } catch (err) {
-        console.error("خطا در حذف گزارش:", err);
-        alert("خطا در حذف گزارش انجام نشد.");
+        console.error("خطا در فرآیند انتقال به سطل آشغال و حذف گزارش:", err);
+
+        const status = err?.status || 0;
+        const msg = err?.message || "";
+
+        if (status === 400 && msg.includes("required relation reference")) {
+            alert("⚠️ عدم امکان حذف:\nکامنت‌ها یا وابستگی‌های اجباری این گزارش پاک نشده‌اند و دیتابیس اجازه حذف نمی‌دهد.");
+        } else if (status === 403) {
+            alert("⛔ عدم داشتن دسترسی:\nشما مجوز لازم روی کالکشن سطل آشغال، کامنت‌ها یا گزارش‌ها را ندارید (API Rules را بررسی کنید).");
+        } else if (status === 404) {
+            alert("🔍 یافت نشد:\nگزارش یا کامنت مورد نظر یافت نشد.");
+        } else if (status === 0 || msg.includes("Failed to fetch")) {
+            alert("🌐 خطای ارتباط با سرور:\nاتصال به سرور برقرار نیست.");
+        } else {
+            alert(`❌ خطا در عملیات:\n${msg || 'خطایی رخ داده است.'}`);
+        }
     }
 }
-
 function updateSelectionUI() {
     const selectionBar = document.getElementById('selection-bar');
     const countSpan = document.getElementById('selected-count');

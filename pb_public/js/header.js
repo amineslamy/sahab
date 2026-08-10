@@ -50,7 +50,6 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
                 <a href="index.html" class="nav-item ${isCurrentPage('index.html') ? 'active' : ''}">پیشخوان</a>
                 <a href="create-report.html" class="nav-item ${isCurrentPage('create-report.html') ? 'active' : ''}">افزودن | ویرایش خبر</a>
                 <a href="users.html" class="nav-item ${isCurrentPage('users.html') ? 'active' : ''}">مدیریت کاربران</a>
-                <a href="sahab-sync.html" class="nav-item ${isCurrentPage('sahab-sync.html') ? 'active' : ''}">همگام‌سازی و پشتیبان</a>
             </nav>
 
             <div class="navbar-user-profile">

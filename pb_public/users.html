@@ -46,12 +46,15 @@
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 text-sm min-h-screen p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
+<body class="bg-slate-50 text-slate-800 text-sm min-h-screen flex flex-col">
 
     <!-- ۱. هدر سراسری سامانه سحاب -->
     <div id="app-header"></div>
 
-    <!-- ۲. محتوای اصلی مدیریت کاربران -->
+    <!-- کانتینر محتوای اصلی -->
+    <main class="w-full max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- ۲. محتوای اصلی مدیریت کاربران -->
     <div class="space-y-6">
 
         <!-- نوار عنوان و دکمه افزودن کاربر -->
@@ -269,6 +272,7 @@
     <script src="js/main.js?v=3"></script>
     <script src="js/header.js"></script>
     <script src="js/users.js"></script>
+    </main>
 </body>
 
 </html>

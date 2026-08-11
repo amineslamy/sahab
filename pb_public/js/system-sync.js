@@ -7,14 +7,34 @@ async function exportZip() {
 
     try {
         if (typeof JSZip === 'undefined') {
-            alert('کتابخانه JSZip بارگذاری نشده است.');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'خطا',
+                    text: 'کتابخانه JSZip بارگذاری نشده است.',
+                    icon: 'error',
+                    confirmButtonText: 'متوجه شدم',
+                    confirmButtonColor: '#ef4444'
+                });
+            } else {
+                alert('کتابخانه JSZip بارگذاری نشده است.');
+            }
             return;
         }
 
         // استخراج شناسه گزارش‌های انتخاب‌شده از Set مربوطه
         const selectedIds = Array.from(window.selectedReportIds || []);
         if (selectedIds.length === 0) {
-            alert('لطفاً حداقل یک گزارش را از جدول انتخاب کنید.');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'هشدار',
+                    text: 'لطفاً حداقل یک گزارش را از جدول انتخاب کنید.',
+                    icon: 'warning',
+                    confirmButtonText: 'تایید',
+                    confirmButtonColor: '#f59e0b'
+                });
+            } else {
+                alert('لطفاً حداقل یک گزارش را از جدول انتخاب کنید.');
+            }
             return;
         }
 
@@ -169,7 +189,17 @@ async function exportZip() {
 
     } catch (error) {
         console.error('خطا در خروجی زیپ:', error);
-        alert('خطا در دریافت خروجی: ' + error.message);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'خطا در دریافت خروجی',
+                text: error.message || 'مشکلی رخ داده است.',
+                icon: 'error',
+                confirmButtonText: 'متوجه شدم',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert('خطا در دریافت خروجی: ' + error.message);
+        }
     } finally {
         if (exportBtn) {
             exportBtn.disabled = false;
@@ -241,7 +271,17 @@ async function handleStartImport() {
     const progressPercent = document.getElementById('import-progress-percent');
 
     if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        alert('لطفاً یک فایل ZIP انتخاب کنید.');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'هشدار',
+                text: 'لطفاً یک فایل ZIP انتخاب کنید.',
+                icon: 'warning',
+                confirmButtonText: 'تایید',
+                confirmButtonColor: '#f59e0b'
+            });
+        } else {
+            alert('لطفاً یک فایل ZIP انتخاب کنید.');
+        }
         return;
     }
 
@@ -259,7 +299,17 @@ async function handleStartImport() {
 
     try {
         if (typeof JSZip === 'undefined') {
-            alert('کتابخانه JSZip بارگذاری نشده است.');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'خطا',
+                    text: 'کتابخانه JSZip بارگذاری نشده است.',
+                    icon: 'error',
+                    confirmButtonText: 'متوجه شدم',
+                    confirmButtonColor: '#ef4444'
+                });
+            } else {
+                alert('کتابخانه JSZip بارگذاری نشده است.');
+            }
             return;
         }
 
@@ -308,7 +358,17 @@ async function handleStartImport() {
 
         if (totalItems === 0) {
             updateProgress(100, 100, 'هیچ داده‌ای برای ایمپورت یافت نشد.');
-            alert('فایل ZIP حاوی داده‌ای برای ایمپورت نیست.');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'اطلاع‌رسانی',
+                    text: 'فایل ZIP حاوی داده‌ای برای ایمپورت نیست.',
+                    icon: 'info',
+                    confirmButtonText: 'تایید',
+                    confirmButtonColor: '#3b82f6'
+                });
+            } else {
+                alert('فایل ZIP حاوی داده‌ای برای ایمپورت نیست.');
+            }
             return;
         }
 

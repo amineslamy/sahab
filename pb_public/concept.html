@@ -196,21 +196,7 @@
                     </div>
                 </div>
         
-                <div class="card-glow-amber bg-amber-50/80 px-3 py-1.5 rounded-xl flex items-center gap-2 shrink-0 text-right">
-                    <i class="fa-solid fa-folder-tree text-amber-600"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] text-amber-600 font-semibold leading-tight">موضوع</span>
-                        <strong class="text-amber-950 font-bold leading-tight">فضای مجازی</strong>
-                    </div>
-                </div>
-        
-                <div class="card-glow-rose bg-rose-50/80 px-3 py-1.5 rounded-xl flex items-center gap-2 shrink-0 text-right">
-                    <i class="fa-solid fa-briefcase text-rose-600"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] text-rose-600 font-semibold leading-tight">کیس</span>
-                        <strong class="text-rose-950 font-bold leading-tight">پروژه ایکس / فاز ۱</strong>
-                    </div>
-                </div>
+                
             </div>
         </header>
 
@@ -353,40 +339,95 @@
                     </div>
                 </div>
             
-                <!-- Dynamic Searchable Pickers Card (Purple Glow - No Section Title) -->
-                <div class="glass-card card-glow-purple p-6 rounded-2xl space-y-4">
-                    <!-- Topic Searchable Dropdown -->
+                <!-- Topics & Cases Multi-Select Card (Expanded Purple Glow) -->
+                <div class="glass-card card-glow-purple p-6 rounded-2xl space-y-5">
+                
+                    <!-- Multi-Topic Picker -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">موضوع (جستجوی آجاکسی)</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-tree text-amber-600"></i>
+                                موضوعات مرتبط
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-normal">امکان انتخاب چند موضوع</span>
+                        </label>
+                
+                        <!-- Selected Topics Container -->
+                        <div
+                            class="flex flex-wrap gap-1.5 mb-2.5 p-2 bg-slate-50/70 rounded-xl border border-slate-200 min-h-[42px] items-center">
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+                                فضای مجازی
+                                <button type="button" class="text-amber-600 hover:text-amber-900"><i
+                                        class="fa-solid fa-xmark text-[10px]"></i></button>
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+                                امنیت سایبری
+                                <button type="button" class="text-amber-600 hover:text-amber-900"><i
+                                        class="fa-solid fa-xmark text-[10px]"></i></button>
+                            </span>
+                        </div>
+                
+                        <!-- Search & Add Topic Input -->
                         <div class="relative">
-                            <input type="text" placeholder="جستجوی موضوع..."
+                            <input type="text" placeholder="جستجو و افزودن موضوع جدید..."
                                 class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
                         </div>
                     </div>
-            
-                    <!-- Hierarchical Case Selector -->
+                
+                    <!-- Multi-Case Picker -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">کیس مرتبط (نمایش سلسله‌مراتبی)</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-briefcase text-rose-600"></i>
+                                کیس‌های مرتبط
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-normal">امکان انتخاب چند کیس</span>
+                        </label>
+                
+                        <!-- Selected Cases Container -->
+                        <div
+                            class="flex flex-wrap gap-1.5 mb-2.5 p-2 bg-slate-50/70 rounded-xl border border-slate-200 min-h-[42px] items-center">
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-200">
+                                پروژه ایکس / فاز ۱
+                                <button type="button" class="text-rose-600 hover:text-rose-900"><i
+                                        class="fa-solid fa-xmark text-[10px]"></i></button>
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 text-xs font-semibold border border-rose-200">
+                                عملیات شناختی ۱۴۰۴
+                                <button type="button" class="text-rose-600 hover:text-rose-900"><i
+                                        class="fa-solid fa-xmark text-[10px]"></i></button>
+                            </span>
+                        </div>
+                
+                        <!-- Hierarchical Case Selector Dropdown -->
                         <select
                             class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm">
-                            <option value="">انتخاب کیس...</option>
+                            <option value="">+ انتخاب و افزودن کیس...</option>
                             <option value="c1">📂 کیس اصلی: عملیات شناختی ۱۴۰۴</option>
                             <option value="c1-1">&nbsp;&nbsp;&nbsp;&nbsp;└── 📄 پروژه فرعی ایکس</option>
                             <option value="c1-2">&nbsp;&nbsp;&nbsp;&nbsp;└── 📄 پروژه فرعی ایگرگ</option>
                             <option value="c2">📂 کیس اصلی: تحلیل رسانه‌های منطقه‌ای</option>
                         </select>
                     </div>
-            
+                
                     <!-- Expert Selector -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1.5">کارشناس مسئول</label>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-gear text-purple-600"></i>
+                            کارشناس مسئول
+                        </label>
                         <div class="relative">
                             <input type="text" placeholder="جستجوی کارشناس..."
                                 class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm">
                             <i class="fa-solid fa-user-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
                         </div>
                     </div>
+                
                 </div>
             
                 <!-- Classification, Priority, Type & Reliability Card (Rose Glow - No Section Title) -->

@@ -37,7 +37,6 @@
             background-color: #f8fafc;
             color: #0f172a;
             min-height: 100vh;
-            position: relative;
             overflow-x: hidden;
         }
 
@@ -150,7 +149,7 @@
     </style>
 </head>
 
-<body class="p-4 md:p-8 pb-80">
+<body class="p-4 md:p-8">
     <!-- Ambient Colorful Glow Orbs -->
     <div class="glow-orb-1"></div>
     <div class="glow-orb-2"></div>
@@ -510,24 +509,30 @@
                 </aside>
             </div>
 
+            </form>
+            </div>
+            
+            <!-- Spacer for fixed bar clearance -->
+            <div class="h-36"></div>
+            
             <!-- Fixed Bottom Action Bar -->
-            <div class="fixed bottom-4 left-0 right-0 z-50 floating-bar px-4">
+            <div class="fixed bottom-4 left-0 right-0 z-50 floating-bar px-4 pointer-events-none">
                 <div
-                    class="max-w-3xl mx-auto glass-card card-glow-purple border-2 border-purple-300/80 rounded-2xl px-5 py-2.5 shadow-2xl flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md">
-
+                    class="max-w-3xl mx-auto glass-card card-glow-purple border-2 border-purple-300/80 rounded-2xl px-5 py-2.5 shadow-2xl flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md pointer-events-auto">
+            
                     <div class="flex items-center min-h-[36px]">
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
                             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
                             <span>وضعیت: پیش‌نویس</span>
                         </div>
                     </div>
-
+            
                     <div class="flex items-center gap-2.5">
                         <a href="index.html"
                             class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition">
                             انصراف
                         </a>
-                        <button type="submit" id="submit-btn"
+                        <button type="submit" form="create-report-form" id="submit-btn"
                             class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition flex items-center gap-2 cursor-pointer">
                             <span id="btn-spinner" data-submit-spinner
                                 class="hidden w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"
@@ -535,12 +540,9 @@
                             <span id="btn-text" data-submit-text>ذخیره‌سازی و نهایی‌سازی</span>
                         </button>
                     </div>
-
+            
                 </div>
             </div>
-        </form>
-
-    </div>
 
     <!-- پیام موفقیت -->
     <div id="success-toast" role="status" aria-live="polite"

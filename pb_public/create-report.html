@@ -28,6 +28,9 @@
     <link href="css/quill.snow.css" rel="stylesheet">
     <script src="js/quill.min.js"></script>
 
+    <!-- SweetAlert2 CSS (Local) -->
+    <link rel="stylesheet" href="css/sweetalert2.min.css">
+
     <!-- CSS اختصاصی صفحه -->
     <link rel="stylesheet" href="css/create-report.css">
 
@@ -212,10 +215,12 @@
             </div>
         </header>
 
-        <!-- پیام خطا -->
-        <div id="error-alert" role="alert" aria-live="assertive"
-            class="hidden bg-rose-50 border-r-4 border-rose-600 text-rose-900 p-5 rounded-xl text-base font-bold shadow-sm">
-        </div>
+        <!-- حالت موفقیت: پیام سبز جایگزین داخل نوار -->
+                        <div id="status-success-badge"
+                            class="hidden flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl transition-all">
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                            <span id="status-success-text">گزارش با موفقیت ویرایش شد و نسخه جدید ثبت گردید.</span>
+                        </div>
 
         <!-- Form Container -->
         <form id="create-report-form" novalidate autocomplete="off">
@@ -521,9 +526,17 @@
                     class="max-w-3xl mx-auto glass-card card-glow-purple border-2 border-purple-300/80 rounded-2xl px-5 py-2.5 shadow-2xl flex items-center justify-between gap-4 bg-white/95 backdrop-blur-md pointer-events-auto">
             
                     <div class="flex items-center min-h-[36px]">
-                        <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                        <!-- حالت عادی: وضعیت پیش‌نویس -->
+                        <div id="status-draft-badge" class="flex items-center gap-2 text-xs font-bold text-slate-700">
                             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
                             <span>وضعیت: پیش‌نویس</span>
+                        </div>
+                    
+                        <!-- حالت موفقیت: پیام سبز جایگزین داخل نوار -->
+                        <div id="status-success-badge"
+                            class="hidden flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl transition-all">
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+                            <span id="status-success-text">گزارش با موفقیت ویرایش شد و نسخه جدید ثبت گردید.</span>
                         </div>
                     </div>
             
@@ -544,14 +557,9 @@
                 </div>
             </div>
 
-    <!-- پیام موفقیت -->
-    <div id="success-toast" role="status" aria-live="polite"
-        class="fixed bottom-6 right-6 hidden bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 transition-all duration-300 transform border border-emerald-500">
-        <i class="fa-solid fa-circle-check text-xl"></i>
-        <span class="text-sm font-bold">گزارش با موفقیت در سامانه ثبت شد. در حال هدایت...</span>
-    </div>
-
+    
     <!-- اسکریپت‌ها -->
+    <script src="js/sweetalert2.all.min.js"></script>
     <script src="js/diff.min.js"></script>
     <script src="js/report-versions.js"></script>
     <script src="js/create-report.js"></script>

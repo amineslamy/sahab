@@ -1343,54 +1343,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showError(message) {
-        const alert = $id('error-alert');
-
-        if (!alert) {
-            console.error(message);
-            return;
-        }
-
-        alert.textContent = message;
-        alert.classList.remove('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        Swal.fire({
+            icon: 'error',
+            title: 'خطا',
+            text: message,
+            confirmButtonText: 'تایید',
+            customClass: {
+                confirmButton: 'px-5 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs transition hover:bg-rose-700'
+            },
+            buttonsStyling: false
+        });
     }
 
     function clearError() {
-        const alert = $id('error-alert');
-        if (!alert) return;
-
-        alert.textContent = '';
-        alert.classList.add('hidden');
+        // عدم نیاز به پاکسازی با حضور SweetAlert2
     }
 
     function showToast(message) {
-        const toast = $id('success-toast') || $id('toast-success');
-
-        if (!toast) {
-            alert(message);
-            return;
-        }
-
-        // اگر محتوای کاستوم در HTML بود (شامل تگ SVG)، تگ متنی را درون آن به روز می‌کنیم
-        const textNode = toast.querySelector('span.text-sm');
-        if (textNode) {
-            textNode.textContent = message;
-        } else {
-            toast.textContent = message;
-        }
-
-        // استایل‌های نمایش انیمیشن Toast
-        toast.classList.remove('hidden');
-        setTimeout(() => {
-            toast.classList.remove('translate-y-10', 'opacity-0');
-        }, 10);
-
-        setTimeout(() => {
-            toast.classList.add('translate-y-10', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 300);
-        }, 2500);
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: message,
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true
+        });
     }
 
     // function getPocketBaseErrorMessage(err) {

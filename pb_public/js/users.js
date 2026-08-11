@@ -118,19 +118,49 @@ async function handleProfileFormSubmit(event) {
                 }
             });
 
-            alert('کلمه عبور با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+            if (typeof Swal !== 'undefined') {
+                await Swal.fire({
+                    title: 'موفقیت‌آمیز',
+                    text: 'کلمه عبور با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.',
+                    icon: 'success',
+                    confirmButtonText: 'تایید',
+                    confirmButtonColor: '#4f46e5'
+                });
+            } else {
+                alert('کلمه عبور با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+            }
             pb.authStore.clear();
             window.location.href = 'login.html';
             return;
         }
 
-        alert('اطلاعات حساب کاربری با موفقیت بروزرسانی شد.');
+        if (typeof Swal !== 'undefined') {
+            await Swal.fire({
+                title: 'موفقیت‌آمیز',
+                text: 'اطلاعات حساب کاربری با موفقیت بروزرسانی شد.',
+                icon: 'success',
+                confirmButtonText: 'تایید',
+                confirmButtonColor: '#4f46e5'
+            });
+        } else {
+            alert('اطلاعات حساب کاربری با موفقیت بروزرسانی شد.');
+        }
         await setupExpertProfile(updatedUser);
         document.getElementById('profile-password').value = '';
     } catch (err) {
         console.error("خطا در بروزرسانی پروفایل:", err);
         const errDetails = err.data?.data ? JSON.stringify(err.data.data) : (err.message || 'مشکلی رخ داده است.');
-        alert("خطا در ثبت تغییرات: " + errDetails);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'خطا در ثبت تغییرات',
+                text: errDetails,
+                icon: 'error',
+                confirmButtonText: 'متوجه شدم',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert("خطا در ثبت تغییرات: " + errDetails);
+        }
     } finally {
         btnSave.disabled = false;
         btnSave.innerText = 'بروزرسانی اطلاعات';
@@ -469,7 +499,17 @@ async function handleUserFormSubmit(event) {
 
                 // اگر کاربر کلمه عبور خودش را تغییر داده باشد، باید خارج شود
                 if (userId === currentUser.id) {
-                    alert('کلمه عبور شما با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+                    if (typeof Swal !== 'undefined') {
+                        await Swal.fire({
+                            title: 'تغییر رمز عبور',
+                            text: 'کلمه عبور شما با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.',
+                            icon: 'success',
+                            confirmButtonText: 'ورود مجدد',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    } else {
+                        alert('کلمه عبور شما با موفقیت تغییر یافت. لطفاً با کلمه عبور جدید مجدداً وارد شوید.');
+                    }
                     pb.authStore.clear();
                     window.location.href = 'login.html';
                     return;
@@ -485,10 +525,30 @@ async function handleUserFormSubmit(event) {
 
         closeUserModal();
         await loadUsers();
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'موفقیت‌آمیز',
+                text: userId ? 'اطلاعات کاربر با موفقیت بروزرسانی شد.' : 'کاربر جدید با موفقیت ایجاد شد.',
+                icon: 'success',
+                confirmButtonText: 'تایید',
+                confirmButtonColor: '#4f46e5'
+            });
+        }
     } catch (err) {
         console.error("خطا در ذخیره‌سازی کاربر:", err);
         const errDetails = err.data?.data ? JSON.stringify(err.data.data) : (err.message || 'مشکلی رخ داده است.');
-        alert("خطا در ذخیره‌سازی کاربر: " + errDetails);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'خطا در ذخیره‌سازی',
+                text: errDetails,
+                icon: 'error',
+                confirmButtonText: ' متوجه شدم',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert("خطا در ذخیره‌سازی کاربر: " + errDetails);
+        }
     } finally {
         btnSave.disabled = false;
         btnSave.innerText = 'ذخیره کاربر';
@@ -497,15 +557,49 @@ async function handleUserFormSubmit(event) {
 
 // حذف کاربر
 async function deleteUser(userId, userName) {
-    if (!confirm(`آیا از حذف کاربر «${userName}» اطمینان دارید؟`)) {
+    if (typeof Swal !== 'undefined') {
+        const confirmResult = await Swal.fire({
+            title: 'تایید حذف کاربر',
+            text: `آیا از حذف کاربر «${userName}» اطمینان دارید؟`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'بله، حذف شود',
+            cancelButtonText: 'انصراف'
+        });
+
+        if (!confirmResult.isConfirmed) return;
+    } else if (!confirm(`آیا از حذف کاربر «${userName}» اطمینان دارید؟`)) {
         return;
     }
 
     try {
         await pb.collection('users').delete(userId);
         await loadUsers();
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'حذف شد',
+                text: `کاربر «${userName}» با موفقیت حذف گردید.`,
+                icon: 'success',
+                confirmButtonText: 'تایید',
+                confirmButtonColor: '#4f46e5'
+            });
+        }
     } catch (err) {
         console.error("خطا در حذف کاربر:", err);
-        alert("خطا در حذف کاربر: " + (err.message || 'امکان حذف وجود ندارد.'));
+        const errorMsg = err.message || 'امکان حذف وجود ندارد.';
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'خطا در حذف کاربر',
+                text: errorMsg,
+                icon: 'error',
+                confirmButtonText: 'متوجه شدم',
+                confirmButtonColor: '#ef4444'
+            });
+        } else {
+            alert("خطا در حذف کاربر: " + errorMsg);
+        }
     }
 }

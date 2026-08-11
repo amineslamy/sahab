@@ -69,14 +69,29 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
         </header>
     `;
 
-    // اضافه کردن اکشن خروج
-    document.getElementById('logout-btn')?.addEventListener('click', () => {
-        if (confirm('آیا می‌خواهید از سامانه خارج شوید؟')) {
-            if (activePb?.authStore) {
-                activePb.authStore.clear();
-            }
-            window.location.href = 'login.html';
+    // اضافه کردن اکشن خروج با پشتیبانی از SweetAlert2
+    document.getElementById('logout-btn')?.addEventListener('click', async () => {
+        if (typeof Swal !== 'undefined') {
+            const confirmResult = await Swal.fire({
+                title: 'خروج از سامانه',
+                text: 'آیا می‌خواهید از حساب کاربری خود خارج شوید؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'بله، خروج',
+                cancelButtonText: 'انصراف'
+            });
+
+            if (!confirmResult.isConfirmed) return;
+        } else if (!confirm('آیا می‌خواهید از سامانه خارج شوید؟')) {
+            return;
         }
+
+        if (activePb?.authStore) {
+            activePb.authStore.clear();
+        }
+        window.location.href = 'login.html';
     });
 };
 

@@ -191,13 +191,21 @@ document.addEventListener('DOMContentLoaded', () => {
             saveReplyBtn?.addEventListener('click', async () => {
                 const replyText = replyTextarea ? replyTextarea.value.trim() : '';
                 if (!replyText) {
-                    alert('متن پاسخ نمی‌تواند خالی باشد.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'هشدار',
+                        text: 'متن پاسخ نمی‌تواند خالی باشد.'
+                    });
                     return;
                 }
 
                 const currentUser = state.pb.authStore.record || state.pb.authStore.model;
                 if (!currentUser) {
-                    alert('جهت ارسال پاسخ ابتدا باید وارد سیستم شوید.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'عدم دسترسی',
+                        text: 'جهت ارسال پاسخ ابتدا باید وارد سیستم شوید.'
+                    });
                     return;
                 }
 
@@ -216,10 +224,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     try {
                         await state.pb.collection(COMMENTS_COLLECTION).create(data);
+
+                        resetCommentForm();
                         await fetchComments();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ثبت موقت دیدگاه',
+                            text: 'کامنت شما به‌صورت موقت ثبت شد و پس از فشردن دکمه «ویرایش | ثبت در دیتابیس» در دیتابیس قرار می‌گیرد.'
+                        });
                     } catch (err) {
-                        console.error('خطا در ثبت پاسخ:', err?.data || err);
-                        alert('ثبت پاسخ با خطا مواجه شد.');
+                        console.error('خطا در ثبت کامنت (جزئیات):', err?.data || err);
+                        const serverMsg = err?.data?.message || err?.message || 'خطا در برقراری ارتباط با سرور';
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطا در ثبت دیدگاه',
+                            text: serverMsg
+                        });
                     }
                 } else {
                     const tempComment = {
@@ -235,6 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     state.pendingComments.push(tempComment);
                     renderCommentsList();
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ثبت موقت',
+                        text: 'پاسخ شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد.'
+                    });
                 }
             });
         }
@@ -265,7 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
             saveEditBtn?.addEventListener('click', async () => {
                 const updatedText = editTextarea.value.trim();
                 if (!updatedText) {
-                    alert('متن دیدگاه نمی‌تواند خالی باشد.');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'هشدار',
+                        text: 'متن دیدگاه نمی‌تواند خالی باشد.'
+                    });
                     return;
                 }
 
@@ -280,28 +309,61 @@ document.addEventListener('DOMContentLoaded', () => {
                             version: currentVersion + 1
                         });
                         await fetchComments();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'موفقیت',
+                            text: 'دیدگاه با موفقیت ویرایش شد.'
+                        });
                     } catch (err) {
                         console.error('خطا در ویرایش دیدگاه:', err);
-                        alert('ویرایش دیدگاه با خطا مواجه شد.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطا',
+                            text: 'ویرایش دیدگاه با خطا مواجه شد.'
+                        });
                     }
                 }
             });
 
-            // حذف دیدگاه با تاییدیه
+            // حذف دیدگاه با تاییدیه SweetAlert2
             deleteBtn?.addEventListener('click', async () => {
-                const confirmed = confirm('آیا از حذف این دیدگاه اطمینان دارید؟ این عملیات قابل بازگشت نیست.');
-                if (!confirmed) return;
+                const result = await Swal.fire({
+                    title: 'حذف دیدگاه',
+                    text: 'آیا از حذف این دیدگاه اطمینان دارید؟ این عملیات قابل بازگشت نیست.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'بله، حذف شود',
+                    cancelButtonText: 'انصراف'
+                });
+
+                if (!result.isConfirmed) return;
 
                 if (comment.isPending) {
                     state.pendingComments = state.pendingComments.filter(c => c.id !== comment.id);
                     renderCommentsList();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'حذف شد',
+                        text: 'دیدگاه موقت حذف گردید.'
+                    });
                 } else {
                     try {
                         await state.pb.collection(COMMENTS_COLLECTION).delete(comment.id);
                         await fetchComments();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'حذف شد',
+                            text: 'دیدگاه با موفقیت حذف گردید.'
+                        });
                     } catch (err) {
                         console.error('خطا در حذف دیدگاه:', err);
-                        alert('حذف دیدگاه با خطا مواجه شد.');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطا',
+                            text: 'حذف دیدگاه با خطا مواجه شد.'
+                        });
                     }
                 }
             });
@@ -316,7 +378,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const currentUser = state.pb.authStore.record || state.pb.authStore.model;
         if (!currentUser) {
-            alert('جهت ارسال کامنت ابتدا باید وارد سیستم شوید.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'عدم دسترسی',
+                text: 'جهت ارسال کامنت ابتدا باید وارد سیستم شوید.'
+            });
             return;
         }
 
@@ -325,16 +391,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentInput = $id('comment-parent-id');
 
         const text = textInput ? textInput.value.trim() : '';
-        // اطمینان از قرارگیری یکی از مقادیر مجاز اسکیما
         const type = (typeSelect && typeSelect.value) ? typeSelect.value : 'کامنت عمومی';
         const parent = parentInput && parentInput.value.trim() !== '' ? parentInput.value : null;
 
         if (!text) {
-            alert('متن کامنت نمی‌تواند خالی باشد.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'هشدار',
+                text: 'متن کامنت نمی‌تواند خالی باشد.'
+            });
             return;
         }
 
-        // اگر گزارش موجود باشد، مستقیم در پاکت‌بیس ثبت می‌شود
         if (state.reportId) {
             const data = {
                 report: state.reportId,
@@ -343,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 text: text,
                 version: 1
             };
-            // ارسال فیلد parent فقط در صورت وجود مقدار معتبر
             if (parent) {
                 data.parent = parent;
             }
@@ -353,12 +420,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 resetCommentForm();
                 await fetchComments();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ثبت موقت دیدگاه',
+                    text: 'کامنت شما به‌صورت موقت ثبت شد و پس از فشردن دکمه «ویرایش | ثبت» در دیتابیس قرار می‌گیرد.'
+                });
             } catch (err) {
                 console.error('خطا در ثبت کامنت (جزئیات):', err?.data || err);
-                alert('ثبت کامنت با خطا مواجه شد.');
+                const serverMsg = err?.data?.message || err?.message || 'خطا در برقراری ارتباط با سرور';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا در ثبت دیدگاه',
+                    text: serverMsg
+                });
             }
         } else {
-            // اگر گزارش جدید است، در حافظه موقت نگه داشته می‌شود
             const tempComment = {
                 id: 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                 author: currentUser.id,
@@ -373,6 +449,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.pendingComments.push(tempComment);
             resetCommentForm();
             renderCommentsList();
+            Swal.fire({
+                icon: 'info',
+                title: 'ثبت موقت',
+                text: 'دیدگاه شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد.'
+            });
         }
     }
 

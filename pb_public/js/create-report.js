@@ -1155,13 +1155,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     occurrence_date: currentReport.occurrence_date || '',
                     department: currentReport.department || null,
                     author: currentReport.author || null,
-                    cover_image: currentReport.cover_image || '',
+                    change_reason: changeReasonVal,
+                    cover_image: typeof currentReport.cover_image === 'string' ? currentReport.cover_image : '',
                     attachments: Array.isArray(currentReport.attachments) ? currentReport.attachments : [],
                     submitter: currentReport.submitter || null,
                     version: currentVersion,
                     cases_rel: Array.isArray(currentReport.cases_rel) ? currentReport.cases_rel : [],
                     topics_rel: Array.isArray(currentReport.topics_rel) ? currentReport.topics_rel : [],
-                    snapshot_comments: currentComments
+                    snapshot_comments: currentComments || []
                 };
 
                 await state.pb.collection('report_versions').create(versionSnapshotData);

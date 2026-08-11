@@ -969,21 +969,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderExistingCoverPreview(fileUrl, fileName) {
-        const previewContainer = $id('cover-preview-container');
-        const previewImg = $id('cover-preview-img');
-        const filenameText = $id('cover-filename');
-        const filesizeText = $id('cover-filesize');
-
-        if (previewImg) previewImg.src = fileUrl;
-        if (filenameText) filenameText.textContent = fileName || 'تصویر شاخص قبلی';
-        if (filesizeText) filesizeText.textContent = 'ذخیره شده در سرور';
-        if (previewContainer) previewContainer.classList.remove('hidden');
-    }
-
-    function renderExistingAttachmentsList(report, attachmentNames) {
-        renderAttachmentsList();
-    }
+    
 
     function renderExistingCoverPreview(fileUrl, fileName) {
         const previewContainer = $id('cover-preview-container');

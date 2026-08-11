@@ -255,12 +255,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     state.pendingComments.push(tempComment);
                     renderCommentsList();
+                    //     Swal.fire({
+                    //         icon: 'info',
+                    //         title: 'ثبت موقت',
+                    //         text: 'پاسخ شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد.'
+                    //     });
+
+                    let timerInterval;
                     Swal.fire({
-                        icon: 'info',
-                        title: 'ثبت موقت',
-                        text: 'پاسخ شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد.'
+                        title: "ثبت موقت",
+                        html: "پاسخ شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد",
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                            const timer = Swal.getPopup().querySelector("b");
+                            timerInterval = setInterval(() => {
+                                timer.textContent = `${Swal.getTimerLeft()}`;
+                            }, 100);
+                        },
+                        willClose: () => {
+                            clearInterval(timerInterval);
+                        }
+                    }).then((result) => {
+                        /* Read more about handling dismissals below */
+                        if (result.dismiss === Swal.DismissReason.timer) console.log("I was closed by the timer");
                     });
                 }
+
             });
         }
 
@@ -420,10 +442,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 resetCommentForm();
                 await fetchComments();
+                // showToast('کامنت شما به صورت موقت ثبت شد و پس از فشردن دکمه ویرایش در دیتابیس قرار می گیرد');
+                // Swal.fire({
+                //     icon: 'warning',
+                //     title: 'ثبت موقت دیدگاه',
+                //     text: 'کامنت شما به‌صورت موقت ثبت شد و پس از فشردن دکمه «ویرایش | ثبت» در دیتابیس قرار می‌گیرد.'
+                // });
+                // Swal.fire({
+                //     position: "top-end",
+                //     icon: "success",
+                //     title: "کامنت شما به صورت موقت ثبت شد و پس از فشردن دکمه ویرایش در دیتابیس قرار می گیرد",
+                //     showConfirmButton: false,
+                //     timer: 5000
+                // });
+                let timerInterval;
                 Swal.fire({
-                    icon: 'warning',
-                    title: 'ثبت موقت دیدگاه',
-                    text: 'کامنت شما به‌صورت موقت ثبت شد و پس از فشردن دکمه «ویرایش | ثبت» در دیتابیس قرار می‌گیرد.'
+                    title: "ثبت موقت دیدگاه!",
+                    html: "دیدگاه شما به صورت موقت ثبت شد و پس از فشردن دکمه ویرایش در دیتابیس قرار می گیرد.",
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: () => {
+                        Swal.showLoading();
+                        const timer = Swal.getPopup().querySelector("b");
+                        timerInterval = setInterval(() => {
+                            timer.textContent = `${Swal.getTimerLeft()}`;
+                        }, 100);
+                    },
+                    willClose: () => {
+                        clearInterval(timerInterval);
+                    }
+                }).then((result) => {
+                    /* Read more about handling dismissals below */
+                    if (result.dismiss === Swal.DismissReason.timer) console.log("I was closed by the timer");
                 });
             } catch (err) {
                 console.error('خطا در ثبت کامنت (جزئیات):', err?.data || err);

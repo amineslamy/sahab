@@ -58,7 +58,19 @@ function exportBulletin() {
 }
 
 async function deleteReport(id) {
-    if (!confirm("آیا از انتقال این گزارش و کامنت‌های آن به سطل آشغال و حذف نهایی اطمینان دارید؟")) return;
+    const confirmResult = await Swal.fire({
+        title: 'آیا اطمینان دارید؟',
+        text: 'این گزارش و کامنت‌های آن به سطل آشغال منتقل و حذف خواهند شد.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'بله، حذف شود',
+        cancelButtonText: 'انصراف'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     try {
         // ۱. دریافت اطلاعات کامل گزارش فعلی
         const reportData = await pb.collection('reports').getOne(id, { requestKey: null });
@@ -88,24 +100,44 @@ async function deleteReport(id) {
 
         selectedReportIds.delete(id);
         loadReportsTable();
-        alert("گزارش و کامنت‌های مربوطه با موفقیت به سطل آشغال منتقل و پاک شدند.");
+
+        Swal.fire({
+            title: 'موفقیت‌آمیز',
+            text: 'گزارش و کامنت‌های مربوطه با موفقیت به سطل آشغال منتقل و پاک شدند.',
+            icon: 'success',
+            confirmButtonText: 'تایید',
+            confirmButtonColor: '#4f46e5'
+        });
     } catch (err) {
         console.error("خطا در فرآیند انتقال به سطل آشغال و حذف گزارش:", err);
 
         const status = err?.status || 0;
         const msg = err?.message || "";
 
+        let errorTitle = "خطا در عملیات";
+        let errorText = msg || 'خطایی رخ داده است.';
+
         if (status === 400 && msg.includes("required relation reference")) {
-            alert("⚠️ عدم امکان حذف:\nکامنت‌ها یا وابستگی‌های اجباری این گزارش پاک نشده‌اند و دیتابیس اجازه حذف نمی‌دهد.");
+            errorTitle = "عدم امکان حذف";
+            errorText = "کامنت‌ها یا وابستگی‌های اجباری این گزارش پاک نشده‌اند و دیتابیس اجازه حذف نمی‌دهد.";
         } else if (status === 403) {
-            alert("⛔ عدم داشتن دسترسی:\nشما مجوز لازم روی کالکشن سطل آشغال، کامنت‌ها یا گزارش‌ها را ندارید (API Rules را بررسی کنید).");
+            errorTitle = "عدم داشتن دسترسی";
+            errorText = "شما مجوز لازم روی کالکشن سطل آشغال، کامنت‌ها یا گزارش‌ها را ندارید (API Rules را بررسی کنید).";
         } else if (status === 404) {
-            alert("🔍 یافت نشد:\nگزارش یا کامنت مورد نظر یافت نشد.");
+            errorTitle = "یافت نشد";
+            errorText = "گزارش یا کامنت مورد نظر یافت نشد.";
         } else if (status === 0 || msg.includes("Failed to fetch")) {
-            alert("🌐 خطای ارتباط با سرور:\nاتصال به سرور برقرار نیست.");
-        } else {
-            alert(`❌ خطا در عملیات:\n${msg || 'خطایی رخ داده است.'}`);
+            errorTitle = "خطای ارتباط با سرور";
+            errorText = "اتصال به سرور برقرار نیست.";
         }
+
+        Swal.fire({
+            title: errorTitle,
+            text: errorText,
+            icon: 'error',
+            confirmButtonText: 'متوجه شدم',
+            confirmButtonColor: '#4f46e5'
+        });
     }
 }
 function updateSelectionUI() {

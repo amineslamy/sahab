@@ -216,7 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const mainReportId = state.reportId;
 
         state.versions.forEach((ver, idx) => {
-            const nextVer = state.versions[idx - 1] || state.currentReport;
+            // نسخه قبل از ver (که از نظر زمانی قدیمی‌تر است و در اینندکس بعدی قرار دارد)
+            const prevVer = state.versions[idx + 1] || null;
+            // نسخه بعد از ver (که از نظر زمانی جدیدتر است و در ایندکس قبلی یا گزارش فعلی قرار دارد)
+            const nextVer = (idx === 0) ? state.currentReport : state.versions[idx - 1];
             const card = document.createElement('div');
             card.className = 'version-card border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm mb-3';
 
@@ -262,8 +265,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newCardHtmls = [];
 
                 function buildCardHtml(c, diffTextHtml) {
-                    const rawAuthor = c.authorName || c.expand?.author?.name || c.expand?.author?.username || c.author;
-                    const authorName = escapeHtml((state.usersMap && state.usersMap[rawAuthor]) || rawAuthor || 'کاربر سیستم');
+                    const rawAuthor = c.author || c.authorName || c.expand?.author?.id;
+                    const resolvedName = c.authorName || c.expand?.author?.name || c.expand?.author?.username || (state.usersMap && state.usersMap[rawAuthor]);
+                    const authorName = escapeHtml(resolvedName || rawAuthor || 'کاربر سیستم');
                     const typeStr = c.type ? `<span class="bg-slate-200 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md">${escapeHtml(c.type)}</span>` : '';
 
                     let dateStr = '';
@@ -333,19 +337,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const oldAuthorName = ver.expand?.author?.name || ver.expand?.author?.username || (state.usersMap && state.usersMap[oldAuthorRaw]) || 'نامشخص';
             const newAuthorName = nextVer.expand?.author?.name || nextVer.expand?.author?.username || (state.usersMap && state.usersMap[newAuthorRaw]) || 'نامشخص';
 
+            // مقایسه نسخه قدیمی‌تر (prevVer یا ver) با نسخه بعد از آن (ver یا nextVer)
+            const baseVer = prevVer || ver;
+            const targetVer = prevVer ? ver : nextVer;
+
+            const baseAuthorRaw = baseVer.author || baseVer.expand?.author?.id;
+            const targetAuthorRaw = targetVer.author || targetVer.expand?.author?.id;
+            const baseAuthorName = baseVer.expand?.author?.name || baseVer.expand?.author?.username || (state.usersMap && state.usersMap[baseAuthorRaw]) || 'نامشخص';
+            const targetAuthorName = targetVer.expand?.author?.name || targetVer.expand?.author?.username || (state.usersMap && state.usersMap[targetAuthorRaw]) || 'نامشخص';
+
             const fieldsToCompare = [
-                { label: 'عنوان گزارش', oldVal: ver.title, newVal: nextVer.title },
-                { label: 'نویسنده گزارش', oldVal: oldAuthorName, newVal: newAuthorName },
-                { label: 'دلیل تغییرات', oldVal: ver.change_reason, newVal: nextVer.change_reason },
-                { label: 'چکیده', oldVal: ver.abstract, newVal: nextVer.abstract },
-                { label: 'شرح و متن اصلی', oldVal: stripTags(ver.content), newVal: stripTags(nextVer.content) },
-                { label: 'طبقه بندی', oldVal: ver.classification, newVal: nextVer.classification },
-                { label: 'اولیت', oldVal: ver.priority, newVal: nextVer.priority },
-                { label: 'نوع خبر', oldVal: ver.news_type, newVal: nextVer.news_type },
-                { label: 'ارزیابی', oldVal: ver.evaluation, newVal: nextVer.evaluation },
-                { label: 'تاریخ وقوع', oldVal: formatOccurrenceDate(ver.occurrence_date), newVal: formatOccurrenceDate(nextVer.occurrence_date) },
-                { label: 'موضوعات مرتبط', oldVal: renderRelationItems(ver.expand?.topics_rel || ver.topics_rel), newVal: renderRelationItems(nextVer.expand?.topics_rel || nextVer.topics_rel) },
-                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(ver.expand?.cases_rel || ver.cases_rel), newVal: renderRelationItems(nextVer.expand?.cases_rel || nextVer.cases_rel) }
+                { label: 'عنوان گزارش', oldVal: baseVer.title, newVal: targetVer.title },
+                { label: 'نویسنده گزارش', oldVal: baseAuthorName, newVal: targetAuthorName },
+                { label: 'دلیل تغییرات', oldVal: baseVer.change_reason, newVal: targetVer.change_reason },
+                { label: 'چکیده', oldVal: baseVer.abstract, newVal: targetVer.abstract },
+                { label: 'شرح و متن اصلی', oldVal: stripTags(baseVer.content), newVal: stripTags(targetVer.content) },
+                { label: 'طبقه بندی', oldVal: baseVer.classification, newVal: targetVer.classification },
+                { label: 'اولیت', oldVal: baseVer.priority, newVal: targetVer.priority },
+                { label: 'نوع خبر', oldVal: baseVer.news_type, newVal: targetVer.news_type },
+                { label: 'ارزیابی', oldVal: baseVer.evaluation, newVal: targetVer.evaluation },
+                { label: 'تاریخ وقوع', oldVal: formatOccurrenceDate(baseVer.occurrence_date), newVal: formatOccurrenceDate(targetVer.occurrence_date) },
+                { label: 'موضوعات مرتبط', oldVal: renderRelationItems(baseVer.expand?.topics_rel || baseVer.topics_rel), newVal: renderRelationItems(targetVer.expand?.topics_rel || targetVer.topics_rel) },
+                { label: 'کیس‌های مرتبط', oldVal: renderRelationItems(baseVer.expand?.cases_rel || baseVer.cases_rel), newVal: renderRelationItems(targetVer.expand?.cases_rel || targetVer.cases_rel) }
             ];
 
             let sideBySideFieldsHtml = '';
@@ -361,11 +374,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             });
 
-            const oldComments = ver.snapshot_comments || ver.comments;
-            let newComments = nextVer.snapshot_comments || nextVer.comments;
-            
-            if (nextVer.id === state.currentReport?.id || idx === 0) {
-                newComments = state.currentComments || nextVer.snapshot_comments || [];
+            const oldComments = baseVer.snapshot_comments || baseVer.comments || [];
+            let newComments = [];
+
+            if (!prevVer && idx === 0) {
+                newComments = (state.currentComments && state.currentComments.length > 0)
+                    ? state.currentComments
+                    : (targetVer.snapshot_comments || targetVer.comments || []);
+            } else {
+                newComments = targetVer.snapshot_comments || targetVer.comments || [];
             }
 
             const commentsDiffResult = renderDiffComments(oldComments, newComments);
@@ -381,16 +398,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const coverDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                     <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">تصویر کاور</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderCoverThumbnail(ver.cover_image, mainReportId)}</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderCoverThumbnail(nextVer.cover_image, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderCoverThumbnail(baseVer.cover_image, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderCoverThumbnail(targetVer.cover_image, mainReportId)}</td>
                 </tr>
             `;
 
             const attachmentsDiffHtml = `
                 <tr class="border-b border-slate-100 hover:bg-slate-50/50">
                     <td class="p-3 font-bold text-xs text-slate-600 bg-slate-50/70 w-28 align-top">فایل‌های پیوست</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderAttachmentsThumbnails(ver.attachments, mainReportId)}</td>
-                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderAttachmentsThumbnails(nextVer.attachments, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top border-l border-slate-100 bg-rose-50/20">${renderAttachmentsThumbnails(baseVer.attachments, mainReportId)}</td>
+                    <td class="p-3 text-xs text-slate-800 w-1/2 align-top bg-cyan-50/20">${renderAttachmentsThumbnails(targetVer.attachments, mainReportId)}</td>
                 </tr>
             `;
 
@@ -412,8 +429,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <thead>
                                 <tr class="bg-slate-100 text-slate-700 text-xs border-b border-slate-200">
                                     <th class="p-2.5 w-28">نام فیلد</th>
-                                    <th class="p-2.5 w-1/2 text-rose-700 font-bold border-l border-slate-200">⬅️ نسخه قبلی (نسخه ${ver.version})</th>
-                                    <th class="p-2.5 w-1/2 text-cyan-700 font-bold">➡️ نسخه بعدی (${nextVersionLabel})</th>
+                                    <th class="p-2.5 w-1/2 text-rose-700 font-bold border-l border-slate-200">⬅️ نسخه قبلی (${prevVer ? 'نسخه ' + prevVer.version : 'نسخه ' + ver.version})</th>
+                                    <th class="p-2.5 w-1/2 text-cyan-700 font-bold">➡️ نسخه بعدی (${prevVer ? 'نسخه ' + ver.version : nextVersionLabel})</th>
                                 </tr>
                             </thead>
                             <tbody>

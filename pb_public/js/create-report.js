@@ -1126,13 +1126,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentReport = await state.pb.collection(COLLECTIONS.reports).getOne(state.reportId);
                 const currentVersion = (typeof currentReport.version === 'number' && currentReport.version > 0) ? currentReport.version : 1;
 
-                // ۲. دریافت تمام کامنت‌های مرتبط با این گزارش جهت ثبت Snapshot
+                // ۲. دریافت تمام کامنت‌های مرتبط با این گزارش جهت ثبت Snapshot به همراه اطلاعات کامل نویسنده
                 let currentComments = [];
                 try {
-                    currentComments = await state.pb.collection('comments').getFullList({
+                    const rawComments = await state.pb.collection('comments').getFullList({
                         filter: `report = "${state.reportId}"`,
-                        sort: '+created'
+                        sort: '+created',
+                        expand: 'author'
                     });
+
+                    currentComments = rawComments.map(c => ({
+                        id: c.id,
+                        text: c.text || '',
+                        type: c.type || '',
+                        parent: c.parent || null,
+                        author: c.author || '',
+                        authorName: c.expand?.author?.name || c.expand?.author?.username || c.authorName || 'کاربر سیستم',
+                        created: c.created || '',
+                        version: c.version || 1
+                    }));
                 } catch (cErr) {
                     console.warn('خطا در دریافت کامنت‌ها برای ساخت Snapshot:', cErr);
                 }

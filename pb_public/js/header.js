@@ -72,8 +72,10 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
 
     // اضافه کردن اکشن خروج با پشتیبانی از SweetAlert2
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
-        if (typeof Swal !== 'undefined') {
-            const confirmResult = await Swal.fire({
+        let isConfirmed = false;
+
+        if (typeof window.Swal !== 'undefined') {
+            const confirmResult = await window.Swal.fire({
                 title: 'خروج از سامانه',
                 text: 'آیا می‌خواهید از حساب کاربری خود خارج شوید؟',
                 icon: 'question',
@@ -83,11 +85,13 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
                 confirmButtonText: 'بله، خروج',
                 cancelButtonText: 'انصراف'
             });
-
-            if (!confirmResult.isConfirmed) return;
-        } else if (!confirm('آیا می‌خواهید از سامانه خارج شوید؟')) {
-            return;
+            isConfirmed = confirmResult.isConfirmed;
+        } else {
+            console.warn('SweetAlert2 (Swal) یافت نشد. استفاده از مدال پیش‌فرض مرورگر.');
+            isConfirmed = confirm('آیا می‌خواهید از سامانه خارج شوید؟');
         }
+
+        if (!isConfirmed) return;
 
         if (activePb?.authStore) {
             activePb.authStore.clear();

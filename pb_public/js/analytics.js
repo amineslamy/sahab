@@ -1,5 +1,6 @@
 let pb;
 let allReports = [];
+let allComments = [];
 let chartInstances = {};
 
 const chartFont = 'Vazirmatn, sans-serif';
@@ -205,6 +206,17 @@ async function loadAnalyticsBaseData(authorId = null) {
             filter: finalFilter,
             requestKey: null
         });
+
+        // دریافت تمام کامنت‌ها جهت تحلیل در ابر کلمات
+        try {
+            allComments = await pb.collection('comments').getFullList({
+                fields: 'report,text',
+                requestKey: null
+            });
+        } catch (cErr) {
+            console.error("خطا در دریافت کامنت‌ها:", cErr);
+            allComments = [];
+        }
 
     } catch (err) {
         console.error("خطا در بارگذاری اطلاعات آمار:", err);
@@ -415,6 +427,99 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#0284c7'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
         xaxis: { categories: occTimeline.categories }
+    });
+
+    // ۱۴. ابر کلمات کلیدی
+    renderWordCloud(reportsData);
+}
+
+function renderWordCloud(reportsData) {
+    const canvas = document.getElementById('word-cloud-canvas');
+    const emptyEl = document.getElementById('word-cloud-empty');
+    if (!canvas || typeof WordCloud === 'undefined') return;
+
+    // شناسه اخباری که در فیلتر فعلی قرار دارند
+    const activeReportIds = new Set(reportsData.map(r => r.id));
+
+    // لیست حروف ربط و کلمات عمومی (Stop Words) برای حذف از ابر کلمات
+    const stopWords = new Set([
+        'در', 'به', 'از', 'که', 'می', 'این', 'را', 'با', 'است', 'برای', 'آن', 'یک', 'شود', 'شده', 'خود',
+        'ها', 'های', 'بر', 'تا', 'نیز', 'وی', 'شد', 'علاوه', 'هم', 'کند', 'کرد', 'برای', 'یا', 'اما',
+        'باشد', 'باید', 'داد', 'داشت', 'آنها', 'ویژه', 'جهت', 'پس', 'بین', 'توسط', 'طی', 'چون', 'کل',
+        'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', ' style', 'class'
+    ]);
+
+    let combinedText = '';
+
+    // جمع‌آوری متون اخبار فیلترشده
+    reportsData.forEach(r => {
+        if (r.title) combinedText += ' ' + r.title;
+        if (r.abstract) combinedText += ' ' + r.abstract;
+        if (r.content) combinedText += ' ' + r.content;
+    });
+
+    // جمع‌آوری متون کامنت‌های مربوط به اخبار فیلترشده
+    allComments.forEach(c => {
+        if (c.report && activeReportIds.has(c.report) && c.text) {
+            combinedText += ' ' + c.text;
+        }
+    });
+
+    // پاک‌سازی تگ‌های HTML
+    const cleanText = combinedText.replace(/<[^>]*>/g, ' ')
+        .replace(/[0-9\u0660-\u0669\u06f0-\u06f9]/g, ' ') // حذف ارقام
+        .replace(/[^\u0600-\u06FF\s]/g, ' '); // نگه‌داشتن فقط حروف فارسی
+
+    // استخراج کلمات و شمارش فراوانی
+    const words = cleanText.split(/\s+/);
+    const wordCounts = {};
+
+    words.forEach(w => {
+        const word = w.trim();
+        if (word.length > 2 && !stopWords.has(word)) {
+            wordCounts[word] = (wordCounts[word] || 0) + 1;
+        }
+    });
+
+    // تبدیل به فرمت مورد نیاز WordCloud2 [[word, size], ...]
+    const list = Object.entries(wordCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 80) // حداکثر ۸۰ کلمه پرتکرار
+        .map(([text, count]) => [text, count]);
+
+    if (list.length === 0) {
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    // تنظیم ابعاد Canvas بر اساس کانتینر
+    canvas.width = canvas.parentElement.clientWidth || 800;
+    canvas.height = 300;
+
+    // مقیاس‌گذاری اندازه فونت
+    const maxCount = list[0][1];
+    const minCount = list[list.length - 1][1];
+    const weightFactor = (size) => {
+        if (maxCount === minCount) return 20;
+        return 14 + ((size - minCount) / (maxCount - minCount)) * 36;
+    };
+
+    WordCloud(canvas, {
+        list: list,
+        fontFamily: 'Vazirmatn, sans-serif',
+        weightFactor: weightFactor,
+        color: () => {
+            const colors = ['#4f46e5', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        },
+        backgroundColor: 'transparent',
+        rotateRatio: 0, // کلمات افقی جهت خوانایی بهتر
+        gridSize: 8,
+        drawOutOfBound: false
     });
 }
 

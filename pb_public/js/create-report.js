@@ -844,9 +844,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const input = $id('report-cover-image');
                 const preview = $id('cover-preview-container');
+                const dragZone = $id('cover-drag-zone');
+                const selectText = $id('cover-select-text');
 
                 if (input) input.value = '';
                 if (preview) preview.classList.add('hidden');
+                if (dragZone) {
+                    dragZone.style.backgroundImage = '';
+                    dragZone.classList.remove('has-image');
+                }
+                if (selectText) selectText.textContent = 'انتخاب تصویر';
             });
         }
     }
@@ -890,11 +897,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderCoverPreview(file) {
         const previewContainer = $id('cover-preview-container');
-        const previewImg = $id('cover-preview-img');
+        const dragZone = $id('cover-drag-zone');
+        const selectText = $id('cover-select-text');
         const filenameText = $id('cover-filename');
         const filesizeText = $id('cover-filesize');
 
-        if (previewImg) previewImg.src = URL.createObjectURL(file);
+        const objectUrl = URL.createObjectURL(file);
+
+        if (dragZone) {
+            dragZone.style.backgroundImage = `url('${objectUrl}')`;
+            dragZone.classList.add('has-image');
+        }
+        if (selectText) selectText.textContent = 'تغییر تصویر';
         if (filenameText) filenameText.textContent = file.name;
         if (filesizeText) filesizeText.textContent = formatBytes(file.size);
         if (previewContainer) previewContainer.classList.remove('hidden');
@@ -982,11 +996,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderExistingCoverPreview(fileUrl, fileName) {
         const previewContainer = $id('cover-preview-container');
-        const previewImg = $id('cover-preview-img');
+        const dragZone = $id('cover-drag-zone');
+        const selectText = $id('cover-select-text');
         const filenameText = $id('cover-filename');
         const filesizeText = $id('cover-filesize');
 
-        if (previewImg) previewImg.src = fileUrl;
+        if (dragZone) {
+            dragZone.style.backgroundImage = `url('${fileUrl}')`;
+            dragZone.classList.add('has-image');
+        }
+        if (selectText) selectText.textContent = 'تغییر تصویر';
         if (filenameText) filenameText.textContent = fileName || 'تصویر شاخص قبلی';
         if (filesizeText) filesizeText.textContent = 'ذخیره شده در سرور';
         if (previewContainer) previewContainer.classList.remove('hidden');
@@ -1310,7 +1329,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.quill) state.quill.setText('');
 
         const coverPreview = $id('cover-preview-container');
+        const dragZone = $id('cover-drag-zone');
+        const selectText = $id('cover-select-text');
+
         if (coverPreview) coverPreview.classList.add('hidden');
+        if (dragZone) {
+            dragZone.style.backgroundImage = '';
+            dragZone.classList.remove('has-image');
+        }
+        if (selectText) selectText.textContent = 'انتخاب تصویر';
 
         renderAttachmentsList();
 

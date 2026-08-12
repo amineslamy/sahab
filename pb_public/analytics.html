@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <title>آمار و تحلیل - سامانه سحاب</title>
+
+    <!-- ۱. استایل هدر و Tailwind محلی -->
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/persian-datepicker.min.css">
+    <script src="js/tailwindcss.js"></script>
+
+    <!-- ۲. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
+    <style>
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Black.woff2') format('woff2');
+            font-weight: 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html {
+            font-size: 17px;
+        }
+
+        * {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif !important;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 text-sm min-h-screen flex flex-col">
+
+    <!-- ۱. هدر سراسری سامانه سحاب -->
+    <div id="app-header"></div>
+
+    <!-- کانتینر محتوای اصلی -->
+    <main class="w-full max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- نوار عنوان و فیلتر بازه زمانی -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h2 class="font-black text-slate-800 text-lg">📊 آمار و تحلیل جامع سیستم</h2>
+                <p class="text-xs text-slate-500 mt-1" id="analytics-subtitle">گزارش‌های تحلیلی و نمودارهای آماری داده‌های سامانه</p>
+            </div>
+
+            <!-- فیلتر تاریخ شمسی -->
+            <div class="flex flex-wrap items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-bold">
+                <div class="flex items-center gap-1.5">
+                    <label class="text-slate-600">از تاریخ:</label>
+                    <input type="text" id="filter-date-from" placeholder="YYYY/MM/DD" readonly
+                        class="w-28 border border-slate-300 rounded-lg px-2 py-1 bg-white text-center text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <label class="text-slate-600">تا تاریخ:</label>
+                    <input type="text" id="filter-date-to" placeholder="YYYY/MM/DD" readonly
+                        class="w-28 border border-slate-300 rounded-lg px-2 py-1 bg-white text-center text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                </div>
+                <button onclick="applyAnalyticsDateFilter()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-lg transition shadow-sm">
+                    اعمال فیلتر
+                </button>
+            </div>
+        </div>
+
+        <!-- کارت‌های آمار و نمودارها -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- ۱. روند زمانی انتشار -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">📈 روند انتشار اخبار (تاریخ ثبت)</h3>
+                <div id="chart-timeline" class="w-full"></div>
+            </div>
+
+            <!-- ۲. عملکرد کاربران -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">👥 عملکرد کارشناسان</h3>
+                <div id="chart-user-performance" class="w-full"></div>
+            </div>
+
+            <!-- ۳. تفکیک اداره -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">🏢 سهم ادارات</h3>
+                <div id="chart-department" class="w-full"></div>
+            </div>
+
+            <!-- ۴. چکیده -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">📝 وضعیت چکیده</h3>
+                <div id="chart-has-summary" class="w-full"></div>
+            </div>
+
+            <!-- ۵. تصویر شاخص -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">🖼️ وضعیت تصویر شاخص</h3>
+                <div id="chart-has-image" class="w-full"></div>
+            </div>
+
+            <!-- ۶. کیس‌ها -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">📁 تفکیک کیس‌ها</h3>
+                <div id="chart-analytics-cases" class="w-full"></div>
+            </div>
+
+            <!-- ۷. موضوعات -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">🏷️ تفکیک موضوعات</h3>
+                <div id="chart-analytics-topics" class="w-full"></div>
+            </div>
+
+            <!-- ۸. ثبت‌کننده -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">👤 ثبت‌کنندگان اخبار</h3>
+                <div id="chart-analytics-creators" class="w-full"></div>
+            </div>
+
+            <!-- ۹. طبقه‌بندی -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">🔒 طبقه‌بندی اسناد</h3>
+                <div id="chart-classification" class="w-full"></div>
+            </div>
+
+            <!-- ۱۰. اولویت -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">🚨 اولویت اخبار</h3>
+                <div id="chart-priority" class="w-full"></div>
+            </div>
+
+            <!-- ۱۱. نوع خبر -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">📰 نوع خبر</h3>
+                <div id="chart-news-type" class="w-full"></div>
+            </div>
+
+            <!-- ۱۲. ارزیابی -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">⭐ وضعیت ارزیابی</h3>
+                <div id="chart-evaluation" class="w-full"></div>
+            </div>
+
+            <!-- ۱۳. روند زمانی تاریخ وقوع -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
+                <h3 class="font-bold text-slate-800 text-xs mb-3">📅 روند زمانی (بر اساس تاریخ وقوع)</h3>
+                <div id="chart-occurrence-timeline" class="w-full"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- اسکریپت‌های محلی سیستم -->
+    <script src="js/jquery-3.6.4.min.js"></script>
+    <script src="js/persian-date.min.js"></script>
+    <script src="js/persian-datepicker.min.js"></script>
+    <script src="js/apexcharts.min.js"></script>
+    <script src="js/pocketbase.umd.js?v=1"></script>
+    <script src="js/header.js"></script>
+    <script src="js/analytics.js"></script>
+</body>
+
+</html>

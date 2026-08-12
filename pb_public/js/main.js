@@ -224,10 +224,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     setupApexDefaults();
     await loadAllBaseData();
+    populateSearchDropdowns();
+
+    // بررسی وجود پارامتر author در URL و تنظیم فیلتر
+    const urlParams = new URLSearchParams(window.location.search);
+    const authorParam = urlParams.get('author');
+    if (authorParam) {
+        const authorSel = document.getElementById('adv-filter-author');
+        if (authorSel) {
+            authorSel.value = authorParam;
+        }
+        currentFilterQuery = `author = "${authorParam}"`;
+    }
+
     renderOverviewCharts();
     renderAnalyticsCharts();
     loadReportsTable();
-    populateSearchDropdowns();
 
     // راه‌اندازی تقویم شمسی با تنظیم پیش‌فرض ۳۰ روز گذشته
     if (window.$ && $.fn.persianDatepicker && window.persianDate) {
@@ -583,39 +595,57 @@ function convertIsoToFaShort(dateStr) {
 }
 
 function renderAnalyticsCharts(reportsData = allReports) {
-    // ۱. روند زمانی انتشار (تجمیع بر اساس روز + تبدیل به تاریخ شمسی کوتاه)
-    const datesMap = {};
-    reportsData.forEach(r => {
-        if (r.created) {
-            const rawDay = r.created.includes('T') ? r.created.split('T')[0] : r.created.split(' ')[0];
-            datesMap[rawDay] = (datesMap[rawDay] || 0) + 1;
-        }
-    });
+    // توابع کمکی استخراج و تجمیع داده‌ها
+    const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
+        return items.reduce((acc, item) => {
+            const key = getKey(item) || defaultValue;
+            acc[key] = (acc[key] || 0) + 1;
+            return acc;
+        }, {});
+    };
 
-    const sortedRawDates = Object.keys(datesMap).sort();
-    const timelineCategories = sortedRawDates.map(d => convertIsoToFaShort(d));
-    const timelineValues = sortedRawDates.map(d => datesMap[d]);
+    const countByRelationArray = (items, getArray) => {
+        const counts = {};
+        items.forEach(item => {
+            const arr = getArray(item) || [];
+            arr.forEach(element => {
+                if (element && element.title) {
+                    counts[element.title] = (counts[element.title] || 0) + 1;
+                }
+            });
+        });
+        return counts;
+    };
 
+    const buildTimelineData = (items, dateField) => {
+        const dateMap = {};
+        items.forEach(item => {
+            const rawDate = item[dateField];
+            if (rawDate) {
+                const day = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate.split(' ')[0];
+                dateMap[day] = (dateMap[day] || 0) + 1;
+            }
+        });
+        const sortedDates = Object.keys(dateMap).sort();
+        return {
+            categories: sortedDates.map(d => convertIsoToFaShort(d)),
+            values: sortedDates.map(d => dateMap[d])
+        };
+    };
+
+    // ۱. روند زمانی انتشار
+    const createdTimeline = buildTimelineData(reportsData, 'created');
     renderChart("#chart-timeline", {
-        series: [{ name: 'تعداد اخبار', data: timelineValues }],
-        chart: {
-            type: 'area',
-            height: 260,
-            toolbar: { show: false },
-            zoom: { enabled: false }
-        },
+        series: [{ name: 'تعداد اخبار', data: createdTimeline.values }],
+        chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#06b6d4'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
-        xaxis: { categories: timelineCategories }
+        xaxis: { categories: createdTimeline.categories }
     });
 
-    // عملکرد کاربران
-    const userMap = {};
-    reportsData.forEach(r => {
-        const name = r.expand?.author?.name || r.expand?.author?.username || 'ناشناس';
-        userMap[name] = (userMap[name] || 0) + 1;
-    });
+    // ۲. عملکرد کاربران
+    const userMap = countByField(reportsData, r => r.expand?.author?.name || r.expand?.author?.username, 'ناشناس');
     renderChart("#chart-user-performance", {
         series: [{ name: 'تعداد اخبار منتشر شده', data: Object.values(userMap) }],
         chart: { type: 'bar', height: 320, toolbar: { show: false } },
@@ -624,12 +654,10 @@ function renderAnalyticsCharts(reportsData = allReports) {
         xaxis: { categories: Object.keys(userMap) }
     });
 
-    // تفکیک اداره
-    const deptMap = {};
-    reportsData.forEach(r => {
+    // ۳. تفکیک اداره
+    const deptMap = countByField(reportsData, r => {
         const deptObj = r.expand?.author?.expand?.department_rel;
-        const dName = deptObj ? (deptObj.name || deptObj.username || 'تعریف‌نشده') : 'تعریف‌نشده';
-        deptMap[dName] = (deptMap[dName] || 0) + 1;
+        return deptObj ? (deptObj.name || deptObj.username) : null;
     });
     renderChart("#chart-department", {
         series: [{ name: 'تعداد اخبار به تفکیک اداره', data: Object.values(deptMap) }],
@@ -639,60 +667,50 @@ function renderAnalyticsCharts(reportsData = allReports) {
         xaxis: { categories: Object.keys(deptMap) }
     });
 
-    // چکیده
-    let hasSummary = 0, noSummary = 0;
-    reportsData.forEach(r => { (r.abstract && r.abstract.trim() !== '') ? hasSummary++ : noSummary++; });
+    // ۴. چکیده
+    const summaryCounts = reportsData.reduce((acc, r) => {
+        (r.abstract && r.abstract.trim() !== '') ? acc.hasSummary++ : acc.noSummary++;
+        return acc;
+    }, { hasSummary: 0, noSummary: 0 });
     renderChart("#chart-has-summary", {
-        series: [hasSummary, noSummary],
+        series: [summaryCounts.hasSummary, summaryCounts.noSummary],
         labels: ['دارای چکیده', 'بدون چکیده'],
         chart: { type: 'donut', height: 250 },
         colors: ['#10b981', '#94a3b8']
     });
 
-    // تصویر پیوست
-    let hasImg = 0, noImg = 0;
-    reportsData.forEach(r => { r.cover_image ? hasImg++ : noImg++; });
+    // ۵. تصویر پیوست
+    const imageCounts = reportsData.reduce((acc, r) => {
+        r.cover_image ? acc.hasImg++ : acc.noImg++;
+        return acc;
+    }, { hasImg: 0, noImg: 0 });
     renderChart("#chart-has-image", {
-        series: [hasImg, noImg],
+        series: [imageCounts.hasImg, imageCounts.noImg],
         labels: ['دارای تصویر', 'بدون تصویر'],
         chart: { type: 'donut', height: 250 },
         colors: ['#f59e0b', '#94a3b8']
     });
 
-    // کیس‌ها
-    const caseMap = {};
-    reportsData.forEach(r => {
-        (r.expand?.cases_rel || []).forEach(c => { caseMap[c.title] = (caseMap[c.title] || 0) + 1; });
-    });
+    // ۶. کیس‌ها
+    const caseMap = countByRelationArray(reportsData, r => r.expand?.cases_rel);
     renderChart("#chart-analytics-cases", {
         series: Object.values(caseMap).length ? Object.values(caseMap) : [1],
         labels: Object.keys(caseMap).length ? Object.keys(caseMap) : ['بدون کیس'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b',
-            '#f97316', '#14b8a6', '#eab308', '#ef4444',
-            '#3b82f6', '#84cc16', '#d97706', '#64748b']
+        colors: ['#8b5cf6', '#06b6d4', '#a855f7', '#6366f1', '#ec4899', '#f59e0b', '#f97316', '#14b8a6', '#eab308', '#ef4444', '#3b82f6', '#84cc16', '#d97706', '#64748b']
     });
 
-    // موضوعات
-    const topicMap = {};
-    reportsData.forEach(r => {
-        (r.expand?.topics_rel || []).forEach(t => { topicMap[t.title] = (topicMap[t.title] || 0) + 1; });
-    });
+    // ۷. موضوعات
+    const topicMap = countByRelationArray(reportsData, r => r.expand?.topics_rel);
     renderChart("#chart-analytics-topics", {
         series: Object.values(topicMap).length ? Object.values(topicMap) : [1],
         labels: Object.keys(topicMap).length ? Object.keys(topicMap) : ['بدون موضوع'],
         chart: { type: 'donut', height: 250 },
-        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4',
-            '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444',
-            '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
+        colors: ['#6366f1', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', '#8b5cf6', '#f97316', '#14b8a6', '#eab308', '#ef4444', '#3b82f6', '#a855f7', '#84cc16', '#d97706', '#64748b']
     });
 
-    // ثبت کننده
-    const submitterMap = {};
-    reportsData.forEach(r => {
-        const sName = r.expand?.submitter?.name || r.expand?.submitter?.username || 'سیستم';
-        submitterMap[sName] = (submitterMap[sName] || 0) + 1;
-    });
+    // ۸. ثبت کننده
+    const submitterMap = countByField(reportsData, r => r.expand?.submitter?.name || r.expand?.submitter?.username, 'سیستم');
     renderChart("#chart-analytics-creators", {
         series: [{ name: 'تعداد ثبت', data: Object.values(submitterMap) }],
         chart: { type: 'bar', height: 250, toolbar: { show: false } },
@@ -701,9 +719,8 @@ function renderAnalyticsCharts(reportsData = allReports) {
         xaxis: { categories: Object.keys(submitterMap) }
     });
 
-    // طبقه‌بندی
-    const classMap = {};
-    reportsData.forEach(r => { const c = r.classification || 'تعریف‌نشده'; classMap[c] = (classMap[c] || 0) + 1; });
+    // ۹. طبقه‌بندی
+    const classMap = countByField(reportsData, r => r.classification);
     renderChart("#chart-classification", {
         series: Object.values(classMap),
         labels: Object.keys(classMap),
@@ -711,9 +728,8 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#10b981', '#8b5cf6', '#3b82f6', '#f97316', '#ec4899', '#cde73a']
     });
 
-    // اولویت
-    const prioMap = {};
-    reportsData.forEach(r => { const p = r.priority || 'تعریف‌نشده'; prioMap[p] = (prioMap[p] || 0) + 1; });
+    // ۱۰. اولویت
+    const prioMap = countByField(reportsData, r => r.priority);
     renderChart("#chart-priority", {
         series: Object.values(prioMap),
         labels: Object.keys(prioMap),
@@ -721,9 +737,8 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#3b82f6', '#f59e0b', '#ef4444', '#de48ec']
     });
 
-    // نوع خبر
-    const typeMap = {};
-    reportsData.forEach(r => { const t = r.news_type || 'تعریف‌نشده'; typeMap[t] = (typeMap[t] || 0) + 1; });
+    // ۱۱. نوع خبر
+    const typeMap = countByField(reportsData, r => r.news_type);
     renderChart("#chart-news-type", {
         series: Object.values(typeMap),
         labels: Object.keys(typeMap),
@@ -731,9 +746,8 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#14b8a6', '#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#64748b']
     });
 
-    // ارزیابی
-    const evalMap = {};
-    reportsData.forEach(r => { const e = r.evaluation || 'تعریف‌نشده'; evalMap[e] = (evalMap[e] || 0) + 1; });
+    // ۱۲. ارزیابی
+    const evalMap = countByField(reportsData, r => r.evaluation);
     renderChart("#chart-evaluation", {
         series: Object.values(evalMap),
         labels: Object.keys(evalMap),
@@ -741,31 +755,15 @@ function renderAnalyticsCharts(reportsData = allReports) {
         colors: ['#10b981', '#f59e0b', '#3b82f6', '#f43f5e', '#bb48ec']
     });
 
-    // ۲. روند زمانی تاریخ وقوع (تجمیع بر اساس روز + تبدیل به تاریخ شمسی کوتاه)
-    const occMap = {};
-    reportsData.forEach(r => {
-        if (r.occurrence_date) {
-            const rawDay = r.occurrence_date.includes('T') ? r.occurrence_date.split('T')[0] : r.occurrence_date.split(' ')[0];
-            occMap[rawDay] = (occMap[rawDay] || 0) + 1;
-        }
-    });
-
-    const sortedRawOcc = Object.keys(occMap).sort();
-    const occCategories = sortedRawOcc.map(d => convertIsoToFaShort(d));
-    const occValues = sortedRawOcc.map(d => occMap[d]);
-
+    // ۱۳. روند زمانی تاریخ وقوع
+    const occTimeline = buildTimelineData(reportsData, 'occurrence_date');
     renderChart("#chart-occurrence-timeline", {
-        series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occValues }],
-        chart: {
-            type: 'area',
-            height: 260,
-            toolbar: { show: false },
-            zoom: { enabled: false }
-        },
+        series: [{ name: 'تعداد اخبار (تاریخ وقوع)', data: occTimeline.values }],
+        chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
         stroke: { curve: 'smooth', width: 3 },
         colors: ['#0284c7'],
         fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.05 } },
-        xaxis: { categories: occCategories }
+        xaxis: { categories: occTimeline.categories }
     });
 }
 

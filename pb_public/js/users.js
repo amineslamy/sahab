@@ -253,14 +253,15 @@ function renderUsersTable(users) {
         );
 
         let actionButtons = '';
+        actionButtons += `<a href="analytics.html?author=${user.id}" title="مشاهده آمار کاربر" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition inline-block">
+    🔍
+</a>`;
+
         if (canEdit) {
             actionButtons += `<button onclick="openUserModal('${user.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-lg transition text-xs">ویرایش</button>`;
         }
         if (canDelete) {
             actionButtons += `<button onclick="deleteUser('${user.id}', '${user.name || user.username}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1 rounded-lg transition text-xs">حذف</button>`;
-        }
-        if (!canEdit && !canDelete) {
-            actionButtons = `<span class="text-slate-400 text-xs italic">بدون دسترسی</span>`;
         }
 
         const avatarUrl = user.avatar

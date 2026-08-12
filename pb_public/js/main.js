@@ -318,31 +318,45 @@ function formatDateToFa(dateStr) {
     }
 }
 
-// تابع کمکی جهت استخراج تکه متن حول کلیدواژه و هایلایت کردن آن
-function getHighlightedSnippet(text, keyword, maxLength = 100) {
+// تابع کمکی جهت استخراج تمام تکه متن‌های حول کلیدواژه و هایلایت کردن آن‌ها
+function getHighlightedSnippet(text, keyword) {
     if (!text || !keyword || !keyword.trim()) return '';
 
     const cleanText = text.replace(/<[^>]*>?/gm, ''); // حذف تگ‌های احتمالاً موجود در متن
     const trimmedKeyword = keyword.trim();
-    const index = cleanText.toLowerCase().indexOf(trimmedKeyword.toLowerCase());
+    const lowerText = cleanText.toLowerCase();
+    const lowerKeyword = trimmedKeyword.toLowerCase();
 
-    if (index === -1) return '';
+    const matches = [];
+    let startIndex = 0;
 
-    // محاسبه بازه برش متن حول کلیدواژه
-    const start = Math.max(0, index - 40);
-    const end = Math.min(cleanText.length, index + trimmedKeyword.length + 60);
+    // پیدا کردن تمام مواضع تکرار کلیدواژه در متن
+    while ((startIndex = lowerText.indexOf(lowerKeyword, startIndex)) !== -1) {
+        matches.push(startIndex);
+        startIndex += lowerKeyword.length;
+    }
 
-    let snippet = cleanText.substring(start, end);
-    if (start > 0) snippet = '...' + snippet;
-    if (end < cleanText.length) snippet = snippet + '...';
+    if (matches.length === 0) return '';
 
-    // قرار دادن تگ mark روی کلیدواژه (بدون حساسیت به حروف بزرگ/کوچک)
-    const regex = new RegExp(`(${trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    const highlighted = snippet.replace(regex, '<mark class="bg-yellow-200 text-yellow-950 font-black px-1 rounded">$1</mark>');
+    const escapedKeyword = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
 
-    return `<div class="mt-1 p-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-slate-700 leading-relaxed font-normal">
-        <span class="text-amber-800 font-bold ml-1">📍 تطابق متنی:</span>${highlighted}
-    </div>`;
+    const snippetsHtml = matches.map(index => {
+        // محاسبه بازه برش متن حول هر کلیدواژه
+        const start = Math.max(0, index - 40);
+        const end = Math.min(cleanText.length, index + trimmedKeyword.length + 60);
+
+        let snippet = cleanText.substring(start, end);
+        if (start > 0) snippet = '...' + snippet;
+        if (end < cleanText.length) snippet = snippet + '...';
+
+        const highlighted = snippet.replace(regex, '<mark class="bg-yellow-200 text-yellow-950 font-black px-1 rounded">$1</mark>');
+        return `<div class="mt-1 p-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-slate-700 leading-relaxed font-normal">
+            <span class="text-amber-800 font-bold ml-1">📍:</span>${highlighted}
+        </div>`;
+    }).join('');
+
+    return `<div class="space-y-1 mt-1">${snippetsHtml}</div>`;
 }
 
 async function loadAllBaseData() {

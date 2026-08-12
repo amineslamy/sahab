@@ -318,45 +318,50 @@ function formatDateToFa(dateStr) {
     }
 }
 
-// تابع کمکی جهت استخراج تمام تکه متن‌های حول کلیدواژه و هایلایت کردن آن‌ها
+// تابع کمکی جهت استخراج تکه متن‌ها برای تمام کلمات جستجو شده (منطق AND)
 function getHighlightedSnippet(text, keyword) {
     if (!text || !keyword || !keyword.trim()) return '';
 
-    const cleanText = text.replace(/<[^>]*>?/gm, ''); // حذف تگ‌های احتمالاً موجود در متن
-    const trimmedKeyword = keyword.trim();
+    const cleanText = text.replace(/<[^>]*>?/gm, ''); // حذف تگ‌های HTML
+    const words = keyword.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 0) return '';
+
     const lowerText = cleanText.toLowerCase();
-    const lowerKeyword = trimmedKeyword.toLowerCase();
+    const snippetsHtml = [];
 
-    const matches = [];
-    let startIndex = 0;
+    // ساخت یک Regex کلی برای هایلایت کردن تمام کلمات جستجو شده
+    const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const highlightRegex = new RegExp(`(${escapedWords.join('|')})`, 'gi');
 
-    // پیدا کردن تمام مواضع تکرار کلیدواژه در متن
-    while ((startIndex = lowerText.indexOf(lowerKeyword, startIndex)) !== -1) {
-        matches.push(startIndex);
-        startIndex += lowerKeyword.length;
-    }
+    // استخراج تکه‌متن برای هر کلمه
+    words.forEach(word => {
+        const lowerWord = word.toLowerCase();
+        let startIndex = 0;
+        let foundCount = 0;
 
-    if (matches.length === 0) return '';
+        // حداکثر ۲ نمونه از هر کلمه برای جلوگیری از شلوغی بیش از حد
+        while ((startIndex = lowerText.indexOf(lowerWord, startIndex)) !== -1 && foundCount < 2) {
+            const start = Math.max(0, startIndex - 40);
+            const end = Math.min(cleanText.length, startIndex + word.length + 60);
 
-    const escapedKeyword = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+            let snippet = cleanText.substring(start, end);
+            if (start > 0) snippet = '...' + snippet;
+            if (end < cleanText.length) snippet = snippet + '...';
 
-    const snippetsHtml = matches.map(index => {
-        // محاسبه بازه برش متن حول هر کلیدواژه
-        const start = Math.max(0, index - 40);
-        const end = Math.min(cleanText.length, index + trimmedKeyword.length + 60);
+            const highlighted = snippet.replace(highlightRegex, '<mark class="bg-yellow-200 text-yellow-950 font-black px-1 rounded">$1</mark>');
+            snippetsHtml.push(`
+                <div class="mt-1 p-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-slate-700 leading-relaxed font-normal">
+                    <span class="text-amber-800 font-bold ml-1">📍:</span>${highlighted}
+                </div>
+            `);
 
-        let snippet = cleanText.substring(start, end);
-        if (start > 0) snippet = '...' + snippet;
-        if (end < cleanText.length) snippet = snippet + '...';
+            startIndex += word.length;
+            foundCount++;
+        }
+    });
 
-        const highlighted = snippet.replace(regex, '<mark class="bg-yellow-200 text-yellow-950 font-black px-1 rounded">$1</mark>');
-        return `<div class="mt-1 p-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-slate-700 leading-relaxed font-normal">
-            <span class="text-amber-800 font-bold ml-1">📍:</span>${highlighted}
-        </div>`;
-    }).join('');
-
-    return `<div class="space-y-1 mt-1">${snippetsHtml}</div>`;
+    if (snippetsHtml.length === 0) return '';
+    return `<div class="space-y-1 mt-1">${snippetsHtml.join('')}</div>`;
 }
 
 async function loadAllBaseData() {
@@ -909,10 +914,16 @@ function toggleAdvancedFilterAccordion() {
 function applyAdvancedFilters() {
     const filters = [];
 
-    // ۱. بررسی جستجوی متنی عمومی
+    // ۱. بررسی جستجوی متنی عمومی (کلمه‌به‌کلمه با منطق AND)
     const globalQuery = document.getElementById('global-search-input')?.value.trim();
     if (globalQuery) {
-        filters.push(`(title ~ "${globalQuery}" || automation_id ~ "${globalQuery}" || abstract ~ "${globalQuery}")`);
+        const words = globalQuery.split(/\s+/).filter(w => w.length > 0);
+        const wordFilters = words.map(word => 
+            `(title ~ "${word}" || automation_id ~ "${word}" || abstract ~ "${word}" || content ~ "${word}")`
+        );
+        if (wordFilters.length > 0) {
+            filters.push(`(${wordFilters.join(' && ')})`);
+        }
     }
 
     // ۲. بررسی انتخاب‌های دراپ‌داون

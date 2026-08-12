@@ -127,7 +127,7 @@ async function setupSubordinatesDropdown(activeAuthorId) {
     try {
         const users = await pb.collection('users').getFullList({
             filter: filterQuery,
-            sort: 'name,username'
+            sort: 'name'
         });
 
         if (users.length > 0) {

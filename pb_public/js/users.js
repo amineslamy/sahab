@@ -272,7 +272,9 @@ function renderUsersTable(users) {
             <tr class="${bgRow} border-b border-slate-100 hover:bg-slate-100/50 transition">
                 <td class="p-3 font-bold text-slate-900 flex items-center gap-3">
                     <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm" alt="آواتار">
-                    <span>${user.name || '---'}</span>
+                    <a href="analytics.html?author=${user.id}" title="مشاهده آمار کاربر" class="hover:text-indigo-600 transition">
+                        ${user.name || '---'}
+                    </a>
                 </td>
                 <td class="p-3 font-mono dir-ltr text-right text-slate-700">${user.username || user.email || '---'}</td>
                 <td class="p-3 font-semibold text-slate-700">${deptName}</td>

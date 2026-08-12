@@ -106,10 +106,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+async function setupSubordinatesDropdown(activeAuthorId) {
+    const currentUser = pb.authStore.model;
+    if (!currentUser) return;
+
+    const subContainer = document.getElementById('subordinates-container');
+    const subSelect = document.getElementById('subordinate-select');
+    if (!subContainer || !subSelect) return;
+
+    // بارگذاری لیست کاربران زیرمجموعه بر اساس نقش
+    let filterQuery = '';
+    if (currentUser.role === 'department') {
+        filterQuery = `department_rel = "${currentUser.id}"`;
+    } else if (currentUser.role === 'admin_site' || currentUser.role === 'admin_general') {
+        filterQuery = ''; // همه کاربران
+    } else {
+        return; // نقش‌های معمولی دسترسی تغییر زیرمجموعه ندارند
+    }
+
+    try {
+        const users = await pb.collection('users').getFullList({
+            filter: filterQuery,
+            sort: 'name,username'
+        });
+
+        if (users.length > 0) {
+            subSelect.innerHTML = `<option value="">-- گزارش کل زیرمجموعه‌ها --</option>`;
+            
+            // افزودن گزینه خود کاربر اداره در صورت لزوم
+            if (currentUser.role === 'department') {
+                const selfSelected = (activeAuthorId === currentUser.id) ? 'selected' : '';
+                subSelect.innerHTML += `<option value="${currentUser.id}" ${selfSelected}>فقط گزارش‌های خودم (اداره)</option>`;
+            }
+
+            users.forEach(u => {
+                const isSelected = (activeAuthorId === u.id) ? 'selected' : '';
+                const nameStr = u.name || u.username || u.id;
+                subSelect.innerHTML += `<option value="${u.id}" ${isSelected}>${nameStr} (${u.role})</option>`;
+            });
+
+            subContainer.classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error("خطا در دریافت کاربران زیرمجموعه:", e);
+    }
+}
+
+function onSubordinateChange(selectedUserId) {
+    const currentUrl = new URL(window.location.href);
+    if (selectedUserId) {
+        currentUrl.searchParams.set('author', selectedUserId);
+    } else {
+        currentUrl.searchParams.delete('author');
+    }
+    window.location.href = currentUrl.toString();
+}
+
 async function loadAnalyticsBaseData(authorId = null) {
     try {
         const roleFilter = getRoleBasedFilter();
         let finalFilter = roleFilter;
+        let activeUserId = authorId;
+
+        const userNameEl = document.getElementById('current-user-name');
 
         if (authorId) {
             let authorFilter = `author = "${authorId}"`;
@@ -117,18 +176,28 @@ async function loadAnalyticsBaseData(authorId = null) {
             try {
                 const targetUser = await pb.collection('users').getOne(authorId);
                 const userName = targetUser.name || targetUser.username || 'کاربر انتخاب شده';
-                const subtitleEl = document.getElementById('analytics-subtitle');
-                if (subtitleEl) subtitleEl.innerText = `نمایش آمار تخصصی و نمودارهای مربوط به کاربر: ${userName}`;
+                if (userNameEl) userNameEl.innerText = userName;
 
                 if (targetUser.role === 'department') {
                     authorFilter = `(author = "${authorId}" || author.department_rel = "${authorId}")`;
                 }
             } catch (e) {
                 console.error("خطا در دریافت اطلاعات کاربر هدف:", e);
+                if (userNameEl) userNameEl.innerText = 'نامشخص';
             }
 
             finalFilter = roleFilter ? `(${roleFilter}) && (${authorFilter})` : authorFilter;
+        } else {
+            // اگر author در URL نباشد، نام کاربر جاری درج می‌شود
+            const currentUser = pb.authStore.model;
+            if (currentUser && userNameEl) {
+                userNameEl.innerText = currentUser.name || currentUser.username || 'همه زیرمجموعه‌ها';
+            }
+            activeUserId = currentUser ? currentUser.id : null;
         }
+
+        // تنظیم و پر کردن دراپ‌داون زیرمجموعه‌ها
+        await setupSubordinatesDropdown(authorId);
 
         allReports = await pb.collection('reports').getFullList({
             sort: '-created',

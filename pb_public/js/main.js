@@ -318,6 +318,33 @@ function formatDateToFa(dateStr) {
     }
 }
 
+// تابع کمکی جهت استخراج تکه متن حول کلیدواژه و هایلایت کردن آن
+function getHighlightedSnippet(text, keyword, maxLength = 100) {
+    if (!text || !keyword || !keyword.trim()) return '';
+
+    const cleanText = text.replace(/<[^>]*>?/gm, ''); // حذف تگ‌های احتمالاً موجود در متن
+    const trimmedKeyword = keyword.trim();
+    const index = cleanText.toLowerCase().indexOf(trimmedKeyword.toLowerCase());
+
+    if (index === -1) return '';
+
+    // محاسبه بازه برش متن حول کلیدواژه
+    const start = Math.max(0, index - 40);
+    const end = Math.min(cleanText.length, index + trimmedKeyword.length + 60);
+
+    let snippet = cleanText.substring(start, end);
+    if (start > 0) snippet = '...' + snippet;
+    if (end < cleanText.length) snippet = snippet + '...';
+
+    // قرار دادن تگ mark روی کلیدواژه (بدون حساسیت به حروف بزرگ/کوچک)
+    const regex = new RegExp(`(${trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const highlighted = snippet.replace(regex, '<mark class="bg-yellow-200 text-yellow-950 font-black px-1 rounded">$1</mark>');
+
+    return `<div class="mt-1 p-1.5 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-slate-700 leading-relaxed font-normal">
+        <span class="text-amber-800 font-bold ml-1">📍 تطابق متنی:</span>${highlighted}
+    </div>`;
+}
+
 async function loadAllBaseData() {
     try {
         const roleFilter = getRoleBasedFilter();
@@ -367,6 +394,10 @@ async function loadReportsTable() {
     if (!tbody) return;
 
     try {
+        // دریافت کلیدواژه از ورودی جستجوی عمومی
+        const globalSearchInput = document.getElementById('global-search-input');
+        const searchKeyword = globalSearchInput ? globalSearchInput.value.trim() : '';
+
         const roleFilter = getRoleBasedFilter();
         let finalFilter = roleFilter;
 
@@ -401,7 +432,7 @@ async function loadReportsTable() {
                 : '<span class="text-slate-400">---</span>';
 
             const authorName = exp.author ? (exp.author.name || exp.author.username || '---') : '---';
-            const deptObj = exp.author?.expand?.department_rel;
+            const deptObj = exp.department || exp.author?.expand?.department_rel;
             const deptName = deptObj ? (deptObj.name || deptObj.username || '---') : '---';
             const submitterName = exp.submitter ? (exp.submitter.name || exp.submitter.username || '---') : '---';
 
@@ -445,6 +476,7 @@ async function loadReportsTable() {
                         <div class="text-[10px] text-slate-400 font-mono mt-0.5">
                             اتوماسیون: <span class="text-slate-600 font-semibold">${rec.automation_id || '---'}</span>
                         </div>
+                        ${getHighlightedSnippet(rec.content || rec.summary || rec.abstract || '', searchKeyword)}
                     </td>
 
                     <!-- ۳. موضوعات و کیس‌ها -->

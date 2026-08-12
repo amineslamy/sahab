@@ -1086,7 +1086,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (!departmentId) {
+            const ALLOWED_ROLES_WITHOUT_DEPT = ['expert', 'department', 'admin_general', 'admin_site'];
+            const userRole = currentUser.role || currentUser.expand?.role?.name || '';
+
+            if (!departmentId && !ALLOWED_ROLES_WITHOUT_DEPT.includes(userRole)) {
                 showError('برای کاربر فعلی دپارتمان تعیین نشده است.');
                 return;
             }
@@ -1125,7 +1128,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const authorId = state.selectedAuthor?.id || currentUser.id;
                 formData.append('author', authorId);
                 formData.append('submitter', currentUser.id);
-                formData.append('department', departmentId);
+                if (departmentId) {
+                    formData.append('department', departmentId);
+                }
             }
 
             state.selectedCases.forEach((id) => formData.append('cases_rel', id));

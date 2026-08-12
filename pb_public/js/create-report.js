@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pb: null,
         quill: null,
         selectedCoverFile: null,
+        isCoverRemoved: false, // 👈 پرچم ثبت وضعیت حذف تصویر شاخص
         selectedAttachments: [],
         existingAttachments: [], // 👈 ذخیره اسامی فایل‌های پیوست قبلی سرور
         selectedTopics: [],
@@ -808,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 state.selectedCoverFile = file;
+                state.isCoverRemoved = false;
                 renderCoverPreview(file);
             }
         });
@@ -841,6 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (removeCoverBtn) {
             removeCoverBtn.addEventListener('click', () => {
                 state.selectedCoverFile = null;
+                state.isCoverRemoved = true;
 
                 const input = $id('report-cover-image');
                 const preview = $id('cover-preview-container');
@@ -1138,6 +1141,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (state.selectedCoverFile) {
                 formData.append('cover_image', state.selectedCoverFile);
+            } else if (state.isCoverRemoved) {
+                formData.append('cover_image', '');
             }
 
             // ارسال اسامی فایل‌های قبلی جهت جلوگیری از پاک شدن در PocketBase
@@ -1326,6 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (form) form.reset();
 
         state.selectedCoverFile = null;
+        state.isCoverRemoved = false;
         state.selectedAttachments = [];
         state.existingAttachments = [];
         state.selectedTopics.length = 0;

@@ -434,43 +434,50 @@ function renderAnalyticsCharts(reportsData = allReports) {
 }
 
 function renderWordCloud(reportsData) {
-    const canvas = document.getElementById('word-cloud-canvas');
+    const svgContainer = document.getElementById('word-cloud-svg');
+    const container = document.getElementById('word-cloud-container');
     const emptyEl = document.getElementById('word-cloud-empty');
-    if (!canvas || typeof WordCloud === 'undefined') return;
+    if (!svgContainer || typeof d3 === 'undefined' || typeof d3.layout?.cloud !== 'function') return;
 
-    // شناسه اخباری که در فیلتر فعلی قرار دارند
+    // پاک‌سازی قبلی SVG
+    svgContainer.innerHTML = '';
+
+    // دریافت یا ایجاد Tooltip شناور
+    let tooltip = document.getElementById('word-cloud-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'word-cloud-tooltip';
+        tooltip.className = 'absolute hidden pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded-lg shadow-xl backdrop-blur-sm z-50 border border-slate-700 font-sans transition-all duration-75';
+        container.appendChild(tooltip);
+    }
+
     const activeReportIds = new Set(reportsData.map(r => r.id));
 
-    // لیست حروف ربط و کلمات عمومی (Stop Words) برای حذف از ابر کلمات
     const stopWords = new Set([
         'در', 'به', 'از', 'که', 'می', 'این', 'را', 'با', 'است', 'برای', 'آن', 'یک', 'شود', 'شده', 'خود',
         'ها', 'های', 'بر', 'تا', 'نیز', 'وی', 'شد', 'علاوه', 'هم', 'کند', 'کرد', 'برای', 'یا', 'اما',
         'باشد', 'باید', 'داد', 'داشت', 'آنها', 'ویژه', 'جهت', 'پس', 'بین', 'توسط', 'طی', 'چون', 'کل',
-        'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', ' style', 'class'
+        'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', 'style', 'class'
     ]);
 
     let combinedText = '';
 
-    // جمع‌آوری متون اخبار فیلترشده
     reportsData.forEach(r => {
         if (r.title) combinedText += ' ' + r.title;
         if (r.abstract) combinedText += ' ' + r.abstract;
         if (r.content) combinedText += ' ' + r.content;
     });
 
-    // جمع‌آوری متون کامنت‌های مربوط به اخبار فیلترشده
     allComments.forEach(c => {
         if (c.report && activeReportIds.has(c.report) && c.text) {
             combinedText += ' ' + c.text;
         }
     });
 
-    // پاک‌سازی تگ‌های HTML
     const cleanText = combinedText.replace(/<[^>]*>/g, ' ')
-        .replace(/[0-9\u0660-\u0669\u06f0-\u06f9]/g, ' ') // حذف ارقام
-        .replace(/[^\u0600-\u06FF\s]/g, ' '); // نگه‌داشتن فقط حروف فارسی
+        .replace(/[0-9\u0660-\u0669\u06f0-\u06f9]/g, ' ')
+        .replace(/[^\u0600-\u06FF\s]/g, ' ');
 
-    // استخراج کلمات و شمارش فراوانی
     const words = cleanText.split(/\s+/);
     const wordCounts = {};
 
@@ -481,46 +488,98 @@ function renderWordCloud(reportsData) {
         }
     });
 
-    // تبدیل به فرمت مورد نیاز WordCloud2 [[word, size], ...]
-    const list = Object.entries(wordCounts)
+    const rawList = Object.entries(wordCounts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 80) // حداکثر ۸۰ کلمه پرتکرار
-        .map(([text, count]) => [text, count]);
+        .slice(0, 50); // محدوده تعداد کلمات
 
-    if (list.length === 0) {
+    if (rawList.length === 0) {
         if (emptyEl) emptyEl.classList.remove('hidden');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        tooltip.classList.add('hidden');
         return;
     }
 
     if (emptyEl) emptyEl.classList.add('hidden');
 
-    // تنظیم ابعاد Canvas بر اساس کانتینر
-    canvas.width = canvas.parentElement.clientWidth || 800;
-    canvas.height = 300;
+    const width = container.clientWidth || 800;
+    const height = 300;
 
-    // مقیاس‌گذاری اندازه فونت
-    const maxCount = list[0][1];
-    const minCount = list[list.length - 1][1];
-    const weightFactor = (size) => {
-        if (maxCount === minCount) return 20;
-        return 14 + ((size - minCount) / (maxCount - minCount)) * 36;
-    };
+    const maxCount = rawList[0][1];
+    const minCount = rawList[rawList.length - 1][1];
 
-    WordCloud(canvas, {
-        list: list,
-        fontFamily: 'Vazirmatn, sans-serif',
-        weightFactor: weightFactor,
-        color: () => {
-            const colors = ['#4f46e5', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
-            return colors[Math.floor(Math.random() * colors.length)];
-        },
-        backgroundColor: 'transparent',
-        rotateRatio: 0, // کلمات افقی جهت خوانایی بهتر
-        gridSize: 8,
-        drawOutOfBound: false
-    });
+    const fontSizeScale = d3.scaleLinear()
+        .domain([minCount, maxCount])
+        .range([14, 42]);
+
+    const palette = ['#4f46e5', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
+
+    const wordEntries = rawList.map(([text, count]) => ({
+        text: text,
+        size: fontSizeScale(count),
+        count: count
+    }));
+
+    d3.layout.cloud()
+        .size([width, height])
+        .words(wordEntries)
+        .padding(5)
+        .rotate(0)
+        .font('Vazirmatn')
+        .fontSize(d => d.size)
+        .on('end', draw)
+        .start();
+
+    function draw(wordsData) {
+        const svg = d3.select('#word-cloud-svg')
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height)
+            .append('g')
+            .attr('transform', `translate(${width / 2},${height / 2})`);
+
+        svg.selectAll('text')
+            .data(wordsData)
+            .enter()
+            .append('text')
+            .style('font-family', 'Vazirmatn, sans-serif')
+            .style('font-weight', 'bold')
+            .style('fill', () => palette[Math.floor(Math.random() * palette.length)])
+            .attr('text-anchor', 'middle')
+            .attr('transform', d => `translate(${d.x},${d.y})`)
+            .style('font-size', d => `${d.size}px`)
+            .style('cursor', 'pointer')
+            .style('transition', 'transform 0.15s ease, opacity 0.15s ease')
+            .text(d => d.text)
+            .on('mouseover', function (event, d) {
+                d3.select(this)
+                    .style('opacity', '0.75')
+                    .attr('transform', `translate(${d.x},${d.y}) scale(1.15)`);
+
+                tooltip.innerHTML = `<span class="font-bold text-sky-400">${d.text}</span>: ${d.count} بار تکرار`;
+                
+                const rect = container.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                tooltip.style.left = `${x + 10}px`;
+                tooltip.style.top = `${y - 35}px`;
+                tooltip.classList.remove('hidden');
+            })
+            .on('mousemove', function (event) {
+                const rect = container.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                tooltip.style.left = `${x + 10}px`;
+                tooltip.style.top = `${y - 35}px`;
+            })
+            .on('mouseout', function (event, d) {
+                d3.select(this)
+                    .style('opacity', '1')
+                    .attr('transform', `translate(${d.x},${d.y}) scale(1)`);
+
+                tooltip.classList.add('hidden');
+            });
+    }
 }
 
 function applyAnalyticsDateFilter() {

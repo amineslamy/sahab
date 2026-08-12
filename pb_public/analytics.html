@@ -188,9 +188,9 @@
             <!-- ۱۴. ابر کلمات کلیدی -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3">
                 <h3 class="font-bold text-slate-800 text-xs mb-3">☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)</h3>
-                <div
-                    class="w-full flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 min-h-[320px] relative">
-                    <canvas id="word-cloud-canvas" class="w-full h-[300px]"></canvas>
+                <div id="word-cloud-container"
+                    class="w-full flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 min-h-[320px] relative overflow-hidden">
+                    <div id="word-cloud-svg" class="w-full h-[300px] flex justify-center items-center"></div>
                     <div id="word-cloud-empty" class="hidden absolute text-slate-400 text-xs font-bold">کلمه‌ای برای
                         نمایش یافت نشد</div>
                 </div>
@@ -206,7 +206,8 @@
     <script src="js/apexcharts.min.js"></script>
     <script src="js/pocketbase.umd.js?v=1"></script>
     <script src="js/header.js"></script>
-    <script src="js/wordcloud2.js"></script>
+    <script src="js/d3.v7.min.js"></script>
+    <script src="js/d3.layout.cloud.js"></script>
     <script src="js/analytics.js"></script>
 </body>
 

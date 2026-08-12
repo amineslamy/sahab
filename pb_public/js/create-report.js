@@ -287,7 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUser = authData.record || {};
             const departmentId = currentUser.department_rel || currentUser.department || '';
 
+            const ALLOWED_ROLES_WITHOUT_DEPT = ['expert', 'department', 'admin_general', 'admin_site'];
+            const userRole = currentUser.role || currentUser.expand?.role?.name || '';
+
             if (!departmentId) {
+                if (ALLOWED_ROLES_WITHOUT_DEPT.includes(userRole)) {
+                    console.warn("کاربر فاقد دپارتمان است اما به دلیل داشتن نقش مجاز، ادامه برنامه اجرا می‌شود:", userRole);
+                    return true;
+                }
                 showError("نشست شما معتبر است، اما اداره ای برای حساب کاربری شما تعریف نشده است. لطفا با مدیر سیستم تماس بگیرید.");
                 const submitBtn = $id('submit-btn');
                 if (submitBtn) submitBtn.disabled = true;
@@ -544,11 +551,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         state.allAuthorsList = users;
 
-        // بررسی نقش کاربر جاری: تنها اگر کارشناس باشد اسمش به صورت پیش‌فرض انتخاب می‌شود
+        // بررسی نقش کاربر جاری: تنها اگر کارشناس باشد و دپارتمان داشته باشد اسمش به صورت پیش‌فرض انتخاب می‌شود
         const currentUser = state.pb.authStore.record || state.pb.authStore.model;
         if (currentUser && !state.selectedAuthor) {
             const userRole = currentUser.role || currentUser.expand?.role?.name || '';
-            if (userRole === 'expert') {
+            const userDept = currentUser.department_rel || currentUser.department;
+
+            if (userRole === 'expert' && userDept) {
                 const activeUserInList = users.find(u => u.id === currentUser.id);
                 state.selectedAuthor = activeUserInList || currentUser;
             } else {

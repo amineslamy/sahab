@@ -75,24 +75,34 @@ async function deleteReport(id) {
         // ۱. دریافت اطلاعات کامل گزارش فعلی
         const reportData = await pb.collection('reports').getOne(id, { requestKey: null });
 
-        // ۲. دریافت تمام کامنت‌های مرتبط با این گزارش
-        const relatedComments = await pb.collection('comments').getFullList({
-            filter: `report ~ "${id}" || report = "${id}"`,
-            requestKey: null
-        });
+        // ۲. دریافت تمام کامنت‌ها و نسخه‌های مرتبط با این گزارش
+        const [relatedComments, relatedVersions] = await Promise.all([
+            pb.collection('comments').getFullList({
+                filter: `report ~ "${id}" || report = "${id}"`,
+                requestKey: null
+            }),
+            pb.collection('report_versions').getFullList({
+                filter: `report = "${id}"`,
+                requestKey: null
+            })
+        ]);
 
-        // ۳. ارسال داده‌های گزارش و کامنت‌ها به کالکشن سطل آشغال (trash_reports)
+        // ۳. ارسال داده‌های گزارش، کامنت‌ها و نسخه‌ها به کالکشن سطل آشغال (trash_reports)
         const currentUser = pb.authStore.model;
         await pb.collection('trash_reports').create({
             original_id: id,
             report_data: reportData,
             comments_data: relatedComments,
+            versions_data: relatedVersions,
             deleted_by: currentUser ? currentUser.id : null
         }, { requestKey: null });
 
-        // ۴. حذف تمامی کامنت‌های پیدا شده از کالکشن اصلی
+        // ۴. حذف تمامی کامنت‌ها و نسخه‌های پیدا شده از کالکشن‌های اصلی
         for (const comment of relatedComments) {
             await pb.collection('comments').delete(comment.id, { requestKey: null });
+        }
+        for (const version of relatedVersions) {
+            await pb.collection('report_versions').delete(version.id, { requestKey: null });
         }
 
         // ۵. حذف خودِ گزارش از کالکشن اصلی

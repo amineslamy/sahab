@@ -956,6 +956,13 @@ function applyAdvancedFilters() {
 
 
 function resetAdvancedFilters() {
+    // ریست کردن فیلد جستجوی عمومی
+    const globalSearchInput = document.getElementById('global-search-input');
+    if (globalSearchInput) {
+        globalSearchInput.value = "";
+    }
+
+    // ریست کردن دراپ‌داون‌های فیلتر پیشرفته
     document.getElementById('adv-filter-topic').value = "";
     document.getElementById('adv-filter-case').value = "";
     document.getElementById('adv-filter-classification').value = "";
@@ -963,6 +970,7 @@ function resetAdvancedFilters() {
     document.getElementById('adv-filter-news-type').value = "";
     document.getElementById('adv-filter-evaluation').value = "";
     document.getElementById('adv-filter-author').value = "";
+
     currentFilterQuery = "";
     currentPage = 1;
     loadReportsTable();

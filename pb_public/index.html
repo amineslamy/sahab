@@ -75,10 +75,7 @@
                     class="tab-btn active flex-1 py-1.5 px-3 rounded-lg text-xs font-black text-center transition flex items-center justify-center gap-1.5">
                     <span>📊</span> <span>خلاصه عملیاتی</span>
                 </button>
-                <button onclick="switchTab('tab-analytics')" id="btn-tab-analytics"
-                    class="tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-black text-center transition flex items-center justify-center gap-1.5">
-                    <span>📈</span> <span>آمار</span>
-                </button>
+                
                 <button onclick="switchTab('tab-sync')" id="btn-tab-sync"
                     class="tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-black text-center transition flex items-center justify-center gap-1.5">
                     <span>🔄</span> <span>همگام‌سازی</span>
@@ -308,112 +305,8 @@
 
     </div>
 
-    <!-- ==================== تب دوم: تحلیل و آمار گزارش‌ها ==================== -->
-    <div id="tab-analytics" class="tab-content hidden space-y-6">
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-100 pb-4">
-                <div>
-                    <h3 class="font-black text-slate-800 text-base">تنظیم بازه زمانی تحلیل آمار گزارش‌ها</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">نمودارهای این صفحه بر اساس بازه تاریخ ثبت به روزرسانی
-                        می‌شوند</p>
-                </div>
-
-                <div
-                    class="flex flex-wrap items-center justify-center gap-2 text-xs font-bold text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-inner">
-                    <span>از تاریخ ثبت:</span>
-                    <input type="text" id="filter-date-from" placeholder="YYYY-MM-DD"
-                        class="border border-slate-300 rounded-lg px-2.5 py-1 text-center font-bold bg-white text-indigo-900 outline-none w-32 focus:border-indigo-500">
-                    <span>تا:</span>
-                    <input type="text" id="filter-date-to" placeholder="YYYY-MM-DD"
-                        class="border border-slate-300 rounded-lg px-2.5 py-1 text-center font-bold bg-white text-indigo-900 outline-none w-32 focus:border-indigo-500">
-                    <button onclick="applyAnalyticsDateFilter()"
-                        class="bg-indigo-600 text-white px-4 py-1 rounded-lg font-black hover:bg-indigo-700 transition-all shadow-sm">اعمال
-                        فیلتر</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div class="border-b border-slate-100 pb-3">
-                <h3 class="font-black text-slate-800 text-base">روند زمانی انتشار اخبار در سامانه</h3>
-            </div>
-            <div id="chart-timeline" class="min-h-[280px]"></div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div class="border-b border-slate-100 pb-3">
-                <h3 class="font-black text-slate-800 text-base">عملکرد و فعالیت کاربران در انتشار اخبار</h3>
-            </div>
-            <div id="chart-user-performance" class="min-h-[320px]"></div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-6">
-            <div class="border-b border-slate-100 pb-3">
-                <h3 class="font-black text-slate-800 text-base">تحلیل تفکیکی نوع اخبار</h3>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">اخبار به تفکیک اداره</h4>
-                    <div id="chart-department" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">وضعیت داشتن چکیده</h4>
-                    <div id="chart-has-summary" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">وضعیت تصویر پیوست</h4>
-                    <div id="chart-has-image" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">خبرهای مربوط به کیس</h4>
-                    <div id="chart-analytics-cases" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">توزیع موضوعات</h4>
-                    <div id="chart-analytics-topics" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">تفکیک کاربران ثبت‌کننده</h4>
-                    <div id="chart-analytics-creators" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">طبقه‌بندی</h4>
-                    <div id="chart-classification" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">اولویت</h4>
-                    <div id="chart-priority" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">نوع خبر</h4>
-                    <div id="chart-news-type" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">ارزیابی خبر</h4>
-                    <div id="chart-evaluation" class="min-h-[250px]"></div>
-                </div>
-
-                <div class="col-span-1 lg:col-span-2 border border-slate-100 p-4 rounded-xl relative bg-slate-50/30">
-                    <h4 class="font-black text-slate-700 text-xs mb-2">روند زمانی بر اساس «تاریخ وقوع»</h4>
-                    <div id="chart-occurrence-timeline" class="min-h-[260px]"></div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- ==================== تب سوم: همگام سازی ==================== -->
+    <!-- ==================== تب دوم: همگام سازی ==================== -->
     <div id="tab-sync" class="tab-content hidden space-y-6">
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto space-y-6">
             <div class="border-b border-slate-100 pb-4">

@@ -425,7 +425,9 @@ async function loadReportsTable() {
                     <!-- ۲. عنوان خبر و شناسه -->
                     <td class="p-2.5 align-middle">
                         <div class="flex items-center gap-1.5 font-bold text-slate-900">
-                            <span class="truncate max-w-[280px]" title="${rec.title || 'بدون عنوان'}">${rec.title || 'بدون عنوان'}</span>
+                            <a href="create-report.html?id=${rec.id}" title="ویرایش گزارش" class="truncate max-w-[280px] hover:text-indigo-600 hover:underline transition-colors">
+                                ${rec.title || 'بدون عنوان'}
+                            </a>
                             ${mediaIcons}
                         </div>
                         <div class="text-[10px] text-slate-400 font-mono mt-0.5">

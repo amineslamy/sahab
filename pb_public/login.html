@@ -39,28 +39,41 @@
             font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
         }
 
-        /* پس‌زمینه زنده و ملایم با گرادینت روشن */
+        /* پس‌زمینه تصویری خالص بدون لایه پوششی گرادینت */
         .bg-vibrant-light {
-            background: linear-gradient(135deg, #e0e7ff 0%, #f0fdf4 50%, #fef2f2 100%);
+            background: url('images/default.jpg') center/cover no-repeat fixed;
         }
 
-        /* جلوه شیشه‌ای دکوراتیو */
+        /* جلوه شیشه‌ای با شفافیت کمتر (کدرتر) برای نمایی مشخص‌تر و خوانایی بالاتر */
         .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(30px) saturate(190%);
+            -webkit-backdrop-filter: blur(30px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.35), 
+                        inset 0 1px 2px rgba(255, 255, 255, 0.6);
+        }
+        /* افکت گرادینت برای عنوان */
+        .brand-title-gradient {
+            background: linear-gradient(135deg, #c506b5 0%, #06a5ad 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
 
 <body class="bg-vibrant-light min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
 
-    <!-- دایره‌های رنگی افکت پس‌زمینه (کاملاً SVG لوکال و CSS) -->
+    <!-- نورهای درخشان رنگی روی تصویر پس‌زمینه جهت افکت شیشه‌ای خیره‌کننده
     <div
-        class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-300 rounded-full blur-3xl opacity-50 pointer-events-none">
+        class="absolute -top-16 -right-16 w-[28rem] h-[28rem] bg-fuchsia-500 rounded-full blur-3xl opacity-70 pointer-events-none mix-blend-multiply">
     </div>
     <div
-        class="absolute -bottom-24 -left-24 w-96 h-96 bg-teal-300 rounded-full blur-3xl opacity-50 pointer-events-none">
+        class="absolute -bottom-16 -left-16 w-[28rem] h-[28rem] bg-teal-400 rounded-full blur-3xl opacity-70 pointer-events-none mix-blend-multiply">
     </div>
+    <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-50 pointer-events-none mix-blend-soft-light">
+    </div> -->
 
     <div class="glass-card w-full max-w-md rounded-3xl shadow-2xl border border-white/60 p-8 sm:p-10 relative z-10">
 
@@ -70,7 +83,7 @@
                 class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 via-indigo-500 to-teal-400 text-white rounded-2xl shadow-lg mb-4 ring-4 ring-indigo-50">
                 <img src="images/logo.png" alt="لوگوی سحاب" class="w-10 h-10 object-contain">
             </div>
-            <h1 class="text-2xl font-black text-slate-800 tracking-tight">بانک اطلاعات آفلاین «سحاب»</h1>
+            <h1 class="text-2xl font-black brand-title-gradient tracking-tight">بانک اطلاعات آفلاین «سحاب»</h1>
             <p class="text-xs font-medium text-slate-500 mt-2">سامانه آرشیو، پردازش و هوشمندی داده‌ها</p>
         </div>
 
@@ -101,7 +114,8 @@
                     <span class="absolute right-3.5 top-3.5 text-slate-400">
                         <i class="fa-solid fa-lock text-base"></i>
                     </span>
-                    <button type="button" id="toggle-password" class="absolute left-3.5 top-3.5 text-slate-400 hover:text-indigo-600 focus:outline-none transition">
+                    <button type="button" id="toggle-password"
+                        class="absolute left-3.5 top-3.5 text-slate-400 hover:text-indigo-600 focus:outline-none transition">
                         <i id="eye-icon" class="fa-solid fa-eye text-base"></i>
                     </button>
                 </div>

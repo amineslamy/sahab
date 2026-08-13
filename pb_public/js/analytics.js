@@ -551,8 +551,13 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     // ۱۴. نمودار ستونی انباشته — توزیع طبقه‌بندی بر اساس دپارتمان
     const deptClassMap = {};
-    const classifications = Set ? Array.from(new Set(reportsData.map(r => r.classification || 'تعریف‌نشده'))) : [];
+const targetOrder = ['عادی', 'محرمانه', 'خیلی محرمانه', 'سری', 'به کلی سری'];
+    const presentClassifications = new Set(reportsData.map(r => r.classification || 'تعریف‌نشده'));
     
+    const classifications = [
+        ...targetOrder.filter(c => presentClassifications.has(c)),
+        ...Array.from(presentClassifications).filter(c => !targetOrder.includes(c))
+    ];    
     reportsData.forEach(r => {
         const deptObj = r.expand?.author?.expand?.department_rel;
         const deptName = deptObj ? (deptObj.name || deptObj.username) : 'نامشخص';

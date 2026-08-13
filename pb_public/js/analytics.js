@@ -184,6 +184,17 @@ async function loadAnalyticsBaseData(authorId = null) {
 
         const userNameEl = document.getElementById('current-user-name');
 
+        const userAvatarEl = document.getElementById('current-user-avatar');
+
+        const setAvatar = (userObj) => {
+            if (userAvatarEl && userObj && userObj.avatar) {
+                userAvatarEl.src = pb.files.getUrl(userObj, userObj.avatar);
+                userAvatarEl.classList.remove('hidden');
+            } else if (userAvatarEl) {
+                userAvatarEl.classList.add('hidden');
+            }
+        };
+
         if (authorId) {
             let authorFilter = `author = "${authorId}"`;
 
@@ -191,6 +202,7 @@ async function loadAnalyticsBaseData(authorId = null) {
                 const targetUser = await pb.collection('users').getOne(authorId);
                 const userName = targetUser.name || targetUser.username || 'کاربر انتخاب شده';
                 if (userNameEl) userNameEl.innerText = userName;
+                setAvatar(targetUser);
 
                 if (targetUser.role === 'department') {
                     authorFilter = `(author = "${authorId}" || author.department_rel = "${authorId}")`;
@@ -206,6 +218,7 @@ async function loadAnalyticsBaseData(authorId = null) {
             const currentUser = pb.authStore.model;
             if (currentUser && userNameEl) {
                 userNameEl.innerText = currentUser.name || currentUser.username || 'همه زیرمجموعه‌ها';
+                setAvatar(currentUser);
             }
             activeUserId = currentUser ? currentUser.id : null;
         }

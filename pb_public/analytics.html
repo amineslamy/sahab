@@ -60,19 +60,23 @@
         <div
             class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <a href="users.html" title="بازگشت به مدیریت کاربران"
-                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2.5 rounded-xl transition flex items-center justify-center border border-slate-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                </a>
+                <!-- آواتار کارشناس -->
+                <img id="current-user-avatar" src="images/avatar-placeholder.png" alt="آواتار"
+                    class="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm hidden">
                 <div>
                     <h2 class="font-black text-lg bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
                         id="current-user-name">
                         در حال دریافت...
                     </h2>
                 </div>
+                <!-- دکمه فلش منتقل‌شده به سمت دیگر نام 
+                <a href="users.html" title="بازگشت به مدیریت کاربران"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2.5 rounded-xl transition flex items-center justify-center border border-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>-->
             </div>
 
             <!-- بخش فیلترها (انتخاب زیرمجموعه + فیلتر تاریخ) -->
@@ -422,6 +426,7 @@
     </main>
 
     <!-- اسکریپت‌های محلی سیستم -->
+    <script src="js/sweetalert2.all.min.js"></script>
     <script src="js/jquery-3.6.4.min.js"></script>
     <script src="js/persian-date.min.js"></script>
     <script src="js/persian-datepicker.min.js"></script>

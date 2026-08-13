@@ -146,7 +146,7 @@ async function setupSubordinatesDropdown(activeAuthorId) {
 
         if (users.length > 0) {
             subSelect.innerHTML = `<option value="">-- گزارش کل زیرمجموعه‌ها --</option>`;
-            
+
             // افزودن گزینه خود کاربر اداره در صورت لزوم
             if (currentUser.role === 'department') {
                 const selfSelected = (activeAuthorId === currentUser.id) ? 'selected' : '';
@@ -224,7 +224,7 @@ async function loadAnalyticsBaseData(authorId = null) {
         try {
             allCases = await pb.collection('cases').getFullList({ sort: 'title', requestKey: null });
             allTopics = await pb.collection('topics').getFullList({ sort: 'title', requestKey: null });
-            
+
             populateFilterDropdowns();
         } catch (fErr) {
             console.error("خطا در دریافت لیست کیس‌ها و موضوعات:", fErr);
@@ -379,7 +379,7 @@ function convertIsoToFaShort(dateStr) {
 }
 
 function renderAnalyticsCharts(reportsData = allReports) {
-    currentFilteredReports = reportsData;    const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
+    currentFilteredReports = reportsData; const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
         return items.reduce((acc, item) => {
             const key = getKey(item) || defaultValue;
             acc[key] = (acc[key] || 0) + 1;
@@ -551,13 +551,13 @@ function renderAnalyticsCharts(reportsData = allReports) {
 
     // ۱۴. نمودار ستونی انباشته — توزیع طبقه‌بندی بر اساس دپارتمان
     const deptClassMap = {};
-const targetOrder = ['عادی', 'محرمانه', 'خیلی محرمانه', 'سری', 'به کلی سری'];
+    const targetOrder = ['عادی', 'محرمانه', 'خیلی محرمانه', 'سری', 'به کلی سری'];
     const presentClassifications = new Set(reportsData.map(r => r.classification || 'تعریف‌نشده'));
-    
+
     const classifications = [
         ...targetOrder.filter(c => presentClassifications.has(c)),
         ...Array.from(presentClassifications).filter(c => !targetOrder.includes(c))
-    ];    
+    ];
     reportsData.forEach(r => {
         const deptObj = r.expand?.author?.expand?.department_rel;
         const deptName = deptObj ? (deptObj.name || deptObj.username) : 'نامشخص';
@@ -584,7 +584,7 @@ const targetOrder = ['عادی', 'محرمانه', 'خیلی محرمانه', '�
     // ۱۵. نمودار میله‌ای افقی — وضعیت اولویت و نوع خبر
     const priorityTypeMap = {};
     const newsTypes = Array.from(new Set(reportsData.map(r => r.news_type || 'تعریف‌نشده')));
-    
+
     reportsData.forEach(r => {
         const prio = r.priority || 'عادی';
         const type = r.news_type || 'تعریف‌نشده';
@@ -666,6 +666,7 @@ const targetOrder = ['عادی', 'محرمانه', 'خیلی محرمانه', '�
     renderForceDirectedGraph(reportsData);
     renderSunburstDiagram(reportsData);
     renderChordDiagram(reportsData);
+    renderSankeyDiagram(reportsData);
 
     // ۱۸. ابر کلمات کلیدی
     renderWordCloud(reportsData);
@@ -799,7 +800,7 @@ function renderWordCloud(reportsData, targetConfig = {}) {
                     .attr('transform', `translate(${d.x},${d.y}) scale(1.15)`);
 
                 tooltip.innerHTML = `<span class="font-bold text-sky-400">${d.text}</span>: ${d.count} بار تکرار`;
-                
+
                 const rect = container.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -1203,5 +1204,182 @@ function renderChordDiagram(reportsData) {
         legendDiv.append('div')
             .attr('class', 'flex items-center gap-1.5 text-xs text-slate-700 font-bold')
             .html(`<span class="w-3 h-3 rounded-full inline-block shadow-sm" style="background-color: ${color(i)}"></span><span>${dept}</span>`);
+    });
+}
+
+// پیاده‌سازی نمودار جریان زمانی انتشارات (Sankey Diagram) با D3.js (دپارتمان -> موضوع -> کیس)
+function renderSankeyDiagram(reportsData) {
+    const container = document.getElementById('chart-sankey');
+    if (!container || typeof d3 === 'undefined') return;
+    container.innerHTML = '';
+
+    const width = container.clientWidth || 800;
+    const height = 360;
+
+    // استخراج گروه‌بندی سه‌مرحله‌ای: دپارتمان -> موضوع -> کیس
+    const nodesMap = new Map();
+    const linksMap = new Map();
+
+    const getNodeIndex = (name, category) => {
+        const key = `${category}:${name}`;
+        if (!nodesMap.has(key)) {
+            nodesMap.set(key, { id: nodesMap.size, name: name, category: category });
+        }
+        return nodesMap.get(key).id;
+    };
+
+    reportsData.forEach(r => {
+        const deptObj = r.expand?.author?.expand?.department_rel;
+        const deptName = deptObj ? (deptObj.name || deptObj.username) : 'نامشخص';
+
+        // استخراج موضوعات
+        const topics = (r.expand?.topics_rel || []).map(t => t.title || t.name || t.id);
+        if (topics.length === 0) topics.push('بدون موضوع');
+
+        // استخراج کیس‌ها
+        let cases = [];
+        if (r.expand?.cases_rel) {
+            const rawCases = Array.isArray(r.expand.cases_rel) ? r.expand.cases_rel : [r.expand.cases_rel];
+            cases = rawCases.map(c => c.title || c.name || c.id || c);
+        } else if (r.cases_rel) {
+            cases = Array.isArray(r.cases_rel) ? r.cases_rel : [r.cases_rel];
+        } else if (r.cases) {
+            cases = Array.isArray(r.cases) ? r.cases : [r.cases];
+        }
+
+        if (cases.length === 0) cases.push('بدون کیس');
+
+        const deptNodeId = getNodeIndex(deptName, 'dept');
+
+        topics.forEach(topName => {
+            const topNodeId = getNodeIndex(topName, 'topic');
+
+            // جریان دپارتمان به موضوع
+            const link1Key = `${deptNodeId}->${topNodeId}`;
+            linksMap.set(link1Key, (linksMap.get(link1Key) || 0) + 1);
+
+            // جریان موضوع به کیس
+            cases.forEach(caseName => {
+                const caseNodeId = getNodeIndex(caseName, 'case');
+                const link2Key = `${topNodeId}->${caseNodeId}`;
+                linksMap.set(link2Key, (linksMap.get(link2Key) || 0) + 1);
+            });
+        });
+    });
+
+    const nodes = Array.from(nodesMap.values());
+    const links = Array.from(linksMap.entries()).map(([key, val]) => {
+        const [source, target] = key.split('->').map(Number);
+        return { source, target, value: val };
+    });
+
+    if (nodes.length === 0 || links.length === 0) {
+        container.innerHTML = '<div class="w-full h-full flex items-center justify-center"><span class="text-xs text-slate-400 font-bold">داده‌ای برای رسم جریان انتشارات یافت نشد</span></div>';
+        return;
+    }
+
+    // دسته‌بندی لایه‌ای گره‌ها (Left: Dept, Middle: Topic, Right: Case)
+    const layers = { dept: 0, topic: 1, case: 2 };
+    const layerNodes = [[], [], []];
+    nodes.forEach(n => layerNodes[layers[n.category]].push(n));
+
+    // محاسبه مختصات گره‌ها
+    const padding = 15;
+    const nodeWidth = 18;
+
+    layerNodes.forEach((layer, colIndex) => {
+        const totalValue = layer.reduce((sum, n) => {
+            const outVal = links.filter(l => l.source === n.id).reduce((s, l) => s + l.value, 0);
+            const inVal = links.filter(l => l.target === n.id).reduce((s, l) => s + l.value, 0);
+            n.value = Math.max(outVal, inVal, 1);
+            return sum + n.value;
+        }, 0);
+
+        const availableHeight = height - 60 - (layer.length - 1) * padding;
+        let currentY = 30;
+
+        layer.forEach(n => {
+            n.x = 40 + colIndex * ((width - 80 - nodeWidth) / 2);
+            n.h = Math.max(12, (n.value / (totalValue || 1)) * availableHeight);
+            n.y = currentY;
+            currentY += n.h + padding;
+        });
+    });
+
+    const svg = d3.select('#chart-sankey')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    const categoryColors = {
+        dept: '#3b82f6',
+        topic: '#10b981',
+        case: '#f59e0b'
+    };
+
+    // رسم جریان‌ها (Links)
+    links.forEach(l => {
+        const sourceNode = nodes[l.source];
+        const targetNode = nodes[l.target];
+
+        if (!sourceNode || !targetNode) return;
+
+        const path = d3.linkHorizontal()
+            .x(d => d[0])
+            .y(d => d[1])({
+                source: [sourceNode.x + nodeWidth, sourceNode.y + sourceNode.h / 2],
+                target: [targetNode.x, targetNode.y + targetNode.h / 2]
+            });
+
+        svg.append('path')
+            .attr('d', path)
+            .attr('fill', 'none')
+            .attr('stroke', categoryColors[sourceNode.category])
+            .attr('stroke-opacity', 0.35)
+            .attr('stroke-width', Math.max(2, l.value * 2))
+            .append('title')
+            .text(`${sourceNode.name} ➔ ${targetNode.name}: ${l.value} گزارش`);
+    });
+
+    // رسم ستون‌های گره‌ها (Nodes)
+    const nodeG = svg.selectAll('.sankey-node')
+        .data(nodes)
+        .enter().append('g')
+        .attr('class', 'sankey-node');
+
+    nodeG.append('rect')
+        .attr('x', d => d.x)
+        .attr('y', d => d.y)
+        .attr('width', nodeWidth)
+        .attr('height', d => d.h)
+        .attr('rx', 4)
+        .attr('fill', d => categoryColors[d.category])
+        .append('title')
+        .text(d => `${d.name}\nحجم جریان: ${d.value}`);
+
+    // افزودن عنوان‌ها
+    nodeG.append('text')
+        .attr('x', d => d.category === 'case' ? d.x - 8 : d.x + nodeWidth + 8)
+        .attr('y', d => d.y + d.h / 2 + 4)
+        .attr('text-anchor', d => d.category === 'case' ? 'end' : 'start')
+        .style('font-family', 'Vazirmatn, sans-serif')
+        .style('font-size', '11px')
+        .style('font-weight', 'bold')
+        .style('fill', '#334155')
+        .text(d => d.name);
+
+    // افزودن عناوین بالای ستون‌ها
+    const titles = ['دپارتمان مبدأ', 'موضوع گزارش', 'کیس‌ها'];
+    [0, 1, 2].forEach(colIndex => {
+        const xPos = 40 + colIndex * ((width - 80 - nodeWidth) / 2);
+        svg.append('text')
+            .attr('x', xPos + nodeWidth / 2)
+            .attr('y', 18)
+            .attr('text-anchor', 'middle')
+            .style('font-family', 'Vazirmatn, sans-serif')
+            .style('font-size', '12px')
+            .style('font-weight', 'bold')
+            .style('fill', '#64748b')
+            .text(titles[colIndex]);
     });
 }

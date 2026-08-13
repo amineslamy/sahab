@@ -251,8 +251,13 @@
             </div>
 
             <!-- ۱۴. ابر کلمات کلیدی -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)</h3>
+            <div onclick="openWordCloudModal()" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="word-cloud-container"
                     class="w-full flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 min-h-[320px] relative overflow-hidden">
                     <div id="word-cloud-svg" class="w-full h-[300px] flex justify-center items-center"></div>

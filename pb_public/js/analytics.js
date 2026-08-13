@@ -4,6 +4,7 @@ let allComments = [];
 let chartInstances = {};
 let chartConfigs = {};
 let modalChartInstance = null;
+let currentFilteredReports = [];
 
 const chartFont = 'Vazirmatn, sans-serif';
 
@@ -278,6 +279,43 @@ function closeChartModal() {
         modalChartInstance.destroy();
         modalChartInstance = null;
     }
+    const targetEl = document.getElementById('chart-modal-target');
+    if (targetEl) targetEl.innerHTML = '';
+}
+
+function openWordCloudModal() {
+    const modal = document.getElementById('chart-modal');
+    const titleEl = document.getElementById('modal-chart-title');
+    const targetEl = document.getElementById('chart-modal-target');
+    if (!modal || !targetEl) return;
+
+    if (titleEl) titleEl.innerText = '☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)';
+
+    if (modalChartInstance) {
+        modalChartInstance.destroy();
+        modalChartInstance = null;
+    }
+
+    targetEl.innerHTML = `
+        <div id="modal-word-cloud-container" class="w-full h-full min-h-[450px] flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 relative overflow-hidden">
+            <div id="modal-word-cloud-svg" class="w-full h-full flex justify-center items-center"></div>
+            <div id="modal-word-cloud-empty" class="hidden absolute text-slate-400 text-xs font-bold">کلمه‌ای برای نمایش یافت نشد</div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+
+    // اطمینان از محاسبه ابعاد دقیق مودال پس از نمایش در DOM
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            renderWordCloud(currentFilteredReports, {
+                svgId: 'modal-word-cloud-svg',
+                containerId: 'modal-word-cloud-container',
+                emptyId: 'modal-word-cloud-empty',
+                isModal: true
+            });
+        }, 100);
+    });
 }
 
 function convertIsoToFaShort(dateStr) {
@@ -300,7 +338,7 @@ function convertIsoToFaShort(dateStr) {
 }
 
 function renderAnalyticsCharts(reportsData = allReports) {
-    const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
+    currentFilteredReports = reportsData;    const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
         return items.reduce((acc, item) => {
             const key = getKey(item) || defaultValue;
             acc[key] = (acc[key] || 0) + 1;
@@ -474,20 +512,25 @@ function renderAnalyticsCharts(reportsData = allReports) {
     renderWordCloud(reportsData);
 }
 
-function renderWordCloud(reportsData) {
-    const svgContainer = document.getElementById('word-cloud-svg');
-    const container = document.getElementById('word-cloud-container');
-    const emptyEl = document.getElementById('word-cloud-empty');
+function renderWordCloud(reportsData, targetConfig = {}) {
+    const svgId = targetConfig.svgId || 'word-cloud-svg';
+    const containerId = targetConfig.containerId || 'word-cloud-container';
+    const emptyId = targetConfig.emptyId || 'word-cloud-empty';
+
+    const svgContainer = document.getElementById(svgId);
+    const container = document.getElementById(containerId);
+    const emptyEl = document.getElementById(emptyId);
     if (!svgContainer || typeof d3 === 'undefined' || typeof d3.layout?.cloud !== 'function') return;
 
     // پاک‌سازی قبلی SVG
     svgContainer.innerHTML = '';
 
     // دریافت یا ایجاد Tooltip شناور
-    let tooltip = document.getElementById('word-cloud-tooltip');
+    const tooltipId = targetConfig.isModal ? 'modal-word-cloud-tooltip' : 'word-cloud-tooltip';
+    let tooltip = document.getElementById(tooltipId);
     if (!tooltip) {
         tooltip = document.createElement('div');
-        tooltip.id = 'word-cloud-tooltip';
+        tooltip.id = tooltipId;
         tooltip.className = 'absolute hidden pointer-events-none bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded-lg shadow-xl backdrop-blur-sm z-50 border border-slate-700 font-sans transition-all duration-75';
         container.appendChild(tooltip);
     }
@@ -541,8 +584,8 @@ function renderWordCloud(reportsData) {
 
     if (emptyEl) emptyEl.classList.add('hidden');
 
-    const width = container.clientWidth || 800;
-    const height = 300;
+    const width = (container.clientWidth && container.clientWidth > 0) ? container.clientWidth : 900;
+    const height = targetConfig.isModal ? Math.max((container.clientHeight || 0), 500) : 300;
 
     const maxCount = rawList[0][1];
     const minCount = rawList[rawList.length - 1][1];
@@ -570,7 +613,7 @@ function renderWordCloud(reportsData) {
         .start();
 
     function draw(wordsData) {
-        const svg = d3.select('#word-cloud-svg')
+        const svg = d3.select(`#${svgId}`)
             .append('svg')
             .attr('width', width)
             .attr('height', height)

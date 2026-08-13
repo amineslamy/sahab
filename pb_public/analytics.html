@@ -84,9 +84,29 @@
                     </select>
                 </div>
 
-                <!-- فیلتر تاریخ شمسی -->
+                <!-- فیلترهای تکمیلی (کیس، موضوع و تاریخ شمسی) -->
                 <div
                     class="flex flex-wrap items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-bold">
+                    
+                    <!-- فیلتر کیس -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">کیس:</label>
+                        <select id="filter-case-select"
+                            class="w-36 border border-slate-300 rounded-lg px-2 py-1 bg-white text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                            <option value="">همه کیس‌ها</option>
+                        </select>
+                    </div>
+
+                    <!-- فیلتر موضوع -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">موضوع:</label>
+                        <select id="filter-topic-select"
+                            class="w-36 border border-slate-300 rounded-lg px-2 py-1 bg-white text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                            <option value="">همه موضوعات</option>
+                        </select>
+                    </div>
+
+                    <!-- فیلتر تاریخ -->
                     <div class="flex items-center gap-1.5">
                         <label class="text-slate-600">از تاریخ:</label>
                         <input type="text" id="filter-date-from" placeholder="YYYY/MM/DD" readonly

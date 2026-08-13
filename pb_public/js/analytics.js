@@ -1,6 +1,8 @@
 let pb;
 let allReports = [];
 let allComments = [];
+let allCases = [];
+let allTopics = [];
 let chartInstances = {};
 let chartConfigs = {};
 let modalChartInstance = null;
@@ -104,8 +106,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         $dateTo.val(pdTo.format('YYYY/MM/DD'));
 
+        // اطمینان از پر بودن Dropdownها
+        populateFilterDropdowns();
+
+        // ثبت رویداد تغییر برای دراپ‌داون‌های کیس و موضوع
+        document.getElementById('filter-case-select')?.addEventListener('change', applyAnalyticsDateFilter);
+        document.getElementById('filter-topic-select')?.addEventListener('change', applyAnalyticsDateFilter);
+
         applyAnalyticsDateFilter();
     } else {
+        populateFilterDropdowns();
         renderAnalyticsCharts(allReports);
     }
 });
@@ -210,6 +220,16 @@ async function loadAnalyticsBaseData(authorId = null) {
             requestKey: null
         });
 
+        // بارگذاری لیست کیس‌ها و موضوعات برای دراپ‌داون‌های فیلتر
+        try {
+            allCases = await pb.collection('cases').getFullList({ sort: 'title', requestKey: null });
+            allTopics = await pb.collection('topics').getFullList({ sort: 'title', requestKey: null });
+            
+            populateFilterDropdowns();
+        } catch (fErr) {
+            console.error("خطا در دریافت لیست کیس‌ها و موضوعات:", fErr);
+        }
+
         // دریافت تمام کامنت‌ها جهت تحلیل در ابر کلمات
         try {
             allComments = await pb.collection('comments').getFullList({
@@ -223,6 +243,27 @@ async function loadAnalyticsBaseData(authorId = null) {
 
     } catch (err) {
         console.error("خطا در بارگذاری اطلاعات آمار:", err);
+    }
+}
+
+function populateFilterDropdowns() {
+    const caseSelect = document.getElementById('filter-case-select');
+    const topicSelect = document.getElementById('filter-topic-select');
+
+    if (caseSelect) {
+        let caseOptions = '<option value="">همه کیس‌ها</option>';
+        allCases.forEach(c => {
+            caseOptions += `<option value="${c.id}">${c.title || c.id}</option>`;
+        });
+        caseSelect.innerHTML = caseOptions;
+    }
+
+    if (topicSelect) {
+        let topicOptions = '<option value="">همه موضوعات</option>';
+        allTopics.forEach(t => {
+            topicOptions += `<option value="${t.id}">${t.title || t.id}</option>`;
+        });
+        topicSelect.innerHTML = topicOptions;
     }
 }
 
@@ -698,8 +739,30 @@ function applyAnalyticsDateFilter() {
         } catch (e) { }
     }
 
+    const selectedCaseId = document.getElementById('filter-case-select')?.value || '';
+    const selectedTopicId = document.getElementById('filter-topic-select')?.value || '';
+
     let filtered = allReports;
 
+    // ۱. فیلتر بر اساس کیس
+    if (selectedCaseId) {
+        filtered = filtered.filter(r => {
+            if (Array.isArray(r.cases_rel)) return r.cases_rel.includes(selectedCaseId);
+            if (Array.isArray(r.cases)) return r.cases.includes(selectedCaseId);
+            return r.cases_rel === selectedCaseId || r.cases === selectedCaseId;
+        });
+    }
+
+    // ۲. فیلتر بر اساس موضوع
+    if (selectedTopicId) {
+        filtered = filtered.filter(r => {
+            if (Array.isArray(r.topics_rel)) return r.topics_rel.includes(selectedTopicId);
+            if (Array.isArray(r.topics)) return r.topics.includes(selectedTopicId);
+            return r.topics_rel === selectedTopicId || r.topics === selectedTopicId;
+        });
+    }
+
+    // ۳. فیلتر تاریخ از
     if (fromStr) {
         filtered = filtered.filter(r => {
             if (!r.created) return false;
@@ -708,6 +771,7 @@ function applyAnalyticsDateFilter() {
         });
     }
 
+    // ۴. فیلتر تاریخ تا
     if (toStr) {
         try {
             const parts = toStr.split('-');

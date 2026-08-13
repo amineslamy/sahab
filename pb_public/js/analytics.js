@@ -2,6 +2,8 @@ let pb;
 let allReports = [];
 let allComments = [];
 let chartInstances = {};
+let chartConfigs = {};
+let modalChartInstance = null;
 
 const chartFont = 'Vazirmatn, sans-serif';
 
@@ -231,12 +233,51 @@ function renderChart(elementSelector, options) {
     const el = document.querySelector(elementSelector);
     if (!el) return;
 
+    // ذخیره کانفیگ نمودار برای استفاده در مودال تمام‌صفحه
+    chartConfigs[elementSelector] = options;
+
     if (chartInstances[elementSelector]) {
         chartInstances[elementSelector].destroy();
     }
     const chart = new ApexCharts(el, options);
     chart.render();
     chartInstances[elementSelector] = chart;
+}
+
+function openChartModal(elementSelector, title) {
+    const modal = document.getElementById('chart-modal');
+    const titleEl = document.getElementById('modal-chart-title');
+    const targetEl = document.getElementById('chart-modal-target');
+    if (!modal || !targetEl) return;
+
+    if (titleEl) titleEl.innerText = title;
+
+    modal.classList.remove('hidden');
+
+    if (modalChartInstance) {
+        modalChartInstance.destroy();
+    }
+
+    // دریافت تنظیمات نمودار اصلی و تغییر ارتفاع برای حالت تمام‌صفحه
+    const originalOptions = chartConfigs[elementSelector];
+    if (originalOptions) {
+        const modalOptions = JSON.parse(JSON.stringify(originalOptions));
+        modalOptions.chart = modalOptions.chart || {};
+        modalOptions.chart.height = '100%';
+        modalOptions.chart.toolbar = { show: true }; // فعال‌سازی نوار ابزار دانلود و زوم در مودال
+
+        modalChartInstance = new ApexCharts(targetEl, modalOptions);
+        modalChartInstance.render();
+    }
+}
+
+function closeChartModal() {
+    const modal = document.getElementById('chart-modal');
+    if (modal) modal.classList.add('hidden');
+    if (modalChartInstance) {
+        modalChartInstance.destroy();
+        modalChartInstance = null;
+    }
 }
 
 function convertIsoToFaShort(dateStr) {

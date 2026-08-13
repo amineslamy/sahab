@@ -108,8 +108,13 @@
         <!-- کارت‌های آمار و نمودارها -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <!-- ۱. روند زمانی انتشار -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">📈 روند انتشار اخبار (تاریخ ثبت)</h3>
+            <div onclick="openChartModal('#chart-timeline', '📈 روند انتشار اخبار (تاریخ ثبت)')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📈 روند انتشار اخبار (تاریخ ثبت)</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-timeline" class="w-full"></div>
             </div>
 
@@ -209,6 +214,23 @@
     <script src="js/d3.v7.min.js"></script>
     <script src="js/d3.layout.cloud.js"></script>
     <script src="js/analytics.js"></script>
+
+    <!-- مودال نمایش تمام‌صفحه نمودارها -->
+    <div id="chart-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                <h3 id="modal-chart-title" class="font-bold text-slate-800 text-sm md:text-base">نمایش تمام‌صفحه نمودار</h3>
+                <button onclick="closeChartModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 p-6 overflow-y-auto flex items-center justify-center bg-white" id="modal-chart-body">
+                <div id="chart-modal-target" class="w-full h-full min-h-[450px]"></div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

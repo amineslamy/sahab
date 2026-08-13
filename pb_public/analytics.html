@@ -270,14 +270,82 @@
                 <div id="chart-occurrence-timeline" class="w-full"></div>
             </div>
 
-            <!-- ۱۴. ابر کلمات کلیدی -->
+            <!-- ۱۴. نمودار ستونی انباشته — توزیع طبقه‌بندی بر اساس دپارتمان -->
+            <div onclick="openChartModal('#chart-stacked-classification', '📊 توزیع طبقه‌بندی بر اساس دپارتمان')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">📊 توزیع طبقه‌بندی بر اساس دپارتمان</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍 تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: سنجش و مقایسهٔ سطح محرمانگی اسناد تولیدشده در هر دپارتمان</p>
+                <div id="chart-stacked-classification" class="w-full"></div>
+            </div>
+
+            <!-- ۱۵. نمودار میله‌ای افقی — وضعیت اولویت و نوع خبر -->
+            <div onclick="openChartModal('#chart-priority-newstype', '🚨 اولویت اخبار به تفکیک نوع خبر')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🚨 اولویت اخبار به تفکیک نوع خبر</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍 تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی حجم اخبار فوری و آنی بر اساس کانال ورودی/نوع خبر</p>
+                <div id="chart-priority-newstype" class="w-full"></div>
+            </div>
+
+            <!-- ۱۶. نمودار رادار — ارزیابی عملکرد و تنوع کاری کارشناسان -->
+            <div onclick="openChartModal('#chart-expert-radar', '🕸️ رادار عملکرد و تنوع کاری کارشناسان')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🕸️ رادار عملکرد کارشناسان</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍 تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: مقایسهٔ چندبعدی فعالیت، تنوع موضوعی و پوشش کیس‌ها توسط کاربران</p>
+                <div id="chart-expert-radar" class="w-full"></div>
+            </div>
+
+            <!-- ۱۷. نمودار حرارتی — ماتریس زمانی وقوع رویدادها -->
+            <div onclick="openChartModal('#chart-occurrence-heatmap', '🔥 ماتریس زمانی وقوع رویدادها')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🔥 ماتریس زمانی وقوع رویدادها</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍 تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: کشف الگوهای زمانی و ساعات پیک وقوع حوادث در روزهای هفته</p>
+                <div id="chart-occurrence-heatmap" class="w-full"></div>
+            </div>
+
+            <!-- ۱۸. گراف پیوندها (D3.js) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🕸️ شبکه ارتباطات کیس‌ها، موضوعات و گزارش‌ها</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی گزارش‌های کلیدی که چندین کیس و موضوع مختلف را به یکدیگر پیوند می‌دهند</p>
+                <div id="chart-force-graph" class="w-full h-[400px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden"></div>
+            </div>
+
+            <!-- ۱۹. نمودار خورشیدی/شعاعی (D3.js) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">☀️ ساختار سلسله‌مراتب کیس‌ها و گزارش‌ها</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: مشاهده سهم گزارش‌های ثبت‌شده در کیس‌های اصلی (والد) و زیرکیس‌ها (فرزند)</p>
+                <div id="chart-sunburst" class="w-full h-[380px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden flex justify-center items-center"></div>
+            </div>
+
+            <!-- ۲۰. نمودار دایره‌ای ارتباطات / Chord (D3.js) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">⭕ تعامل دپارتمان‌ها روی موضوعات مشترک</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: کشف هم‌پوشانی‌های کاری و موضوعات کانون توجه مشترک بین دپارتمان‌ها</p>
+                <div id="chart-chord" class="w-full h-[380px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden flex justify-center items-center"></div>
+            </div>
+
+            <!-- ۲۱. ابر کلمات کلیدی -->
             <div onclick="openWordCloudModal()" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 cursor-pointer hover:border-indigo-300 transition-all group relative">
-                <div class="flex justify-between items-center mb-3">
+                <div class="flex justify-between items-center mb-1">
                     <h3 class="font-bold text-slate-800 text-xs">☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)</h3>
                     <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
                         🔍 تمام‌صفحه
                     </span>
                 </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی واژگان کلیدی پرتکرار در متن گزارش‌ها و دیدگاه‌ها</p>
                 <div id="word-cloud-container"
                     class="w-full flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 min-h-[320px] relative overflow-hidden">
                     <div id="word-cloud-svg" class="w-full h-[300px] flex justify-center items-center"></div>

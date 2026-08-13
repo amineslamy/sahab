@@ -549,9 +549,123 @@ function renderAnalyticsCharts(reportsData = allReports) {
         xaxis: { categories: occTimeline.categories }
     });
 
-    // ۱۴. ابر کلمات کلیدی
+    // ۱۴. نمودار ستونی انباشته — توزیع طبقه‌بندی بر اساس دپارتمان
+    const deptClassMap = {};
+    const classifications = Set ? Array.from(new Set(reportsData.map(r => r.classification || 'تعریف‌نشده'))) : [];
+    
+    reportsData.forEach(r => {
+        const deptObj = r.expand?.author?.expand?.department_rel;
+        const deptName = deptObj ? (deptObj.name || deptObj.username) : 'نامشخص';
+        const cls = r.classification || 'تعریف‌نشده';
+
+        if (!deptClassMap[deptName]) deptClassMap[deptName] = {};
+        deptClassMap[deptName][cls] = (deptClassMap[deptName][cls] || 0) + 1;
+    });
+
+    const deptCategories = Object.keys(deptClassMap);
+    const stackedSeries = classifications.map(cls => ({
+        name: cls,
+        data: deptCategories.map(d => deptClassMap[d][cls] || 0)
+    }));
+
+    renderChart("#chart-stacked-classification", {
+        series: stackedSeries,
+        chart: { type: 'bar', height: 280, stacked: true, toolbar: { show: false } },
+        plotOptions: { bar: { horizontal: false, borderRadius: 4 } },
+        xaxis: { categories: deptCategories },
+        legend: { position: 'top' }
+    });
+
+    // ۱۵. نمودار میله‌ای افقی — وضعیت اولویت و نوع خبر
+    const priorityTypeMap = {};
+    const newsTypes = Array.from(new Set(reportsData.map(r => r.news_type || 'تعریف‌نشده')));
+    
+    reportsData.forEach(r => {
+        const prio = r.priority || 'عادی';
+        const type = r.news_type || 'تعریف‌نشده';
+
+        if (!priorityTypeMap[prio]) priorityTypeMap[prio] = {};
+        priorityTypeMap[prio][type] = (priorityTypeMap[prio][type] || 0) + 1;
+    });
+
+    const prioCategories = Object.keys(priorityTypeMap);
+    const prioSeries = newsTypes.map(t => ({
+        name: t,
+        data: prioCategories.map(p => priorityTypeMap[p][t] || 0)
+    }));
+
+    renderChart("#chart-priority-newstype", {
+        series: prioSeries,
+        chart: { type: 'bar', height: 280, stacked: true, toolbar: { show: false } },
+        plotOptions: { bar: { horizontal: true } },
+        xaxis: { categories: prioCategories },
+        legend: { position: 'top' }
+    });
+
+    // ۱۶. نمودار رادار — ارزیابی عملکرد و تنوع کاری کارشناسان
+    const expertStats = {};
+    reportsData.forEach(r => {
+        const authorName = r.expand?.author?.name || r.expand?.author?.username || 'ناشناس';
+        if (!expertStats[authorName]) {
+            expertStats[authorName] = { count: 0, cases: new Set(), topics: new Set() };
+        }
+        expertStats[authorName].count += 1;
+        (r.cases_rel || []).forEach(c => expertStats[authorName].cases.add(c));
+        (r.topics_rel || []).forEach(t => expertStats[authorName].topics.add(t));
+    });
+
+    const topExperts = Object.keys(expertStats).slice(0, 5);
+    const radarSeries = topExperts.map(exp => ({
+        name: exp,
+        data: [
+            expertStats[exp].count,
+            expertStats[exp].cases.size,
+            expertStats[exp].topics.size
+        ]
+    }));
+
+    renderChart("#chart-expert-radar", {
+        series: radarSeries,
+        chart: { type: 'radar', height: 280, toolbar: { show: false } },
+        xaxis: { categories: ['تعداد گزارش‌ها', 'تنوع کیس‌ها', 'تنوع موضوعات'] }
+    });
+
+    // ۱۷. نمودار حرارتی — ماتریس زمانی وقوع رویدادها
+    const daysOfWeek = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+    const heatmapData = Array.from({ length: 7 }, () => Array(24).fill(0));
+
+    reportsData.forEach(r => {
+        if (r.occurrence_date) {
+            const d = new Date(r.occurrence_date);
+            if (!isNaN(d.getTime())) {
+                const dayIndex = d.getDay();
+                const hour = d.getHours();
+                heatmapData[dayIndex][hour] += 1;
+            }
+        }
+    });
+
+    const heatmapSeries = daysOfWeek.map((day, idx) => ({
+        name: day,
+        data: heatmapData[idx].map((val, hour) => ({ x: `${hour}:00`, y: val }))
+    }));
+
+    renderChart("#chart-occurrence-heatmap", {
+        series: heatmapSeries,
+        chart: { type: 'heatmap', height: 280, toolbar: { show: false } },
+        dataLabels: { enabled: false },
+        colors: ["#4f46e5"]
+    });
+
+    // رندر نمودارهای D3.js
+    renderForceDirectedGraph(reportsData);
+    renderSunburstDiagram(reportsData);
+    renderChordDiagram(reportsData);
+
+    // ۱۸. ابر کلمات کلیدی
     renderWordCloud(reportsData);
 }
+
 
 function renderWordCloud(reportsData, targetConfig = {}) {
     const svgId = targetConfig.svgId || 'word-cloud-svg';
@@ -795,4 +909,215 @@ function applyAnalyticsDateFilter() {
     }
 
     renderAnalyticsCharts(filtered);
+}
+
+// پیاده‌سازی نمودار گراف پیوندها (Force-Directed Graph)
+function renderForceDirectedGraph(reportsData) {
+    const container = document.getElementById('chart-force-graph');
+    if (!container || typeof d3 === 'undefined') return;
+    container.innerHTML = '';
+
+    const width = container.clientWidth || 800;
+    const height = 400;
+
+    const nodes = [];
+    const links = [];
+    const nodeMap = new Map();
+
+    reportsData.slice(0, 30).forEach(r => {
+        const rNode = { id: `rep_${r.id}`, name: r.title ? r.title.substring(0, 20) + '...' : r.id, group: 'report' };
+        nodes.push(rNode);
+        nodeMap.set(rNode.id, rNode);
+
+        (r.expand?.cases_rel || []).forEach(c => {
+            const cId = `case_${c.id}`;
+            if (!nodeMap.has(cId)) {
+                const cNode = { id: cId, name: c.title || c.id, group: 'case' };
+                nodes.push(cNode);
+                nodeMap.set(cId, cNode);
+            }
+            links.push({ source: rNode.id, target: cId });
+        });
+
+        (r.expand?.topics_rel || []).forEach(t => {
+            const tId = `topic_${t.id}`;
+            if (!nodeMap.has(tId)) {
+                const tNode = { id: tId, name: t.title || t.id, group: 'topic' };
+                nodes.push(tNode);
+                nodeMap.set(tId, tNode);
+            }
+            links.push({ source: rNode.id, target: tId });
+        });
+    });
+
+    if (nodes.length === 0) return;
+
+    const svg = d3.select('#chart-force-graph')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id).distance(60))
+        .force('charge', d3.forceManyBody().strength(-120))
+        .force('center', d3.forceCenter(width / 2, height / 2));
+
+    const colorMap = { report: '#3b82f6', case: '#8b5cf6', topic: '#10b981' };
+
+    const link = svg.append('g')
+        .selectAll('line')
+        .data(links)
+        .enter().append('line')
+        .attr('stroke', '#cbd5e1')
+        .attr('stroke-width', 1.5);
+
+    const node = svg.append('g')
+        .selectAll('circle')
+        .data(nodes)
+        .enter().append('circle')
+        .attr('r', d => d.group === 'report' ? 6 : 9)
+        .attr('fill', d => colorMap[d.group])
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+    node.append('title').text(d => `${d.group}: ${d.name}`);
+
+    simulation.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+
+        node.attr('cx', d => d.x).attr('cy', d => d.y);
+    });
+}
+
+// پیاده‌سازی نمودار خورشیدی (Sunburst Diagram)
+function renderSunburstDiagram(reportsData) {
+    const container = document.getElementById('chart-sunburst');
+    if (!container || typeof d3 === 'undefined') return;
+    container.innerHTML = '';
+
+    const width = container.clientWidth || 380;
+    const radius = width / 2;
+
+    const caseHierarchy = { name: "کیس‌ها", children: [] };
+    const caseMap = {};
+
+    allCases.forEach(c => {
+        if (!c.parent_case) {
+            caseMap[c.id] = { name: c.title || c.id, children: [], value: 0 };
+            caseHierarchy.children.push(caseMap[c.id]);
+        }
+    });
+
+    reportsData.forEach(r => {
+        (r.expand?.cases_rel || []).forEach(c => {
+            if (caseMap[c.id]) caseMap[c.id].value += 1;
+        });
+    });
+
+    const root = d3.hierarchy(caseHierarchy)
+        .sum(d => d.value || 0);
+
+    const partition = d3.partition().size([2 * Math.PI, radius]);
+    partition(root);
+
+    const arc = d3.arc()
+        .startAngle(d => d.x0)
+        .endAngle(d => d.x1)
+        .innerRadius(d => d.y0)
+        .outerRadius(d => d.y1);
+
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    const svg = d3.select('#chart-sunburst')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', width)
+        .append('g')
+        .attr('transform', `translate(${radius},${radius})`);
+
+    svg.selectAll('path')
+        .data(root.descendants().filter(d => d.depth))
+        .enter().append('path')
+        .attr('d', arc)
+        .style('fill', d => color((d.children ? d : d.parent).data.name))
+        .style('opacity', 0.8)
+        .append('title')
+        .text(d => `${d.data.name}\nتعداد گزارش: ${d.value}`);
+}
+
+// پیاده‌سازی نمودار دایره‌ای ارتباطات (Chord Diagram)
+function renderChordDiagram(reportsData) {
+    const container = document.getElementById('chart-chord');
+    if (!container || typeof d3 === 'undefined') return;
+    container.innerHTML = '';
+
+    const deptTopics = {};
+    reportsData.forEach(r => {
+        const deptObj = r.expand?.author?.expand?.department_rel;
+        const deptName = deptObj ? (deptObj.name || deptObj.username) : null;
+        if (deptName) {
+            if (!deptTopics[deptName]) deptTopics[deptName] = new Set();
+            (r.expand?.topics_rel || []).forEach(t => deptTopics[deptName].add(t.id));
+        }
+    });
+
+    const depts = Object.keys(deptTopics);
+    if (depts.length < 2) {
+        container.innerHTML = '<span class="text-xs text-slate-400 font-bold">داده‌های کافی برای رسم نمودار تعامل موجود نیست</span>';
+        return;
+    }
+
+    const matrix = depts.map((d1, i) =>
+        depts.map((d2, j) => {
+            if (i === j) return 0;
+            const set1 = deptTopics[d1];
+            const set2 = deptTopics[d2];
+            let shared = 0;
+            set1.forEach(t => { if (set2.has(t)) shared++; });
+            return shared;
+        })
+    );
+
+    const width = container.clientWidth || 380;
+    const outerRadius = Math.min(width, 380) * 0.5 - 40;
+    const innerRadius = outerRadius - 15;
+
+    const chord = d3.chord().padAngle(0.05)(matrix);
+    const arc = d3.arc().innerRadius(innerRadius).outerRadius(outerRadius);
+    const ribbon = d3.ribbon().radius(innerRadius);
+
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    const svg = d3.select('#chart-chord')
+        .append('svg')
+        .attr('width', width)
+        .attr('height', 380)
+        .append('g')
+        .attr('transform', `translate(${width / 2},190)`);
+
+    const group = svg.append('g')
+        .selectAll('g')
+        .data(chord.groups)
+        .enter().append('g');
+
+    group.append('path')
+        .style('fill', d => color(d.index))
+        .style('stroke', d => d3.rgb(color(d.index)).darker())
+        .attr('d', arc);
+
+    group.append('title').text(d => `${depts[d.index]}`);
+
+    svg.append('g')
+        .attr('fill-opacity', 0.67)
+        .selectAll('path')
+        .data(chord)
+        .enter().append('path')
+        .attr('d', ribbon)
+        .style('fill', d => color(d.target.index))
+        .style('stroke', d => d3.rgb(color(d.target.index)).darker())
+        .append('title')
+        .text(d => `${depts[d.source.index]} ↔ ${depts[d.target.index]}: ${d.source.value} موضوع مشترک`);
 }

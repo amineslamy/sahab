@@ -911,84 +911,133 @@ function applyAnalyticsDateFilter() {
     renderAnalyticsCharts(filtered);
 }
 
-// پیاده‌سازی نمودار گراف پیوندها (Force-Directed Graph)
+// پیاده‌سازی گراف پیوندها با برچسب‌های متنی، راهنما و اندازه‌گیری بر اساس تعداد اتصالات
 function renderForceDirectedGraph(reportsData) {
     const container = document.getElementById('chart-force-graph');
     if (!container || typeof d3 === 'undefined') return;
     container.innerHTML = '';
 
     const width = container.clientWidth || 800;
-    const height = 400;
+    const svgHeight = 340;
 
     const nodes = [];
     const links = [];
     const nodeMap = new Map();
 
-    reportsData.slice(0, 30).forEach(r => {
-        const rNode = { id: `rep_${r.id}`, name: r.title ? r.title.substring(0, 20) + '...' : r.id, group: 'report' };
+    // محدود کردن به ۲۰ گزارش اول جهت خوانایی شبکه
+    reportsData.slice(0, 20).forEach(r => {
+        const rNode = { id: `rep_${r.id}`, name: r.title ? (r.title.length > 15 ? r.title.substring(0, 15) + '...' : r.title) : r.id, group: 'report', connections: 0 };
         nodes.push(rNode);
         nodeMap.set(rNode.id, rNode);
 
         (r.expand?.cases_rel || []).forEach(c => {
             const cId = `case_${c.id}`;
             if (!nodeMap.has(cId)) {
-                const cNode = { id: cId, name: c.title || c.id, group: 'case' };
+                const cNode = { id: cId, name: c.title || c.id, group: 'case', connections: 0 };
                 nodes.push(cNode);
                 nodeMap.set(cId, cNode);
             }
+            nodeMap.get(cId).connections += 1;
+            rNode.connections += 1;
             links.push({ source: rNode.id, target: cId });
         });
 
         (r.expand?.topics_rel || []).forEach(t => {
             const tId = `topic_${t.id}`;
             if (!nodeMap.has(tId)) {
-                const tNode = { id: tId, name: t.title || t.id, group: 'topic' };
+                const tNode = { id: tId, name: t.title || t.id, group: 'topic', connections: 0 };
                 nodes.push(tNode);
                 nodeMap.set(tId, tNode);
             }
+            nodeMap.get(tId).connections += 1;
+            rNode.connections += 1;
             links.push({ source: rNode.id, target: tId });
         });
     });
 
-    if (nodes.length === 0) return;
+    if (nodes.length === 0) {
+        container.innerHTML = '<div class="w-full h-full flex items-center justify-center"><span class="text-xs text-slate-400 font-bold">داده‌ای برای رسم شبکه یافت نشد</span></div>';
+        return;
+    }
+
+    const colorMap = {
+        report: { bg: '#3b82f6', label: 'گزارش / خبر' },
+        case: { bg: '#8b5cf6', label: 'کیس' },
+        topic: { bg: '#10b981', label: 'موضوع' }
+    };
 
     const svg = d3.select('#chart-force-graph')
         .append('svg')
         .attr('width', width)
-        .attr('height', height);
+        .attr('height', svgHeight);
 
     const simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).id(d => d.id).distance(60))
-        .force('charge', d3.forceManyBody().strength(-120))
-        .force('center', d3.forceCenter(width / 2, height / 2));
+        .force('link', d3.forceLink(links).id(d => d.id).distance(90))
+        .force('charge', d3.forceManyBody().strength(-220))
+        .force('center', d3.forceCenter(width / 2, svgHeight / 2))
+        .force('collision', d3.forceCollide().radius(25));
 
-    const colorMap = { report: '#3b82f6', case: '#8b5cf6', topic: '#10b981' };
-
+    // رسم خطوط پیوند
     const link = svg.append('g')
         .selectAll('line')
         .data(links)
         .enter().append('line')
         .attr('stroke', '#cbd5e1')
+        .attr('stroke-opacity', 0.6)
         .attr('stroke-width', 1.5);
 
-    const node = svg.append('g')
-        .selectAll('circle')
+    // گروه‌بندی گره‌ها
+    const nodeGroup = svg.append('g')
+        .selectAll('g')
         .data(nodes)
-        .enter().append('circle')
-        .attr('r', d => d.group === 'report' ? 6 : 9)
-        .attr('fill', d => colorMap[d.group])
+        .enter().append('g')
         .call(d3.drag()
             .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
             .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
             .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
 
-    node.append('title').text(d => `${d.group}: ${d.name}`);
+    // رسم دایره گره‌ها (شعاع بر اساس تعداد اتصالات)
+    nodeGroup.append('circle')
+        .attr('r', d => Math.min(8 + (d.connections * 2), 22))
+        .attr('fill', d => colorMap[d.group].bg)
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 2);
+
+    // افزودن متن نام گره در کنار/زیر دایره
+    nodeGroup.append('text')
+        .attr('dy', d => Math.min(8 + (d.connections * 2), 22) + 12)
+        .attr('text-anchor', 'middle')
+        .style('font-family', 'Vazirmatn, sans-serif')
+        .style('font-size', '10px')
+        .style('font-weight', 'bold')
+        .style('fill', '#334155')
+        .style('pointer-events', 'none')
+        .text(d => d.name);
+
+    nodeGroup.append('title').text(d => `${colorMap[d.group].label}: ${d.name}\nتعداد اتصالات: ${d.connections}`);
 
     simulation.on('tick', () => {
         link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
             .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
 
-        node.attr('cx', d => d.x).attr('cy', d => d.y);
+        nodeGroup.attr('transform', d => {
+            // محدود کردن حرکت گره‌ها داخل کادر SVG
+            const r = Math.min(8 + (d.connections * 2), 22);
+            d.x = Math.max(r, Math.min(width - r, d.x));
+            d.y = Math.max(r, Math.min(svgHeight - r - 15, d.y));
+            return `translate(${d.x},${d.y})`;
+        });
+    });
+
+    // افزودن راهنمای متنی و رنگی (Legend) در پایین کارت
+    const legendDiv = d3.select('#chart-force-graph')
+        .append('div')
+        .attr('class', 'w-full flex flex-wrap justify-center items-center gap-6 py-2 px-3 border-t border-slate-200/60 bg-white/80');
+
+    Object.keys(colorMap).forEach(key => {
+        legendDiv.append('div')
+            .attr('class', 'flex items-center gap-1.5 text-xs text-slate-700 font-bold')
+            .html(`<span class="w-3 h-3 rounded-full inline-block shadow-sm" style="background-color: ${colorMap[key].bg}"></span><span>${colorMap[key].label}</span>`);
     });
 }
 
@@ -1048,7 +1097,7 @@ function renderSunburstDiagram(reportsData) {
         .text(d => `${d.data.name}\nتعداد گزارش: ${d.value}`);
 }
 
-// پیاده‌سازی نمودار دایره‌ای ارتباطات (Chord Diagram)
+// پیاده‌سازی نمودار دایره‌ای ارتباطات (Chord Diagram) به صورت تمام‌عرض و بهبودیافته
 function renderChordDiagram(reportsData) {
     const container = document.getElementById('chart-chord');
     if (!container || typeof d3 === 'undefined') return;
@@ -1066,7 +1115,7 @@ function renderChordDiagram(reportsData) {
 
     const depts = Object.keys(deptTopics);
     if (depts.length < 2) {
-        container.innerHTML = '<span class="text-xs text-slate-400 font-bold">داده‌های کافی برای رسم نمودار تعامل موجود نیست</span>';
+        container.innerHTML = '<div class="w-full h-full flex items-center justify-center"><span class="text-xs text-slate-400 font-bold">داده‌های کافی برای رسم نمودار تعامل موجود نیست</span></div>';
         return;
     }
 
@@ -1081,11 +1130,12 @@ function renderChordDiagram(reportsData) {
         })
     );
 
-    const width = container.clientWidth || 380;
-    const outerRadius = Math.min(width, 380) * 0.5 - 40;
-    const innerRadius = outerRadius - 15;
+    const width = container.clientWidth || 800;
+    const svgHeight = 310;
+    const outerRadius = Math.min(width, svgHeight) * 0.5 - 55;
+    const innerRadius = outerRadius - 14;
 
-    const chord = d3.chord().padAngle(0.05)(matrix);
+    const chord = d3.chord().padAngle(0.06)(matrix);
     const arc = d3.arc().innerRadius(innerRadius).outerRadius(outerRadius);
     const ribbon = d3.ribbon().radius(innerRadius);
 
@@ -1094,22 +1144,40 @@ function renderChordDiagram(reportsData) {
     const svg = d3.select('#chart-chord')
         .append('svg')
         .attr('width', width)
-        .attr('height', 380)
+        .attr('height', svgHeight)
         .append('g')
-        .attr('transform', `translate(${width / 2},190)`);
+        .attr('transform', `translate(${width / 2},${svgHeight / 2})`);
 
     const group = svg.append('g')
         .selectAll('g')
         .data(chord.groups)
         .enter().append('g');
 
+    // رسم کمان‌ها (Slices)
     group.append('path')
         .style('fill', d => color(d.index))
         .style('stroke', d => d3.rgb(color(d.index)).darker())
         .attr('d', arc);
 
-    group.append('title').text(d => `${depts[d.index]}`);
+    // افزودن نام دپارتمان دور دایره
+    group.append('text')
+        .each(d => { d.angle = (d.startAngle + d.endAngle) / 2; })
+        .attr('dy', '.35em')
+        .attr('transform', d => `
+            rotate(${(d.angle * 180 / Math.PI - 90)})
+            translate(${outerRadius + 10})
+            ${d.angle > Math.PI ? 'rotate(180)' : ''}
+        `)
+        .attr('text-anchor', d => d.angle > Math.PI ? 'end' : 'start')
+        .style('font-family', 'Vazirmatn, sans-serif')
+        .style('font-size', '11px')
+        .style('font-weight', 'bold')
+        .style('fill', '#334155')
+        .text(d => depts[d.index]);
 
+    group.append('title').text(d => `دپارتمان: ${depts[d.index]}`);
+
+    // رسم اتصالات (Ribbons)
     svg.append('g')
         .attr('fill-opacity', 0.67)
         .selectAll('path')
@@ -1120,4 +1188,15 @@ function renderChordDiagram(reportsData) {
         .style('stroke', d => d3.rgb(color(d.target.index)).darker())
         .append('title')
         .text(d => `${depts[d.source.index]} ↔ ${depts[d.target.index]}: ${d.source.value} موضوع مشترک`);
+
+    // ایجاد راهنمای متنی و رنگی (Legend) زیر نمودار به‌صورت تمام‌عرض
+    const legendDiv = d3.select('#chart-chord')
+        .append('div')
+        .attr('class', 'w-full flex flex-wrap justify-center items-center gap-4 py-2 px-3 border-t border-slate-200/60 bg-white/60');
+
+    depts.forEach((dept, i) => {
+        legendDiv.append('div')
+            .attr('class', 'flex items-center gap-1.5 text-xs text-slate-700 font-bold')
+            .html(`<span class="w-3 h-3 rounded-full inline-block shadow-sm" style="background-color: ${color(i)}"></span><span>${dept}</span>`);
+    });
 }

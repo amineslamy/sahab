@@ -68,10 +68,16 @@ async function loadTopics() {
                 <td class="p-3 font-bold text-slate-800">${escapeHtml(item.title)}</td>
                 <td class="p-3 text-slate-500 text-xs" dir="ltr">${formatDate(item.created)}</td>
                 <td class="p-3 text-center">
-                    <button onclick="deleteTopic('${item.id}', '${escapeHtml(item.title)}')" 
-                        class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1 rounded-lg text-xs font-bold transition">
-                        حذف
-                    </button>
+                    <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="editTopic('${item.id}', '${escapeHtml(item.title)}')" 
+                            class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                            ویرایش
+                        </button>
+                        <button onclick="deleteTopic('${item.id}', '${escapeHtml(item.title)}')" 
+                            class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                            حذف
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -142,6 +148,42 @@ async function deleteTopic(id, title) {
     }
 }
 
+async function editTopic(id, currentTitle) {
+    const { value: newTitle } = await Swal.fire({
+        title: 'ویرایش عنوان موضوع',
+        input: 'text',
+        inputValue: currentTitle,
+        inputLabel: 'عنوان جدید موضوع را وارد کنید',
+        showCancelButton: true,
+        confirmButtonText: 'ذخیره تغییرات',
+        cancelButtonText: 'انصراف',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return 'لطفاً عنوان موضوع را وارد کنید!';
+            }
+        }
+    });
+
+    if (!newTitle) return;
+
+    try {
+        const activePb = window.pb || pb;
+        await activePb.collection('topics').update(id, { title: newTitle.trim() });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'بروزرسانی شد',
+            text: 'عنوان موضوع با موفقیت تغییر یافت.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+        await loadTopics();
+    } catch (err) {
+        console.error('خطا در ویرایش موضوع:', err);
+        Swal.fire('خطا', 'مشکلی در بروزرسانی موضوع رخ داد.', 'error');
+    }
+}
 // ==========================================
 //               بخش مدیریت کیس‌ها
 // ==========================================
@@ -177,6 +219,8 @@ async function loadCases() {
                 ? escapeHtml(item.expand.parent_case.title)
                 : '<span class="text-slate-400">-</span>';
 
+            const parentId = item.parent_case || '';
+
             return `
                 <tr class="hover:bg-slate-50">
                     <td class="p-3 text-center font-bold text-slate-500">${index + 1}</td>
@@ -184,10 +228,16 @@ async function loadCases() {
                     <td class="p-3 text-slate-600">${parentTitle}</td>
                     <td class="p-3 text-slate-500 text-xs" dir="ltr">${formatDate(item.created)}</td>
                     <td class="p-3 text-center">
-                        <button onclick="deleteCase('${item.id}', '${escapeHtml(item.title)}')" 
-                            class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1 rounded-lg text-xs font-bold transition">
-                            حذف
-                        </button>
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="editCase('${item.id}', '${escapeHtml(item.title)}', '${parentId}')" 
+                                class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                                ویرایش
+                            </button>
+                            <button onclick="deleteCase('${item.id}', '${escapeHtml(item.title)}')" 
+                                class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                                حذف
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -264,6 +314,82 @@ async function deleteCase(id, title) {
     } catch (err) {
         console.error('خطا در حذف کیس:', err);
         Swal.fire('خطا', 'مشکلی در حذف کیس رخ داد.', 'error');
+    }
+}
+
+async function editCase(id, currentTitle, currentParentId) {
+    try {
+        const activePb = window.pb || pb;
+        // دریافت لیست تمامی کیس‌ها برای پر کردن Dropdown کیس والد
+        const allCases = await activePb.collection('cases').getFullList({ sort: '-created' });
+
+        // فیلتر کردن خود کیس جاری برای جلوگیری از انتخاب خود به عنوان والد
+        const availableParents = allCases.filter(c => c.id !== id);
+
+        const optionsHtml = availableParents.map(c => `
+            <option value="${c.id}" ${c.id === currentParentId ? 'selected' : ''}>
+                ${escapeHtml(c.title)}
+            </option>
+        `).join('');
+
+        const formHtml = `
+            <div class="text-right space-y-3 mt-2">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">عنوان کیس <span class="text-red-500">*</span></label>
+                    <input id="swal-input-case-title" class="swal2-input !m-0 !w-full !text-xs !font-bold" value="${currentTitle}" placeholder="عنوان کیس را وارد کنید...">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">کیس والد</label>
+                    <select id="swal-select-case-parent" class="swal2-select !m-0 !w-full !text-xs !font-bold">
+                        <option value="" ${!currentParentId ? 'selected' : ''}>بدون والد (کیس اصلی)</option>
+                        ${optionsHtml}
+                    </select>
+                </div>
+            </div>
+        `;
+
+        const { value: formValues } = await Swal.fire({
+            title: 'ویرایش کیس',
+            html: formHtml,
+            showCancelButton: true,
+            confirmButtonText: 'ذخیره تغییرات',
+            cancelButtonText: 'انصراف',
+            focusConfirm: false,
+            preConfirm: () => {
+                const titleInput = document.getElementById('swal-input-case-title')?.value?.trim();
+                const parentSelect = document.getElementById('swal-select-case-parent')?.value || null;
+
+                if (!titleInput) {
+                    Swal.showValidationMessage('لطفاً عنوان کیس را وارد کنید!');
+                    return false;
+                }
+
+                return {
+                    title: titleInput,
+                    parent_case: parentSelect
+                };
+            }
+        });
+
+        if (!formValues) return;
+
+        await activePb.collection('cases').update(id, {
+            title: formValues.title,
+            parent_case: formValues.parent_case
+        });
+
+        Swal.fire({
+            icon: 'success',
+            title: 'بروزرسانی شد',
+            text: 'کیس با موفقیت تغییر یافت.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+        await loadCases();
+    } catch (err) {
+        console.error('خطا در ویرایش کیس:', err);
+        Swal.fire('خطا', 'مشکلی در بروزرسانی کیس رخ داد.', 'error');
     }
 }
 

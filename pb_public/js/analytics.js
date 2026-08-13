@@ -230,10 +230,10 @@ async function loadAnalyticsBaseData(authorId = null) {
             console.error("خطا در دریافت لیست کیس‌ها و موضوعات:", fErr);
         }
 
-        // دریافت تمام کامنت‌ها جهت تحلیل در ابر کلمات
+        // دریافت تمام کامنت‌ها جهت تحلیل در ابر کلمات و نمودار Sankey
         try {
             allComments = await pb.collection('comments').getFullList({
-                fields: 'report,text',
+                fields: 'report,text,type',
                 requestKey: null
             });
         } catch (cErr) {
@@ -1181,7 +1181,7 @@ function renderChordDiagram(reportsData) {
         .style('fill', '#334155')
         .text(d => depts[d.index]);
 
-    group.append('title').text(d => `دپارتمان: ${depts[d.index]}`);
+    group.append('title').text(d => `اداره: ${depts[d.index]}`);
 
     // رسم اتصالات (Ribbons)
     svg.append('g')
@@ -1207,7 +1207,7 @@ function renderChordDiagram(reportsData) {
     });
 }
 
-// پیاده‌سازی نمودار جریان زمانی انتشارات (Sankey Diagram) با D3.js (دپارتمان -> موضوع -> کیس)
+// پیاده‌سازی نمودار جریان انتشارات (Sankey Diagram) با D3.js (دپارتمان -> نوع خبر -> وضعیت کامنت)
 function renderSankeyDiagram(reportsData) {
     const container = document.getElementById('chart-sankey');
     if (!container || typeof d3 === 'undefined') return;
@@ -1216,7 +1216,21 @@ function renderSankeyDiagram(reportsData) {
     const width = container.clientWidth || 800;
     const height = 360;
 
-    // استخراج گروه‌بندی سه‌مرحله‌ای: دپارتمان -> موضوع -> کیس
+    // نگاشت کامنت‌ها بر اساس شناسه گزارش (گزارش -> لیست نوع کامنت‌ها)
+    const reportCommentsMap = new Map();
+    if (Array.isArray(allComments)) {
+        allComments.forEach(c => {
+            if (c.report) {
+                if (!reportCommentsMap.has(c.report)) {
+                    reportCommentsMap.set(c.report, []);
+                }
+                const commentType = c.type || 'بدون نوع مشخص';
+                reportCommentsMap.get(c.report).push(commentType);
+            }
+        });
+    }
+
+    // استخراج گروه‌بندی سه‌مرحله‌ای: دپارتمان -> نوع خبر -> نوع/وضعیت کامنت
     const nodesMap = new Map();
     const linksMap = new Map();
 
@@ -1231,40 +1245,28 @@ function renderSankeyDiagram(reportsData) {
     reportsData.forEach(r => {
         const deptObj = r.expand?.author?.expand?.department_rel;
         const deptName = deptObj ? (deptObj.name || deptObj.username) : 'نامشخص';
-
-        // استخراج موضوعات
-        const topics = (r.expand?.topics_rel || []).map(t => t.title || t.name || t.id);
-        if (topics.length === 0) topics.push('بدون موضوع');
-
-        // استخراج کیس‌ها
-        let cases = [];
-        if (r.expand?.cases_rel) {
-            const rawCases = Array.isArray(r.expand.cases_rel) ? r.expand.cases_rel : [r.expand.cases_rel];
-            cases = rawCases.map(c => c.title || c.name || c.id || c);
-        } else if (r.cases_rel) {
-            cases = Array.isArray(r.cases_rel) ? r.cases_rel : [r.cases_rel];
-        } else if (r.cases) {
-            cases = Array.isArray(r.cases) ? r.cases : [r.cases];
-        }
-
-        if (cases.length === 0) cases.push('بدون کیس');
+        const newsType = r.news_type || 'تعریف‌نشده';
 
         const deptNodeId = getNodeIndex(deptName, 'dept');
+        const newsTypeNodeId = getNodeIndex(newsType, 'newsType');
 
-        topics.forEach(topName => {
-            const topNodeId = getNodeIndex(topName, 'topic');
+        // جریان دپارتمان به نوع خبر
+        const link1Key = `${deptNodeId}->${newsTypeNodeId}`;
+        linksMap.set(link1Key, (linksMap.get(link1Key) || 0) + 1);
 
-            // جریان دپارتمان به موضوع
-            const link1Key = `${deptNodeId}->${topNodeId}`;
-            linksMap.set(link1Key, (linksMap.get(link1Key) || 0) + 1);
-
-            // جریان موضوع به کیس
-            cases.forEach(caseName => {
-                const caseNodeId = getNodeIndex(caseName, 'case');
-                const link2Key = `${topNodeId}->${caseNodeId}`;
+        // جریان نوع خبر به نوع کامنت
+        const comments = reportCommentsMap.get(r.id);
+        if (comments && comments.length > 0) {
+            comments.forEach(cType => {
+                const commentNodeId = getNodeIndex(cType, 'commentType');
+                const link2Key = `${newsTypeNodeId}->${commentNodeId}`;
                 linksMap.set(link2Key, (linksMap.get(link2Key) || 0) + 1);
             });
-        });
+        } else {
+            const noCommentNodeId = getNodeIndex('بدون کامنت', 'commentType');
+            const link2Key = `${newsTypeNodeId}->${noCommentNodeId}`;
+            linksMap.set(link2Key, (linksMap.get(link2Key) || 0) + 1);
+        }
     });
 
     const nodes = Array.from(nodesMap.values());
@@ -1278,8 +1280,8 @@ function renderSankeyDiagram(reportsData) {
         return;
     }
 
-    // دسته‌بندی لایه‌ای گره‌ها (Left: Dept, Middle: Topic, Right: Case)
-    const layers = { dept: 0, topic: 1, case: 2 };
+    // دسته‌بندی لایه‌ای گره‌ها (Left: Dept, Middle: NewsType, Right: CommentType)
+    const layers = { dept: 0, newsType: 1, commentType: 2 };
     const layerNodes = [[], [], []];
     nodes.forEach(n => layerNodes[layers[n.category]].push(n));
 
@@ -1313,8 +1315,8 @@ function renderSankeyDiagram(reportsData) {
 
     const categoryColors = {
         dept: '#3b82f6',
-        topic: '#10b981',
-        case: '#f59e0b'
+        newsType: '#14b8a6',
+        commentType: '#f59e0b'
     };
 
     // رسم جریان‌ها (Links)
@@ -1338,7 +1340,7 @@ function renderSankeyDiagram(reportsData) {
             .attr('stroke-opacity', 0.35)
             .attr('stroke-width', Math.max(2, l.value * 2))
             .append('title')
-            .text(`${sourceNode.name} ➔ ${targetNode.name}: ${l.value} گزارش`);
+            .text(`${sourceNode.name} ➔ ${targetNode.name}: ${l.value} مورد`);
     });
 
     // رسم ستون‌های گره‌ها (Nodes)
@@ -1359,9 +1361,9 @@ function renderSankeyDiagram(reportsData) {
 
     // افزودن عنوان‌ها
     nodeG.append('text')
-        .attr('x', d => d.category === 'case' ? d.x - 8 : d.x + nodeWidth + 8)
+        .attr('x', d => d.category === 'commentType' ? d.x - 8 : d.x + nodeWidth + 8)
         .attr('y', d => d.y + d.h / 2 + 4)
-        .attr('text-anchor', d => d.category === 'case' ? 'end' : 'start')
+        .attr('text-anchor', d => d.category === 'commentType' ? 'end' : 'start')
         .style('font-family', 'Vazirmatn, sans-serif')
         .style('font-size', '11px')
         .style('font-weight', 'bold')
@@ -1369,7 +1371,7 @@ function renderSankeyDiagram(reportsData) {
         .text(d => d.name);
 
     // افزودن عناوین بالای ستون‌ها
-    const titles = ['دپارتمان مبدأ', 'موضوع گزارش', 'کیس‌ها'];
+    const titles = ['اداره مبدأ', 'نوع خبر', 'نوع پی نوشت'];
     [0, 1, 2].forEach(colIndex => {
         const xPos = 40 + colIndex * ((width - 80 - nodeWidth) / 2);
         svg.append('text')

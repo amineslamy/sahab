@@ -119,74 +119,134 @@
             </div>
 
             <!-- ۲. عملکرد کاربران -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">👥 عملکرد کارشناسان</h3>
+            <div onclick="openChartModal('#chart-user-performance', '👥 عملکرد کارشناسان')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">👥 عملکرد کارشناسان</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-user-performance" class="w-full"></div>
             </div>
 
             <!-- ۳. تفکیک اداره -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">🏢 سهم ادارات</h3>
+            <div onclick="openChartModal('#chart-department', '🏢 سهم ادارات')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🏢 سهم ادارات</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-department" class="w-full"></div>
             </div>
 
             <!-- ۴. چکیده -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">📝 وضعیت چکیده</h3>
+            <div onclick="openChartModal('#chart-has-summary', '📝 وضعیت چکیده')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📝 وضعیت چکیده</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-has-summary" class="w-full"></div>
             </div>
 
             <!-- ۵. تصویر شاخص -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">🖼️ وضعیت تصویر شاخص</h3>
+            <div onclick="openChartModal('#chart-has-image', '🖼️ وضعیت تصویر شاخص')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🖼️ وضعیت تصویر شاخص</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-has-image" class="w-full"></div>
             </div>
 
             <!-- ۶. کیس‌ها -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">📁 تفکیک کیس‌ها</h3>
+            <div onclick="openChartModal('#chart-analytics-cases', '📁 تفکیک کیس‌ها')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📁 تفکیک کیس‌ها</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-analytics-cases" class="w-full"></div>
             </div>
 
             <!-- ۷. موضوعات -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">🏷️ تفکیک موضوعات</h3>
+            <div onclick="openChartModal('#chart-analytics-topics', '🏷️ تفکیک موضوعات')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🏷️ تفکیک موضوعات</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-analytics-topics" class="w-full"></div>
             </div>
 
             <!-- ۸. ثبت‌کننده -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">👤 ثبت‌کنندگان اخبار</h3>
+            <div onclick="openChartModal('#chart-analytics-creators', '👤 ثبت‌کنندگان اخبار')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">👤 ثبت‌کنندگان اخبار</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-analytics-creators" class="w-full"></div>
             </div>
 
             <!-- ۹. طبقه‌بندی -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">🔒 طبقه‌بندی اسناد</h3>
+            <div onclick="openChartModal('#chart-classification', '🔒 طبقه‌بندی اسناد')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🔒 طبقه‌بندی اسناد</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-classification" class="w-full"></div>
             </div>
 
             <!-- ۱۰. اولویت -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">🚨 اولویت اخبار</h3>
+            <div onclick="openChartModal('#chart-priority', '🚨 اولویت اخبار')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🚨 اولویت اخبار</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-priority" class="w-full"></div>
             </div>
 
             <!-- ۱۱. نوع خبر -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">📰 نوع خبر</h3>
+            <div onclick="openChartModal('#chart-news-type', '📰 نوع خبر')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📰 نوع خبر</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-news-type" class="w-full"></div>
             </div>
 
             <!-- ۱۲. ارزیابی -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">⭐ وضعیت ارزیابی</h3>
+            <div onclick="openChartModal('#chart-evaluation', '⭐ وضعیت ارزیابی')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">⭐ وضعیت ارزیابی</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-evaluation" class="w-full"></div>
             </div>
 
             <!-- ۱۳. روند زمانی تاریخ وقوع -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2">
-                <h3 class="font-bold text-slate-800 text-xs mb-3">📅 روند زمانی (بر اساس تاریخ وقوع)</h3>
+            <div onclick="openChartModal('#chart-occurrence-timeline', '📅 روند زمانی (بر اساس تاریخ وقوع)')" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📅 روند زمانی (بر اساس تاریخ وقوع)</h3>
+                    <span class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
                 <div id="chart-occurrence-timeline" class="w-full"></div>
             </div>
 

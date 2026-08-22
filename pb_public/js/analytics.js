@@ -696,10 +696,8 @@ function renderWordCloud(reportsData, targetConfig = {}) {
     const emptyEl = document.getElementById(emptyId);
     if (!svgContainer || typeof d3 === 'undefined' || typeof d3.layout?.cloud !== 'function') return;
 
-    // پاک‌سازی قبلی SVG
     svgContainer.innerHTML = '';
 
-    // دریافت یا ایجاد Tooltip شناور
     const tooltipId = targetConfig.isModal ? 'modal-word-cloud-tooltip' : 'word-cloud-tooltip';
     let tooltip = document.getElementById(tooltipId);
     if (!tooltip) {
@@ -711,10 +709,13 @@ function renderWordCloud(reportsData, targetConfig = {}) {
 
     const activeReportIds = new Set(reportsData.map(r => r.id));
 
+    // لیست کامل‌تر استپ‌وردها برای فیلتر کلمات عمومی و ربط
     const stopWords = new Set([
         'در', 'به', 'از', 'که', 'می', 'این', 'را', 'با', 'است', 'برای', 'آن', 'یک', 'شود', 'شده', 'خود',
         'ها', 'های', 'بر', 'تا', 'نیز', 'وی', 'شد', 'علاوه', 'هم', 'کند', 'کرد', 'برای', 'یا', 'اما',
         'باشد', 'باید', 'داد', 'داشت', 'آنها', 'ویژه', 'جهت', 'پس', 'بین', 'توسط', 'طی', 'چون', 'کل',
+        'نیست', 'روی', 'حتی', 'درباره', 'عدم', 'برخی', 'دیگر', 'امروز', 'گرفت', 'وی', 'ویژه', 'شما',
+        'اگر', 'نمی', 'بود', 'دارد', 'عنوان', 'کنند', 'بلکه', 'دهد', 'کردن', 'قرار', 'دست', 'برابر',
         'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', 'style', 'class'
     ]);
 
@@ -736,21 +737,43 @@ function renderWordCloud(reportsData, targetConfig = {}) {
         .replace(/[0-9\u0660-\u0669\u06f0-\u06f9]/g, ' ')
         .replace(/[^\u0600-\u06FF\s]/g, ' ');
 
-    const words = cleanText.split(/\s+/);
-    const wordCounts = {};
+    const rawTokens = cleanText.split(/\s+/).map(w => w.trim()).filter(w => w.length > 1);
 
-    words.forEach(w => {
-        const word = w.trim();
-        if (word.length > 2 && !stopWords.has(word)) {
-            wordCounts[word] = (wordCounts[word] || 0) + 1;
+    const phraseScores = {};
+
+    for (let i = 0; i < rawTokens.length; i++) {
+        const w1 = rawTokens[i];
+
+        // ۱. تک‌کلمه (Unigram)
+        if (w1.length > 2 && !stopWords.has(w1)) {
+            phraseScores[w1] = (phraseScores[w1] || 0) + 1;
         }
-    });
 
-    const rawList = Object.entries(wordCounts)
+        // ۲. ترکیب ۲ کلمه‌ای (Bigram) - با ضریب وزنی بیشتر برای تشویق حضور در ابر کلمات
+        if (i < rawTokens.length - 1) {
+            const w2 = rawTokens[i + 1];
+            if (!stopWords.has(w1) && !stopWords.has(w2) && w1.length > 2 && w2.length > 2) {
+                const bigram = `${w1} ${w2}`;
+                phraseScores[bigram] = (phraseScores[bigram] || 0) + 2.5; // وزن ترجیحی
+            }
+        }
+
+        // ۳. ترکیب ۳ کلمه‌ای (Trigram)
+        if (i < rawTokens.length - 2) {
+            const w2 = rawTokens[i + 1];
+            const w3 = rawTokens[i + 2];
+            if (!stopWords.has(w1) && !stopWords.has(w2) && !stopWords.has(w3) && w1.length > 2 && w3.length > 2) {
+                const trigram = `${w1} ${w2} ${w3}`;
+                phraseScores[trigram] = (phraseScores[trigram] || 0) + 4; // وزن بالاتر برای ۳ کلمه‌ای‌ها
+            }
+        }
+    }
+
+    const filteredList = Object.entries(phraseScores)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 50); // محدوده تعداد کلمات
+        .slice(0, 40);
 
-    if (rawList.length === 0) {
+    if (filteredList.length === 0) {
         if (emptyEl) emptyEl.classList.remove('hidden');
         tooltip.classList.add('hidden');
         return;
@@ -759,27 +782,27 @@ function renderWordCloud(reportsData, targetConfig = {}) {
     if (emptyEl) emptyEl.classList.add('hidden');
 
     const width = (container.clientWidth && container.clientWidth > 0) ? container.clientWidth : 900;
-    const height = targetConfig.isModal ? Math.max((container.clientHeight || 0), 500) : 300;
+    const height = targetConfig.isModal ? Math.max((container.clientHeight || 0), 500) : 320;
 
-    const maxCount = rawList[0][1];
-    const minCount = rawList[rawList.length - 1][1];
+    const maxScore = filteredList[0][1];
+    const minScore = filteredList[filteredList.length - 1][1];
 
     const fontSizeScale = d3.scaleLinear()
-        .domain([minCount, maxCount])
-        .range([14, 42]);
+        .domain([minScore, maxScore])
+        .range([13, 36]);
 
     const palette = ['#4f46e5', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
 
-    const wordEntries = rawList.map(([text, count]) => ({
+    const wordEntries = filteredList.map(([text, score]) => ({
         text: text,
-        size: fontSizeScale(count),
-        count: count
+        size: fontSizeScale(score),
+        score: score
     }));
 
     d3.layout.cloud()
         .size([width, height])
         .words(wordEntries)
-        .padding(5)
+        .padding(8)
         .rotate(0)
         .font('Vazirmatn')
         .fontSize(d => d.size)
@@ -812,7 +835,7 @@ function renderWordCloud(reportsData, targetConfig = {}) {
                     .style('opacity', '0.75')
                     .attr('transform', `translate(${d.x},${d.y}) scale(1.15)`);
 
-                tooltip.innerHTML = `<span class="font-bold text-sky-400">${d.text}</span>: ${d.count} بار تکرار`;
+                tooltip.innerHTML = `<span class="font-bold text-sky-400">${d.text}</span>`;
 
                 const rect = container.getBoundingClientRect();
                 const x = event.clientX - rect.left;

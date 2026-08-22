@@ -912,8 +912,9 @@ function renderWordCloud(reportsData, targetConfig = {}) {
         'آنانی', 'آنان', 'آن گاه', 'آن', 'آمرانه', 'آمده', 'آمدن', 'آمد', 'آقایان', 'آقای', 'آقا', 'آشکارا', 'آشنایند',
         'آسیب پذیرند', 'آسیب', 'آسانی', 'آسان', 'آزادانه', 'آری', 'آره', 'آرام آرام', 'آرام', 'آدمهاست', 'آخه', 'آخرها',
         'آخر', 'آخ', 'آباد',
-        'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', 'style', 'class'
-    ]);
+        'p', 'br', 'div', 'span', 'href', 'http', 'https', 'strong', 'em', 'style', 'class',
+        'است', 'برای', 'از', 'به', 'در', 'که', 'با', 'آن', 'این', 'هم', 'یک', 'تا', 'بر', 'یا'
+    ]);   
 
     let combinedText = '';
 
@@ -931,37 +932,71 @@ function renderWordCloud(reportsData, targetConfig = {}) {
 
     const cleanText = combinedText.replace(/<[^>]*>/g, ' ')
         .replace(/[0-9\u0660-\u0669\u06f0-\u06f9]/g, ' ')
+        .replace(/[،؛؟«»!(){}\[\]]/g, ' ') // حذف صریح علائم نگارشی فارسی و عمومی
         .replace(/[^\u0600-\u06FF\s]/g, ' ');
 
     const rawTokens = cleanText.split(/\s+/).map(w => w.trim()).filter(w => w.length > 1);
 
-    const phraseScores = {};
+    const frequencies = {};
 
+    // فاز اول: استخراج فرکانس خام کلمات و ترکیبات
     for (let i = 0; i < rawTokens.length; i++) {
         const w1 = rawTokens[i];
+        const validW1 = w1.length > 2 && !stopWords.has(w1);
 
-        // ۱. تک‌کلمه (Unigram)
-        if (w1.length > 2 && !stopWords.has(w1)) {
-            phraseScores[w1] = (phraseScores[w1] || 0) + 1;
+        if (validW1) {
+            frequencies[w1] = (frequencies[w1] || 0) + 1;
         }
 
-        // ۲. ترکیب ۲ کلمه‌ای (Bigram) - با ضریب وزنی بیشتر برای تشویق حضور در ابر کلمات
         if (i < rawTokens.length - 1) {
             const w2 = rawTokens[i + 1];
-            if (!stopWords.has(w1) && !stopWords.has(w2) && w1.length > 2 && w2.length > 2) {
+            const validW2 = w2.length > 2 && !stopWords.has(w2);
+            if (validW1 && validW2) {
                 const bigram = `${w1} ${w2}`;
-                phraseScores[bigram] = (phraseScores[bigram] || 0) + 2.5; // وزن ترجیحی
+                frequencies[bigram] = (frequencies[bigram] || 0) + 1;
             }
         }
 
-        // ۳. ترکیب ۳ کلمه‌ای (Trigram)
         if (i < rawTokens.length - 2) {
             const w2 = rawTokens[i + 1];
             const w3 = rawTokens[i + 2];
-            if (!stopWords.has(w1) && !stopWords.has(w2) && !stopWords.has(w3) && w1.length > 2 && w3.length > 2) {
+            const validW2 = w2.length > 2 && !stopWords.has(w2);
+            const validW3 = w3.length > 2 && !stopWords.has(w3);
+            if (validW1 && validW2 && validW3) {
                 const trigram = `${w1} ${w2} ${w3}`;
-                phraseScores[trigram] = (phraseScores[trigram] || 0) + 4; // وزن بالاتر برای ۳ کلمه‌ای‌ها
+                frequencies[trigram] = (frequencies[trigram] || 0) + 1;
             }
+        }
+    }
+
+    // فاز دوم: کسر تکرار کلمات خردتر از عبارات طولانی (Subsumption)
+    const sortedPhrases = Object.keys(frequencies).sort((a, b) => b.split(' ').length - a.split(' ').length);
+
+    sortedPhrases.forEach(phrase => {
+        const count = frequencies[phrase];
+        if (count > 0) {
+            const words = phrase.split(' ');
+            if (words.length === 3) {
+                const bg1 = `${words[0]} ${words[1]}`;
+                const bg2 = `${words[1]} ${words[2]}`;
+                if (frequencies[bg1]) frequencies[bg1] -= count;
+                if (frequencies[bg2]) frequencies[bg2] -= count;
+                words.forEach(w => { if (frequencies[w]) frequencies[w] -= count; });
+            } else if (words.length === 2) {
+                words.forEach(w => { if (frequencies[w]) frequencies[w] -= count; });
+            }
+        }
+    });
+
+    // فاز سوم: محاسبه وزن نهایی فقط برای عبارات مستقلی که باقی مانده‌اند
+    const phraseScores = {};
+    for (const [phrase, count] of Object.entries(frequencies)) {
+        if (count > 0) {
+            const wordCount = phrase.split(' ').length;
+            let weight = 1;
+            if (wordCount === 2) weight = 2.5;
+            if (wordCount === 3) weight = 4;
+            phraseScores[phrase] = count * weight;
         }
     }
 
@@ -998,7 +1033,7 @@ function renderWordCloud(reportsData, targetConfig = {}) {
     d3.layout.cloud()
         .size([width, height])
         .words(wordEntries)
-        .padding(8)
+        .padding(8) 
         .rotate(0)
         .font('Vazirmatn')
         .fontSize(d => d.size)

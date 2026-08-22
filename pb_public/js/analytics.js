@@ -392,7 +392,9 @@ function convertIsoToFaShort(dateStr) {
 }
 
 function renderAnalyticsCharts(reportsData = allReports) {
-    currentFilteredReports = reportsData; const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
+    currentFilteredReports = reportsData;
+
+    const countByField = (items, getKey, defaultValue = 'تعریف‌نشده') => {
         return items.reduce((acc, item) => {
             const key = getKey(item) || defaultValue;
             acc[key] = (acc[key] || 0) + 1;

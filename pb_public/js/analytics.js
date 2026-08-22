@@ -938,65 +938,64 @@ function renderWordCloud(reportsData, targetConfig = {}) {
     const rawTokens = cleanText.split(/\s+/).map(w => w.trim()).filter(w => w.length > 1);
 
     const frequencies = {};
+    const originalFrequencies = {};
+    const MAX_NGRAM = 4; // افزایش تا ۴ کلمه برای پوشش عباراتی نظیر "حتی تسکنه ارضک طوعا"
 
-    // فاز اول: استخراج فرکانس خام کلمات و ترکیبات
+    // فاز اول: استخراج کاملاً داینامیک تا سقف ۴ کلمه
     for (let i = 0; i < rawTokens.length; i++) {
-        const w1 = rawTokens[i];
-        const validW1 = w1.length > 2 && !stopWords.has(w1);
-
-        if (validW1) {
-            frequencies[w1] = (frequencies[w1] || 0) + 1;
-        }
-
-        if (i < rawTokens.length - 1) {
-            const w2 = rawTokens[i + 1];
-            const validW2 = w2.length > 2 && !stopWords.has(w2);
-            if (validW1 && validW2) {
-                const bigram = `${w1} ${w2}`;
-                frequencies[bigram] = (frequencies[bigram] || 0) + 1;
-            }
-        }
-
-        if (i < rawTokens.length - 2) {
-            const w2 = rawTokens[i + 1];
-            const w3 = rawTokens[i + 2];
-            const validW2 = w2.length > 2 && !stopWords.has(w2);
-            const validW3 = w3.length > 2 && !stopWords.has(w3);
-            if (validW1 && validW2 && validW3) {
-                const trigram = `${w1} ${w2} ${w3}`;
-                frequencies[trigram] = (frequencies[trigram] || 0) + 1;
+        let currentPhrase = [];
+        for (let j = 0; j < MAX_NGRAM; j++) {
+            if (i + j < rawTokens.length) {
+                const w = rawTokens[i + j];
+                if (w.length > 2 && !stopWords.has(w)) {
+                    currentPhrase.push(w);
+                    const phraseStr = currentPhrase.join(' ');
+                    frequencies[phraseStr] = (frequencies[phraseStr] || 0) + 1;
+                } else {
+                    break; // توقف زنجیره در صورت رسیدن به stop word
+                }
             }
         }
     }
 
-    // فاز دوم: کسر تکرار کلمات خردتر از عبارات طولانی (Subsumption)
+    // ذخیره یک کپی از فرکانس‌های اولیه برای بررسی میزان استقلال کلمات
+    Object.assign(originalFrequencies, frequencies);
+
+    // فاز دوم: کسر دقیق از تمام زیربخش‌های ممکن (Subsumption کامل)
     const sortedPhrases = Object.keys(frequencies).sort((a, b) => b.split(' ').length - a.split(' ').length);
 
     sortedPhrases.forEach(phrase => {
         const count = frequencies[phrase];
         if (count > 0) {
             const words = phrase.split(' ');
-            if (words.length === 3) {
-                const bg1 = `${words[0]} ${words[1]}`;
-                const bg2 = `${words[1]} ${words[2]}`;
-                if (frequencies[bg1]) frequencies[bg1] -= count;
-                if (frequencies[bg2]) frequencies[bg2] -= count;
-                words.forEach(w => { if (frequencies[w]) frequencies[w] -= count; });
-            } else if (words.length === 2) {
-                words.forEach(w => { if (frequencies[w]) frequencies[w] -= count; });
+            if (words.length > 1) {
+                // تولید تمامی حالات زیربخش‌های این عبارت و کسر از آن‌ها
+                for (let len = 1; len < words.length; len++) {
+                    for (let start = 0; start <= words.length - len; start++) {
+                        const subPhrase = words.slice(start, start + len).join(' ');
+                        if (frequencies[subPhrase] !== undefined) {
+                            frequencies[subPhrase] -= count;
+                        }
+                    }
+                }
             }
         }
     });
 
-    // فاز سوم: محاسبه وزن نهایی فقط برای عبارات مستقلی که باقی مانده‌اند
+    // فاز سوم: محاسبه وزن نهایی فقط برای عباراتی که استقلال معناداری دارند
     const phraseScores = {};
-    for (const [phrase, count] of Object.entries(frequencies)) {
-        if (count > 0) {
+    for (const [phrase, remainingCount] of Object.entries(frequencies)) {
+        const originalCount = originalFrequencies[phrase];
+
+        // شرط ادغام: اگر کلمه/عبارتِ کوچکتر، در بیش از ۵۰٪ مواقع بخشی از عبارت بزرگتر بوده است، حذف می‌شود
+        if (remainingCount > 0 && remainingCount > (originalCount * 0.5)) {
             const wordCount = phrase.split(' ').length;
             let weight = 1;
             if (wordCount === 2) weight = 2.5;
             if (wordCount === 3) weight = 4;
-            phraseScores[phrase] = count * weight;
+            if (wordCount === 4) weight = 5; // تخصیص وزن بیشتر به عبارات طولانی برای ماندگاری در ابر کلمات
+
+            phraseScores[phrase] = remainingCount * weight;
         }
     }
 

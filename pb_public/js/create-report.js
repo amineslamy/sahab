@@ -1490,6 +1490,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
             news_type: [
                 "آشکار",
+                "اصل25",
+                "محیط",
                 "رسمی",
                 "فنی",
                 "سایبری",

@@ -1,8 +1,8 @@
-# PocketBase data directory (contains SQLite databases and local backups)
+# PocketBase data & executables
 pb_data/
+*.exe
+sahab
 
 # OS generated files
 .DS_Store
 Thumbs.db
-فیلدهای گزارش.json
-حافظه پروژه.docx

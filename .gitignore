@@ -1,0 +1,8 @@
+# PocketBase data & executables
+pb_data/
+*.exe
+sahab
+
+# OS generated files
+.DS_Store
+Thumbs.db

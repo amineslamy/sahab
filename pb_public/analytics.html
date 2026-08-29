@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <title>آمار و تحلیل - سامانه سحاب</title>
+
+    <!-- ۱. استایل هدر و Tailwind محلی -->
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/persian-datepicker.min.css">
+    <script src="js/tailwindcss.js"></script>
+
+    <!-- ۲. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
+    <style>
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Black.woff2') format('woff2');
+            font-weight: 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html {
+            font-size: 17px;
+        }
+
+        * {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif !important;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 text-sm min-h-screen flex flex-col">
+
+    <!-- ۱. هدر سراسری سامانه سحاب -->
+    <div id="app-header"></div>
+
+    <!-- کانتینر محتوای اصلی -->
+    <main class="w-full max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- نوار عنوان، فیلتر کاربر و فیلتر بازه زمانی -->
+        <div
+            class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <!-- آواتار کارشناس -->
+                <img id="current-user-avatar" src="images/avatar-placeholder.png" alt="آواتار"
+                    class="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm hidden">
+                <div>
+                    <h2 class="font-black text-lg bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+                        id="current-user-name">
+                        در حال دریافت...
+                    </h2>
+                </div>
+                <!-- دکمه فلش منتقل‌شده به سمت دیگر نام 
+                <a href="users.html" title="بازگشت به مدیریت کاربران"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2.5 rounded-xl transition flex items-center justify-center border border-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>-->
+            </div>
+
+            <!-- بخش فیلترها (انتخاب زیرمجموعه + فیلتر تاریخ) -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- انتخاب زیرمجموعه (فقط برای ادارات/مدیران) -->
+                <div id="subordinates-container" class="hidden">
+                    <select id="subordinate-select" onchange="onSubordinateChange(this.value)"
+                        class="border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700 outline-none focus:border-indigo-600 cursor-pointer">
+                        <option value="">-- مشاهده گزارش زیرمجموعه‌ها --</option>
+                    </select>
+                </div>
+
+                <!-- فیلترهای تکمیلی (کیس، موضوع و تاریخ شمسی) -->
+                <div
+                    class="flex flex-wrap items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs font-bold">
+
+                    <!-- فیلتر کیس -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">کیس:</label>
+                        <select id="filter-case-select"
+                            class="w-36 border border-slate-300 rounded-lg px-2 py-1 bg-white text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                            <option value="">همه کیس‌ها</option>
+                        </select>
+                    </div>
+
+                    <!-- فیلتر موضوع -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">موضوع:</label>
+                        <select id="filter-topic-select"
+                            class="w-36 border border-slate-300 rounded-lg px-2 py-1 bg-white text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                            <option value="">همه موضوعات</option>
+                        </select>
+                    </div>
+
+                    <!-- فیلتر تاریخ -->
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">از تاریخ:</label>
+                        <input type="text" id="filter-date-from" placeholder="YYYY/MM/DD" readonly
+                            class="w-28 border border-slate-300 rounded-lg px-2 py-1 bg-white text-center text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <label class="text-slate-600">تا تاریخ:</label>
+                        <input type="text" id="filter-date-to" placeholder="YYYY/MM/DD" readonly
+                            class="w-28 border border-slate-300 rounded-lg px-2 py-1 bg-white text-center text-slate-800 outline-none focus:border-indigo-600 cursor-pointer">
+                    </div>
+                    <button onclick="applyAnalyticsDateFilter()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1 rounded-lg transition shadow-sm">
+                        اعمال فیلتر
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- کارت‌های آمار و نمودارها -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- ۱. روند زمانی انتشار -->
+            <div onclick="openChartModal('#chart-timeline', '📈 روند انتشار اخبار (تاریخ ثبت)')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📈 روند انتشار اخبار (تاریخ ثبت)</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-timeline" class="w-full"></div>
+            </div>
+
+            <!-- ۲. عملکرد کاربران -->
+            <div onclick="openChartModal('#chart-user-performance', '👥 عملکرد کارشناسان')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">👥 عملکرد کارشناسان</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-user-performance" class="w-full"></div>
+            </div>
+
+            <!-- ۳. تفکیک اداره -->
+            <div onclick="openChartModal('#chart-department', '🏢 سهم ادارات')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🏢 سهم ادارات</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-department" class="w-full"></div>
+            </div>
+
+            <!-- ۴. چکیده -->
+            <div onclick="openChartModal('#chart-has-summary', '📝 وضعیت چکیده')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📝 وضعیت چکیده</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-has-summary" class="w-full"></div>
+            </div>
+
+            <!-- ۵. تصویر شاخص -->
+            <div onclick="openChartModal('#chart-has-image', '🖼️ وضعیت تصویر شاخص')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🖼️ وضعیت تصویر شاخص</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-has-image" class="w-full"></div>
+            </div>
+
+            <!-- ۶. کیس‌ها -->
+            <div onclick="openChartModal('#chart-analytics-cases', '📁 تفکیک کیس‌ها')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📁 تفکیک کیس‌ها</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-analytics-cases" class="w-full"></div>
+            </div>
+
+            <!-- ۷. موضوعات -->
+            <div onclick="openChartModal('#chart-analytics-topics', '🏷️ تفکیک موضوعات')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🏷️ تفکیک موضوعات</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-analytics-topics" class="w-full"></div>
+            </div>
+
+            <!-- ۸. ثبت‌کننده -->
+            <div onclick="openChartModal('#chart-analytics-creators', '👤 ثبت‌کنندگان اخبار')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">👤 ثبت‌کنندگان اخبار</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-analytics-creators" class="w-full"></div>
+            </div>
+
+            <!-- ۲۱. ابر کلمات کلیدی -->
+            <div onclick="openWordCloudModal()"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">☁️ ابر کلمات کلیدی (اخبار و کامنت‌ها)</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی واژگان کلیدی پرتکرار در متن گزارش‌ها و
+                    دیدگاه‌ها</p>
+                <div id="word-cloud-container"
+                    class="w-full flex justify-center items-center bg-slate-50 rounded-xl p-2 border border-slate-100 min-h-[320px] relative overflow-hidden">
+                    <div id="word-cloud-svg" class="w-full h-[300px] flex justify-center items-center"></div>
+                    <div id="word-cloud-empty" class="hidden absolute text-slate-400 text-xs font-bold">کلمه‌ای برای
+                        نمایش یافت نشد</div>
+                </div>
+            </div>
+
+            <!-- ۹. طبقه‌بندی -->
+            <div onclick="openChartModal('#chart-classification', '🔒 طبقه‌بندی اسناد')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🔒 طبقه‌بندی اسناد</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-classification" class="w-full"></div>
+            </div>
+
+            <!-- ۱۰. اولویت -->
+            <div onclick="openChartModal('#chart-priority', '🚨 اولویت اخبار')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">🚨 اولویت اخبار</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-priority" class="w-full"></div>
+            </div>
+
+            <!-- ۱۱. نوع خبر -->
+            <div onclick="openChartModal('#chart-news-type', '📰 نوع خبر')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📰 نوع خبر</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-news-type" class="w-full"></div>
+            </div>
+
+            <!-- ۱۲. ارزیابی -->
+            <div onclick="openChartModal('#chart-evaluation', '⭐ وضعیت ارزیابی')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">⭐ وضعیت ارزیابی</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-evaluation" class="w-full"></div>
+            </div>
+
+            <!-- ۱۳. روند زمانی تاریخ وقوع -->
+            <div onclick="openChartModal('#chart-occurrence-timeline', '📅 روند زمانی (بر اساس تاریخ وقوع)')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800 text-xs">📅 روند زمانی (بر اساس تاریخ وقوع)</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">
+                        🔍 تمام‌صفحه
+                    </span>
+                </div>
+                <div id="chart-occurrence-timeline" class="w-full"></div>
+            </div>
+
+            <!-- ۱۴. نمودار ستونی انباشته — توزیع طبقه‌بندی بر اساس اداره -->
+            <div onclick="openChartModal('#chart-stacked-classification', '📊 توزیع طبقه‌بندی بر اساس اداره')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">📊 توزیع طبقه‌بندی بر اساس اداره</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍
+                        تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: سنجش و مقایسهٔ سطح محرمانگی اسناد تولیدشده در هر
+                    اداره</p>
+                <div id="chart-stacked-classification" class="w-full"></div>
+            </div>
+
+            <!-- ۱۵. نمودار میله‌ای افقی — وضعیت اولویت و نوع خبر -->
+            <div onclick="openChartModal('#chart-priority-newstype', '🚨 اولویت اخبار به تفکیک نوع خبر')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🚨 اولویت اخبار به تفکیک نوع خبر</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍
+                        تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی حجم اخبار فوری و آنی بر اساس کانال ورودی/نوع
+                    خبر</p>
+                <div id="chart-priority-newstype" class="w-full"></div>
+            </div>
+
+            <!-- ۱۶. نمودار رادار — ارزیابی عملکرد و تنوع کاری کارشناسان -->
+            <div onclick="openChartModal('#chart-expert-radar', '🕸️ رادار عملکرد و تنوع کاری کارشناسان')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🕸️ رادار عملکرد کارشناسان</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍
+                        تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: مقایسهٔ چندبعدی فعالیت، تنوع موضوعی و پوشش کیس‌ها
+                    توسط کاربران</p>
+                <div id="chart-expert-radar" class="w-full"></div>
+            </div>
+
+            <!-- ۱۷. نمودار حرارتی — ماتریس زمانی وقوع رویدادها -->
+            <div onclick="openChartModal('#chart-occurrence-heatmap', '🔥 ماتریس زمانی وقوع رویدادها')"
+                class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 cursor-pointer hover:border-indigo-300 transition-all group relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🔥 ماتریس زمانی وقوع رویدادها</h3>
+                    <span
+                        class="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center gap-1 font-normal">🔍
+                        تمام‌صفحه</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: کشف الگوهای زمانی و ساعات پیک وقوع حوادث در روزهای
+                    هفته</p>
+                <div id="chart-occurrence-heatmap" class="w-full"></div>
+            </div>
+
+            <!-- ۱۸. گراف پیوندها (D3.js) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🕸️ شبکه ارتباطات کیس‌ها، موضوعات و گزارش‌ها</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: شناسایی گزارش‌های کلیدی که چندین کیس و موضوع مختلف را
+                    به یکدیگر پیوند می‌دهند</p>
+                <div id="chart-force-graph"
+                    class="w-full h-[400px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden">
+                </div>
+            </div>
+
+            <!-- ۱۹. نمودار خورشیدی/شعاعی (D3.js) 
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-2 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">☀️ ساختار سلسله‌مراتب کیس‌ها و گزارش‌ها</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: مشاهده سهم گزارش‌های ثبت‌شده در کیس‌های اصلی (والد) و زیرکیس‌ها (فرزند)</p>
+                <div id="chart-sunburst" class="w-full h-[380px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden flex justify-center items-center"></div>
+            </div>-->
+
+            <!-- ۲۰. نمودار دایره‌ای ارتباطات / Chord (D3.js) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">⭕ تعامل ادارات روی موضوعات مشترک</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: کشف هم‌پوشانی‌های کاری و موضوعات کانون توجه مشترک بین
+                    ادارات</p>
+                <div id="chart-chord"
+                    class="w-full h-[380px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden flex flex-col justify-between items-center">
+                </div>
+            </div>
+            <!-- ۲۲. نمودار جریان زمانی انتشارات (Sankey Diagram) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-1 lg:col-span-3 relative">
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="font-bold text-slate-800 text-xs">🔀 جریان انتشارات و ارتباط موضوعات در طول زمان</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-3">کاربرد: تحلیل روند انتقال و جریان اخبار از ادارات به
+                    موضوعات و وضعیت‌های مختلف</p>
+                <div id="chart-sankey"
+                    class="w-full h-[400px] bg-slate-50 rounded-xl border border-slate-100 relative overflow-hidden flex justify-center items-center">
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- اسکریپت‌های محلی سیستم -->
+    <script src="js/sweetalert2.all.min.js"></script>
+    <script src="js/jquery-3.6.4.min.js"></script>
+    <script src="js/persian-date.min.js"></script>
+    <script src="js/persian-datepicker.min.js"></script>
+    <script src="js/apexcharts.min.js"></script>
+    <script src="js/pocketbase.umd.js?v=1"></script>
+    <script src="js/header.js"></script>
+    <script src="js/d3.v7.min.js"></script>
+    <script src="js/d3.layout.cloud.js"></script>
+    <script src="js/analytics.js"></script>
+
+    <!-- مودال نمایش تمام‌صفحه نمودارها -->
+    <div id="chart-modal"
+        class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div
+            class="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex flex-col border border-slate-200 overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                <h3 id="modal-chart-title" class="font-bold text-slate-800 text-sm md:text-base">نمایش تمام‌صفحه نمودار
+                </h3>
+                <button onclick="closeChartModal()"
+                    class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="flex-1 p-6 overflow-y-auto flex items-center justify-center bg-white" id="modal-chart-body">
+                <div id="chart-modal-target" class="w-full h-full min-h-[450px]"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

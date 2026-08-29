@@ -1,0 +1,281 @@
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/fonts/Vazirmatn-Bold.woff2') format('woff2');
+    font-weight: 700;
+}
+
+body {
+    font-family: 'Vazirmatn', tahoma, sans-serif;
+    font-size: 16px; /* پایه استاندارد دسکتاپ */
+    color: #0f172a;
+    background-color: #f1f5f9;
+}
+
+/* ۱. استایل‌دهی درشت و راست‌چین ویرایشگر Quill */
+.ql-editor {
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 1.1rem !important; /* سایز متن درشت و بسیار خوانا */
+    line-height: 2 !important; /* فاصله خطوط استاندارد برای سهولت مطالعه */
+    min-height: 320px;
+    direction: rtl !important;
+    text-align: right !important;
+    color: #0f172a !important;
+}
+
+/* تضمین اعمال راست‌چین و فونت درشت برای همه‌ی تگ‌های داخلی ادیتور */
+.ql-editor p,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor ul,
+.ql-editor ol,
+.ql-editor blockquote,
+.ql-editor pre {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* استایل‌دهی درشت و واضح تیترها درون بدنه ویرایشگر */
+.ql-editor h1 {
+    font-size: 1.75rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.85rem !important;
+    border-bottom: 2px solid #cbd5e1;
+    padding-bottom: 0.5rem;
+}
+
+.ql-editor h2 {
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.ql-editor h3 {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.6rem !important;
+}
+
+/* راست‌چین کردن نقل‌قول‌ها در ویرایشگر */
+.ql-editor blockquote {
+    border-right: 5px solid #334155 !important;
+    border-left: none !important;
+    padding-right: 18px !important;
+    padding-left: 0 !important;
+    font-size: 1.05rem !important;
+    color: #334155 !important;
+    background-color: #f8fafc;
+    margin: 1.2rem 0 !important;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* تراز کردن متن راهنما (Placeholder) به سمت راست */
+.ql-editor.ql-blank::before {
+    right: 15px !important;
+    left: auto !important;
+    font-style: normal !important;
+    font-size: 1.05rem !important;
+    color: #64748b !important;
+}
+
+.ql-toolbar,
+.ql-container {
+    font-family: 'Vazirmatn', sans-serif !important;
+}
+
+/* شناور ساختن نوار ابزار Quill برای متون طولانی */
+.ql-toolbar.ql-snow {
+    position: sticky;
+    top: 60px; /* این عدد برابر است با ارتفاع هدر اصلی سایت */
+    z-index: 10;
+    background-color: #ffffff;
+}
+
+.ql-container.ql-snow {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    background-color: #ffffff;
+}
+
+/* ۲. سفارشی‌سازی ناحیه درگ اند دراپ فایل */
+.drag-zone {
+    transition: all 0.2s ease-in-out;
+}
+
+.drag-zone:hover,
+.drag-zone.drag-active {
+    border-color: #0f172a;
+    background-color: #f1f5f9;
+}
+
+/* ۳. استایل‌های تگ‌باکس چندانتخابی پویا */
+.custom-multiselect-container {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-multiselect-container:focus-within, 
+.custom-multiselect-container:hover {
+    border-color: #0f172a;
+}
+
+/* ۴. شخصی‌سازی اسکرولبار برای دراپ‌داون‌ها */
+#topics-dropdown::-webkit-scrollbar,
+#cases-dropdown::-webkit-scrollbar,
+#attachments-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#topics-dropdown::-webkit-scrollbar-track,
+#cases-dropdown::-webkit-scrollbar-track,
+#attachments-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+#topics-dropdown::-webkit-scrollbar-thumb,
+#cases-dropdown::-webkit-scrollbar-thumb,
+#attachments-list::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 4px;
+}
+
+/* ۵. استایل‌های تقویم شمسی با فونت درشت */
+.datepicker-plot-area {
+    font-family: 'Vazirmatn', sans-serif !important;
+    font-size: 1rem !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
+}
+
+.datepicker-plot-area .datepicker-day-view .table-days td.selected span {
+    background-color: #0f172a !important;
+}
+
+/* درشت‌سازی تگ‌های انتخاب شده */
+.selected-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: 0.95rem !important;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.selected-tag button {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.selected-tag button:hover {
+    color: #ef4444;
+}
+
+/* استایل آیتم‌های منوی آبشاری کیس‌ها و موضوعات */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 1rem !important;
+    font-weight: 600;
+    color: #0f172a;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5f9;
+}
+
+.dropdown-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0f172a;
+    cursor: pointer;
+}
+
+/* استایل اختصاصی برای ساختار درختی کیس‌های زیرمجموعه */
+.dropdown-item.child-case {
+    margin-right: 24px; /* تورفتگی برای نشان دادن زیرمجموعه بودن */
+    border-right: 3px solid #cbd5e1;
+    background-color: #f8fafc;
+}
+
+.dropdown-item.child-case:hover {
+    background-color: #e2e8f0;
+}
+
+/* ۶. استایل‌های جدید هدر متادیتا (کارت‌های روشن و گرد) */
+.report-metadata-header-new {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 12px;
+}
+
+.meta-card {
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 0;
+}
+
+.meta-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.meta-card-value {
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* ۷. استایل نوار اکشن ثابت پایین صفحه */
+.sticky-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    padding: 12px 24px;
+}

@@ -1,0 +1,142 @@
+/* تنظیمات Container هدر */
+#app-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* هدر اصلی با افکت شیشه‌ای (Glassmorphism) */
+.main-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.85); /* پس‌زمینه نیمه‌شفاف تیره */
+    backdrop-filter: blur(12px); /* افکت بلر شیشه‌ای */
+    -webkit-backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 0.65rem 1.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+    direction: rtl;
+}
+
+/* لوگو و متن عنوان */
+.navbar-brand .logo-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 700;
+}
+
+/* متن عنوان با گرادینت درخشان */
+.app-title {
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* منوی اصلی */
+.navbar-menu {
+    display: flex;
+    gap: 8px;
+    background: rgba(30, 41, 59, 0.5);
+    padding: 4px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-item {
+    color: #94a3b8;
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+}
+
+.nav-item:hover {
+    color: #f8fafc;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.nav-item.active {
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.12);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+/* بخش پروفایل کاربر */
+.navbar-user-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.user-role {
+    font-size: 0.725rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.user-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, #38bdf8, #818cf8) border-box;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    transition: transform 0.2s ease;
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
+}
+
+/* دکمه خروج مدرن */
+.logout-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.logout-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}

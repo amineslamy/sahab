@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <title>مدیریت همگام‌سازی، خروجی و ورودی داده‌ها</title>
+    <!-- ۱. استایل هدر و Tailwind محلی -->
+    <link rel="stylesheet" href="css/header.css">
+    <script src="js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="css/persian-datepicker.min.css">
+    
+    <!-- JSZip Library -->
+    <script src="js/jszip.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen text-slate-800 p-4 md:p-8">
+
+    <!-- کانتینر تزریق هدر سراسری -->
+    <div id="app-header"></div>
+
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden mt-6">
+
+        <!-- Header -->
+        <div class="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-black">ماژول همگام‌سازی داده‌ها (Export / Import)</h1>
+                <p class="text-xs text-slate-400 mt-1">مدیریت پشتیبان‌گیری، انتقال داده‌ها و خروجی ماژولار</p>
+            </div>
+            <a href="index.html"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-xl transition">بازگشت به
+                داشبورد</a>
+        </div>
+
+        <div class="p-6 space-y-8">
+
+            <!-- بخش خروجی گرفتن (Export) -->
+            <section class="space-y-4">
+                <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+                    <span class="text-lg">📤</span>
+                    <h2 class="text-base font-bold text-slate-900">خروجی گرفتن از داده‌ها (Export)</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- کارت خروجی JSON -->
+                    <div
+                        class="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800">خروجی JSON (فقط ساختار و داده‌ها)</h3>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">دریافت تمام گزارش‌ها، موضوعات، کیس‌ها
+                                و کامنت‌ها در قالب فایل ساختاریافته JSON جهت انتقال سبک.</p>
+                        </div>
+                        <button onclick="exportDataToJSON()"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition w-full flex justify-center items-center gap-2">
+                            <span>دانلود فایل JSON</span>
+                        </button>
+                    </div>
+
+                    <!-- کارت خروجی ZIP (همراه با فایل‌های پیوست) -->
+                    <div
+                        class="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col justify-between space-y-3">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800">خروجی کامل ZIP (داده‌ها + پیوست‌ها)</h3>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">دریافت فایل‌های JSON به همراه تمام
+                                تصاویر شاخص و فایل‌های پیوست متصل به گزارش‌ها.</p>
+                        </div>
+                        <button onclick="exportDataToZIP()"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition w-full flex justify-center items-center gap-2">
+                            <span>دانلود فایل ZIP کامل</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- بخش ورود داده‌ها (Import) -->
+            <section class="space-y-4">
+                <div class="flex items-center gap-2 border-b border-slate-200 pb-2">
+                    <span class="text-lg">📥</span>
+                    <h2 class="text-base font-bold text-slate-900">ورود داده‌ها به سیستم (Import)</h2>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl p-5 bg-slate-50 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">انتخاب فایل پشتیبان (فرمت JSON یا
+                            ZIP):</label>
+                        <input type="file" id="import-file-input" accept=".json,.zip"
+                            class="block w-full text-xs text-slate-500 file:ml-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-xl bg-white cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="overwrite-existing"
+                            class="rounded text-indigo-600 focus:ring-indigo-500">
+                        <label for="overwrite-existing" class="text-xs text-slate-600 font-medium">به‌روزرسانی رکوردها
+                            در صورت وجود ID مشابه (جایگزینی)</label>
+                    </div>
+
+                    <button onclick="importDataFromFile()"
+                        class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2">
+                        <span>پردازش و ورود اطلاعات</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- بخش نمایش وضعیت و لوگ‌ها -->
+            <section id="status-container" class="hidden space-y-2">
+                <h3 class="text-xs font-bold text-slate-700">وضعیت عملیات:</h3>
+                <div id="status-log"
+                    class="p-4 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl max-h-48 overflow-y-auto space-y-1">
+                </div>
+            </section>
+
+        </div>
+    </div>
+    <!-- اسکریپت‌های سیستم -->
+    <script src="js/sweetalert2.all.min.js"></script>
+    <script src="js/pocketbase.umd.js?v=1"></script>
+    <script src="js/header.js"></script>
+    <script src="js/system-sync.js"></script>
+
+</html>

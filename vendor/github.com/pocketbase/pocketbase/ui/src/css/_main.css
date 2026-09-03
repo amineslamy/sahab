@@ -1,0 +1,287 @@
+@import "./fonts.css";
+@import "./remixicon.css";
+@import "./vars.css";
+@import "./animations.css";
+@import "./prism.css";
+@import "./base.css";
+@import "./tooltip.css";
+@import "./toast.css";
+@import "./list.css";
+@import "./grid.css";
+@import "./table.css";
+@import "./form.css";
+@import "./dropdown.css";
+@import "./accordion.css";
+@import "./bulkbar.css";
+@import "./tabs.css";
+@import "./modal.css";
+@import "./layout.css";
+
+/* ---------------------------------------------------------------  */
+
+@import "./ruleField.css";
+@import "./ratelimit.css";
+@import "./export.css";
+@import "./logs.css";
+@import "./map.css";
+@import "./recordSummary.css";
+@import "./recordFilePicker.css";
+@import "./recordsPicker.css";
+@import "./recordFields.css";
+@import "./collectionModal.css";
+@import "./providers.css";
+@import "./apiPreviewModal.css";
+@import "./colorPicker.css";
+@import "./collectionsOverview.css";
+@import "./erd.css";
+@import "./hideControls.css";
+@import "./sqlConsole.css";
+
+/* ==========================================================================
+   Persian & RTL Custom Styles
+   ========================================================================== */
+
+/* ۱. تعریف متغیر فونت و فونت پایه کل عناصر */
+:root {
+    --base-font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+}
+
+body,
+input,
+button,
+select,
+textarea {
+    font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif !important;
+}
+
+/* ۲. راست‌چین کردن محتوای متنی و جداول */
+input,
+textarea,
+.table-wrapper {
+    direction: rtl;
+    text-align: right;
+}
+
+/* ۳. اصلاح چیدمان هدر و منوی بالا */
+.app-header {
+    direction: ltr;
+}
+
+.app-header .header-content {
+    direction: rtl;
+}
+
+/* ۴. قفل چیدمان لایه‌بندی فرم جستجو و فیلتر (حفظ جایگاه آیکون‌ها) */
+form.searchbar,
+form.searchbar .field,
+.search-bar,
+.filter-wrapper {
+    direction: ltr !important;
+}
+
+/* ۵. تنظیم جهت متن درونی فرم جستجو */
+form.searchbar .editor-content,
+.search-bar input {
+    direction: rtl !important;
+    text-align: left !important;
+}
+
+form.searchbar .editor-content[data-placeholder]:empty::before {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
+/* ۶. اصلاح خط جداکننده سایدمون به چپ */
+.app-sidebar {
+    border-left: 1px solid var(--base-alt1-color);
+    border-right: none;
+}
+
+/* =====================================
+            راست چین مودال 
+====================================== */
+/* تنظیم جهت و تراز کلی مدال */
+.collection-upsert-modal {
+    direction: rtl;
+    text-align: right;
+}
+
+/* اصلاح چیدمان هدر مدال */
+.collection-upsert-modal .modal-header .flex {
+    flex-direction: row-reverse;
+}
+
+/* معکوس کردن حاشیه‌های اتوماتیک جهت انتقال دکمه‌ها به سمت چپ */
+.collection-upsert-modal .m-l-auto {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+.collection-upsert-modal .m-r-auto {
+    margin-right: 0 !important;
+    margin-left: auto !important;
+}
+
+/* اصلاح چیدمان فیلدها و فرم‌ها */
+.collection-upsert-modal .field label {
+    text-align: right;
+}
+
+.collection-upsert-modal input,
+.collection-upsert-modal textarea,
+.collection-upsert-modal select {
+    direction: rtl;
+    text-align: right;
+}
+
+/* برای ورودی‌های انگلیسی مانند Regex یا کدهای الگوسازی */
+.collection-upsert-modal .field-help code,
+.collection-upsert-modal input[name*="pattern"] {
+    direction: ltr;
+    text-align: left;
+}
+
+/* اصلاح چیدمان آکاردئون فیلدها */
+.collection-upsert-modal details.record-field-settings summary {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+}
+
+/* اصلاح موقعیت دستگیره درگ (Drag handle) */
+.collection-upsert-modal .sort-handle {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* اصلاح منوهای دراپ‌داون (Popover / Dropdown) */
+.collection-upsert-modal .dropdown {
+    direction: rtl;
+    text-align: right;
+}
+
+.collection-upsert-modal .dropdown-item {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* اصلاح فوتر فیلدها (چک‌باکس‌های ضروری، قابل نمایش و پنهان) */
+.collection-upsert-modal .record-field-settings-footer {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    gap: 1rem;
+}
+
+.collection-upsert-modal .record-field-settings-footer .more-btn {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+
+/* اصلاح موقعیت کانتینر لیبل‌ها */
+.field.prop-name {
+    position: relative;
+}
+
+/* انتقال بج Required به سمت چپ و تنظیم فاصله */
+.field.prop-name .field-labels {
+    right: auto !important;
+    left: 10px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 2;
+}
+
+/* ایجاد فضای کافی درون input تا متن زیر بج نرود */
+.field.prop-name input {
+    padding-left: 75px !important;
+    padding-right: 12px !important;
+}
+
+
+/* ========================================================
+راست چین کردن مودال نمایش اطلاعات رکورد (Record Summary Modal)
+======================================================== */
+/* ۱. تنظیم جهت کلی مودال و متون */
+.record-upsert-modal {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* ۲. تنظیم هدر مودال و فاصله المان‌های آن */
+.record-upsert-modal .modal-header .flex {
+    flex-direction: row !important;
+}
+
+.record-upsert-modal .modal-header .modal-title {
+    display: flex !important;
+    gap: 4px !important;
+}
+
+/* ۳. تنظیم ادیتور متن، فیلدها و ورودی‌ها */
+.record-upsert-modal input,
+.record-upsert-modal textarea,
+.record-upsert-modal .autoexpand-wrapper,
+.record-upsert-modal .code-editor-container,
+.record-upsert-modal .editor-content {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+/* ۴. اصلاح موقعیت لیبل‌ها و آیکون‌های درون فیلدها */
+.record-upsert-modal .field label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.record-upsert-modal .field label i {
+    margin-left: 4px !important;
+    margin-right: 0 !important;
+}
+
+/* ۵. تنظیم بخش روابط (Relations) و لیست رکوردهای انتخاب شده */
+.record-upsert-modal .field-list .list-item {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.record-upsert-modal .field-list .list-item .actions {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+.record-upsert-modal .record-summary {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+/* ۶. راست‌چین کردن ابزارها و محتوای ویرایشگر TinyMCE */
+.record-upsert-modal .tox-tinymce,
+.record-upsert-modal .tox-editor-container {
+    direction: rtl !important;
+    text-align: right !important;
+}
+
+.record-upsert-modal .tox-toolbar__primary {
+    flex-direction: row !important;
+}
+
+/* ۷. اصلاح موقعیت منوهای دراپ‌داون و پاپ‌اورها */
+.record-upsert-modal .dropdown {
+    text-align: right !important;
+}
+
+.record-upsert-modal .dropdown-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+

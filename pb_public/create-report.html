@@ -16,6 +16,8 @@
     <!-- PocketBase SDK & jQuery -->
     <script src="js/pocketbase.umd.js"></script>
 
+    <script src="js/mammoth.browser.min.js"></script>
+
     <!-- jQuery & Persian Datepicker -->
     <script src="js/jquery-3.6.4.min.js"></script>
     <link rel="stylesheet" href="css/persian-datepicker.min.css">
@@ -256,6 +258,15 @@
 
         <!-- Form Container -->
         <form id="create-report-form" novalidate autocomplete="off">
+            <!-- Word Import Drop Zone -->
+            <div id="word-import-zone"
+                class="glass-card card-glow-purple p-6 rounded-2xl mb-2 border-2 border-dashed border-indigo-300 hover:border-indigo-500 transition cursor-pointer text-center">
+                <input type="file" id="word-import-input" accept=".docx" class="hidden">
+                <i class="fa-solid fa-file-word text-3xl text-indigo-600 mb-2"></i>
+                <p class="text-sm font-bold text-slate-700">فایل Word (.docx) را اینجا بکشید و رها کنید</p>
+                <p class="text-[11px] text-slate-400 mt-1">یا برای انتخاب کلیک کنید — فیلدها به‌صورت خودکار پر می‌شوند</p>
+                <p id="word-import-status" class="hidden text-xs mt-2 font-bold"></p>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 <!-- Main Content Area (Right - 2 Cols) -->

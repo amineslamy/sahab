@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initEditorsAndPickers();
             // ۵. راه‌اندازی آپلود فایل‌ها و فرم
             initFileInputs();
+            initWordImporter();
             initFormActions();
 
             // ۶. بررسی وجود ID در آدرس و بارگذاری گزارش جهت مشاهده/ویرایش
@@ -1263,17 +1264,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function validateForm() {
-        if (!getValue('report-title')) return 'عنوان گزارش الزامی است.';
+        // اگر متن Quill پر شده باشد، همان عنوان گزارش خواهد شد
+        let quillText = '';
+        if (state.quill) {
+            quillText = state.quill.getText().trim();
+        }
+
+        if (!quillText && !getValue('report-title')) {
+            return 'ورود شرح/متن خبر الزامی است.';
+        }
         if (!getValue('report-occurrence-date')) return 'تاریخ وقوع الزامی است.';
         if (state.selectedCases.length === 0) return 'انتخاب حداقل یک کیس الزامی است.';
         if (state.selectedTopics.length === 0) return 'انتخاب حداقل یک موضوع الزامی است.';
 
-        if (state.quill) {
-            const html = state.quill.root.innerHTML.trim();
-            if (!html || html === '<p><br></p>') {
-                return 'شرح مفصل سند یا گزارش الزامی است.';
-            }
-        }
         return '';
     }
 
@@ -1569,6 +1572,110 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`اطلاعات نسخه ${versionData.version} با موفقیت روی فرم جایگذاری شد.`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    // === بارگذاری و پارس فایل Word ===
+    function initWordImporter() {
+        const zone = document.getElementById('word-import-zone');
+        const input = document.getElementById('word-import-input');
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', () => input.click());
+
+        ['dragenter', 'dragover'].forEach(ev =>
+            zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('border-indigo-600', 'bg-indigo-50'); }));
+        ['dragleave', 'drop'].forEach(ev =>
+            zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('border-indigo-600', 'bg-indigo-50'); }));
+
+        zone.addEventListener('drop', e => {
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleWordFile(f);
+        });
+        input.addEventListener('change', () => {
+            const f = input.files?.[0];
+            if (f) handleWordFile(f);
+            input.value = '';
+        });
+    }
+
+    async function handleWordFile(file) {
+        if (!file.name.toLowerCase().endsWith('.docx')) {
+            showError('فقط فایل .docx پشتیبانی می‌شود.');
+            return;
+        }
+        const statusEl = document.getElementById('word-import-status');
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-xs mt-2 font-bold text-indigo-600';
+        statusEl.textContent = 'در حال پردازش فایل Word...';
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            const html = result.value || '';
+            const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+            // ===== استخراج فیلدها =====
+            // ۱. عنوان: اولین heading یا اولین پاراگراف
+            const titleMatch = html.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/i);
+            const title = titleMatch
+                ? titleMatch[1].replace(/<[^>]+>/g, '').trim()
+                : (text.split(/[.؟!\n]/)[0] || '').substring(0, 120);
+
+            // ۲. چکیده: بخش بعد از «چکیده» تا «متن»
+            const abstract = extractBetween(text, /چکیده[\s\/:：-]*/, /متن (کامل|گزارش)/) || '';
+
+            // ۳. متن کامل: بعد از «متن کامل» تا پایان یا «ملاحظات»
+            const content = extractBetween(text, /متن کامل[^:]*[:：]?/, /ملاحظات|نظریات|پیوست/) ||
+                text.substring(text.indexOf(title) + title.length).trim();
+
+            // ۴. تاریخ وقوع: اولین تاریخ شمسی موجود
+            const dateMatch = text.match(/(1[34]\d{2}\/\d{1,2}\/\d{1,2})/);
+
+            // ۵. طبقه‌بندی
+            const classMatch = text.match(/(خیلی محرمانه|محرمانه|سری|به کلی سری|عادی)/);
+
+            // ۶. نوع خبر (محیط، منبع، آشکار ...)
+            const typeMatch = text.match(/(محیط|منبع|آشکار|رسمی|فنی|سایبری|راوی|خط)/);
+
+            // ۷. ارزیابی
+            const evalMatch = text.match(/(صحت دارد|احتمالا صحت دارد|در دست بررسی|صحت ندارد)/);
+
+            // ===== تزریق در فرم =====
+            if (title) setInputValue('report-title', title);
+            if (abstract) setInputValue('report-abstract', abstract);
+            if (content && state.quill) state.quill.clipboard.dangerouslyPasteHTML(html);
+            else if (content && state.quill) state.quill.setText(content);
+
+            if (dateMatch) {
+                const parts = dateMatch[1].split('/').map(n => parseInt(n, 10));
+                if (typeof persianDate !== 'undefined') {
+                    const pd = new persianDate([parts[0], parts[1], parts[2]]);
+                    $('#occurrence-date-picker').persianDatepicker('setDate', pd);
+                    // ست‌کردن فیلد هیدن
+                    document.getElementById('report-occurrence-date').value = pd.toDate().toISOString();
+                }
+            }
+            if (classMatch) setInputValue('report-classification', classMatch[1]);
+            if (typeMatch) setInputValue('report-news-type', typeMatch[1]);
+            if (evalMatch) setInputValue('report-evaluation', evalMatch[1]);
+
+            statusEl.className = 'text-xs mt-2 font-bold text-emerald-600';
+            statusEl.textContent = '✅ فایل با موفقیت خوانده و فیلدها پر شدند.';
+            showToast('فیلدهای گزارش از فایل Word بارگذاری شد.');
+        } catch (err) {
+            console.error('Word import error:', err);
+            statusEl.className = 'text-xs mt-2 font-bold text-rose-600';
+            statusEl.textContent = '❌ خطا در خواندن فایل Word.';
+            showError('خواندن فایل Word ممکن نشد.');
+        }
+    }
+
+    function extractBetween(text, startRe, endRe) {
+        const s = text.search(startRe);
+        if (s === -1) return '';
+        const after = text.substring(s).replace(startRe, '');
+        const e = after.search(endRe);
+        return (e === -1 ? after : after.substring(0, e)).trim();
+    }
 });
 
 

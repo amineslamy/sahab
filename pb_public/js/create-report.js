@@ -1579,9 +1579,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = (rawTitle || '').replace(/^[:\-–—\s]+/, '').trim();
             if (title) setInputValue('report-title', title);
 
-            // ===== چکیده =====
-            const rawAbstract = findLabeledValue(plainText, /چکیده/);
-            const abstract = (rawAbstract || '').replace(/^[:\/\-–—\s]+/, '').trim();
+            // ===== چکیده / خلاصه خبر (چندپاراگرافی) =====
+            const abstract = extractSectionByTitle(
+                plainText,
+                /چکیده\s*(?:\/|\\|،|,|-|–|—)?\s*(?:خلاصه\s*خبر)?\s*[:：]?/i,
+                /متن\s*کامل\s*(?:گزارش)?\s*[:：]?/i
+            );
             if (abstract) setInputValue('report-abstract', abstract);
 
             // ===== متن کامل گزارش (HTML دست‌نخورده با حفظ استایل و جدول) =====
@@ -1599,9 +1602,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (classificationVal) setInputValue('report-classification', classificationVal.trim());
 
             // ===== نوع خبر (با قاعده اصل ۲۵ → خط) =====
-            const rawType = metaMap['نوع خبر'] || metaMap['نوع خبر (محیط-۲۵-منبع-۲۲-آشکار)'] || '';
+            // جستجوی انعطاف‌پذیر: هر کلیدی که با «نوع خبر» شروع شود
+            const rawType = findMetaValueByPrefix(metaMap, 'نوع خبر')
+                || findMetaValueByPrefix(metaMap, 'نوع سند')
+                || '';
+            console.log('📋 [Word Import] rawType =', rawType, '| metaMap keys =', Object.keys(metaMap));
             const normalizedType = normalizeNewsType(rawType);
-            if (normalizedType) setInputValue('report-news-type', normalizedType);
+            if (normalizedType) {
+                setInputValue('report-news-type', normalizedType);
+            } else {
+                console.warn('⚠️ نوع خبر از فایل Word استخراج نشد. مقدار خام:', rawType);
+            }
 
             // ===== نگاشت موضوعات / کیس / نویسنده به ID =====
             const topicsRaw = metaMap['موضوع'] || metaMap['موضوعات'] || '';
@@ -1649,6 +1660,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         return out;
+    }
+
+    // استخراج یک بخش متنی بین «عنوان شروع» و «عنوان پایان» با حفظ پاراگراف‌ها
+    function extractSectionByTitle(fullText, startRe, endRe) {
+        // ایندکس شروع
+        const startMatch = fullText.match(startRe);
+        if (!startMatch) return '';
+        const startIdx = startMatch.index + startMatch[0].length;
+
+        // ایندکس پایان
+        const rest = fullText.substring(startIdx);
+        const endMatch = rest.match(endRe);
+        const endIdx = endMatch ? endMatch.index : rest.length;
+
+        // متن بین دو نقطه، حفظ خطوط جدید برای چندپاراگرافی
+        let body = rest.substring(0, endIdx);
+
+        // حذف کاراکترهای اضافه ابتدای متن (مثل : / - و فاصله)
+        body = body.replace(/^[\s:：\/\\\-–—،,]+/, '').trim();
+
+        // تبدیل خطوط جدید تکراری به تک‌خط جدید
+        body = body.replace(/\n{2,}/g, '\n').trim();
+
+        return body;
     }
 
     function findLabeledValue(text, labelRegex) {
@@ -1720,6 +1755,40 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.warn('خطا در تبدیل تاریخ:', e);
         }
+    }
+
+    // جستجوی کلید در metaMap با پیشوند (انعطاف‌پذیر در برابر فاصله و اعداد فارسی)
+    function findMetaValueByPrefix(metaMap, prefix) {
+        const normalize = s => (s || '')
+            .replace(/[يی]/g, 'ی')
+            .replace(/[كک]/g, 'ک')
+            .replace(/[\u200c\u200f\u200e]/g, '') // نیم‌فاصله و کاراکترهای کنترلی
+            .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+
+        const targetPrefix = normalize(prefix);
+
+        // ۱. اول تطابق دقیق
+        if (metaMap[prefix] !== undefined && metaMap[prefix] !== '') {
+            return metaMap[prefix];
+        }
+
+        // ۲. تطابق پس از نرمال‌سازی
+        for (const key of Object.keys(metaMap)) {
+            const normalizedKey = normalize(key);
+            if (normalizedKey === targetPrefix) return metaMap[key];
+        }
+
+        // ۳. تطابق با startsWith (کلید با این عبارت شروع شود)
+        for (const key of Object.keys(metaMap)) {
+            const normalizedKey = normalize(key);
+            if (normalizedKey.startsWith(targetPrefix)) return metaMap[key];
+        }
+
+        return '';
     }
 
     function applyTopicsFromText(rawValue) {

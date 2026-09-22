@@ -996,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    
+
 
     function renderExistingCoverPreview(fileUrl, fileName) {
         const previewContainer = $id('cover-preview-container');
@@ -1096,6 +1096,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!departmentId && !ALLOWED_ROLES_WITHOUT_DEPT.includes(userRole)) {
                 showError('برای کاربر فعلی دپارتمان تعیین نشده است.');
                 return;
+            }
+
+
+            // =====================================================
+            // 🧠 قبل از ذخیره گزارش، اگر فیلد کامنت پر است،
+            //    به‌صورت خودکار دکمه «ثبت دیدگاه» را هم فشار بده
+            // =====================================================
+            try {
+                const commentTextEl = $id('comment-text');
+                const pendingCommentText = commentTextEl ? commentTextEl.value.trim() : '';
+
+                // اگر فرم گزارش جدید است، ابتدا گزارش باید ثبت شود تا reportId داشته باشیم
+                // پس این کار را بعد از ثبت گزارش انجام می‌دهیم.
+                window.__pendingAutoComment = pendingCommentText ? {
+                    type: ($id('comment-type')?.value || 'ملاحظه').trim(),
+                    text: pendingCommentText
+                } : null;
+
+                if (window.__pendingAutoComment) {
+                    console.log('🧠 دیدگاه آماده برای ثبت خودکار بعد از ذخیره گزارش:', window.__pendingAutoComment);
+                }
+            } catch (e) {
+                console.warn('خطا در آماده‌سازی دیدگاه خودکار:', e);
             }
 
             // --- دریافت و اعتبارسنجی تاریخ وقوع ---
@@ -1233,6 +1256,41 @@ document.addEventListener('DOMContentLoaded', () => {
             // ذخیره کامنت‌های موقتی در صورت وجود
             if (typeof window.savePendingComments === 'function') {
                 await window.savePendingComments(savedReport.id);
+            }
+
+            // =====================================================
+            // 🧠 ثبت خودکار دیدگاه (اگر کاربر دکمه ثبت دیدگاه را نزده بود)
+            // =====================================================
+            if (window.__pendingAutoComment && savedReport?.id) {
+                try {
+                    const { type, text } = window.__pendingAutoComment;
+                    const commentTextEl = $id('comment-text');
+
+                    const existing = await state.pb.collection('comments').getList(1, 1, {
+                        filter: `report = "${savedReport.id}" && text = "${text.replace(/"/g, '\\"')}"`
+                    });
+
+                    if (existing.total === 0) {
+                        const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
+                        await state.pb.collection('comments').create({
+                            report: savedReport.id,
+                            author: currentUser.id,
+                            type: type,
+                            text: text,
+                            parent: null,
+                            version: 1
+                        });
+                        console.log('✅ دیدگاه به‌صورت خودکار ثبت شد.');
+                        showToast('دیدگاه کارشناسی نیز ثبت شد.');
+                    } else {
+                        console.log('ℹ️ دیدگاه قبلاً ثبت شده بود، از ثبت دوباره صرف‌نظر شد.');
+                    }
+
+                    if (commentTextEl) commentTextEl.value = '';
+                    window.__pendingAutoComment = null;
+                } catch (cErr) {
+                    console.error('خطا در ثبت خودکار دیدگاه:', cErr);
+                }
             }
 
             // به‌روزرسانی باکس متادیتا با اطلاعات تازه ثبت شده
@@ -1598,8 +1656,9 @@ document.addEventListener('DOMContentLoaded', () => {
             applyShamsiDateToPicker(modDate);
 
             // ===== طبقه‌بندی =====
-            const classificationVal = metaMap['طبقه بندی'] || metaMap['طبقه‌بندی'] || metaMap['طبقه'];
-            if (classificationVal) setInputValue('report-classification', classificationVal.trim());
+            const classificationVal = findMetaValueByPrefix(metaMap, 'طبقه');
+            if (classificationVal) setSelectValueWithWait('report-classification', classificationVal.trim());
+
 
             // ===== نوع خبر (با قاعده اصل ۲۵ → خط) =====
             // جستجوی انعطاف‌پذیر: هر کلیدی که با «نوع خبر» شروع شود
@@ -1609,7 +1668,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('📋 [Word Import] rawType =', rawType, '| metaMap keys =', Object.keys(metaMap));
             const normalizedType = normalizeNewsType(rawType);
             if (normalizedType) {
-                setInputValue('report-news-type', normalizedType);
+                setSelectValueWithWait('report-news-type', normalizedType);
             } else {
                 console.warn('⚠️ نوع خبر از فایل Word استخراج نشد. مقدار خام:', rawType);
             }
@@ -1622,6 +1681,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (topicsRaw) applyTopicsFromText(topicsRaw);
             if (casesRaw) applyCasesFromText(casesRaw);
             if (authorRaw) applyAuthorFromText(authorRaw);
+
+            // ===== پر کردن بخش «تحلیل و دیدگاه کارشناسی» از جدول ملاحظات =====
+            const commentData = extractCommentFromWord(html);
+            if (commentData) {
+                // اگر نوع خالی بود، پیش‌فرض «ملاحظه» را انتخاب کن
+                const finalType = (commentData.type && commentData.type.trim()) ? commentData.type.trim() : 'ملاحظه';
+                setSelectValueWithWait('comment-type', finalType);
+                if (commentData.text) {
+                    const commentTextarea = $id('comment-text');
+                    if (commentTextarea) commentTextarea.value = commentData.text;
+                }
+                console.log('💬 [Word Import] commentData =', commentData);
+            } else {
+                console.warn('⚠️ جدول ملاحظات/نظریات در فایل Word پیدا نشد یا خالی بود.');
+            }
+
 
             statusEl.className = 'text-xs mt-2 font-bold text-emerald-600';
             statusEl.textContent = '✅ فایل با موفقیت خوانده و فیلدها پر شدند.';
@@ -1870,6 +1945,88 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
+    // استخراج «نوع» و «متن ملاحظه یا نظریه» از جدول ملاحظات فایل Word
+    function extractCommentFromWord(html) {
+        // همه جدول‌های HTML را می‌گیریم
+        const tableRegex = /<table[\s\S]*?<\/table>/gi;
+        const tables = html.match(tableRegex) || [];
+
+        // جدولی که شامل کلمه «نوع» و «متن ملاحظه» یا «نظریه» است را پیدا می‌کنیم
+        for (const tableHtml of tables) {
+            const tableText = tableHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+            const hasType = /نوع/.test(tableText);
+            const hasText = /متن\s*ملاحظه|نظریه/.test(tableText);
+            if (!hasType || !hasText) continue;
+
+            // === استخراج مقدار «نوع» از سلول‌های جدول ===
+            let commentType = '';
+            let commentText = '';
+
+            // ۱. سلول‌های سطر اول را برای نوع استخراج کن
+            const rows = tableHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+            rows.forEach(row => {
+                const cells = [];
+                const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+                let m;
+                while ((m = cellRegex.exec(row)) !== null) {
+                    const txt = m[1]
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/&nbsp;/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    cells.push(txt);
+                }
+
+                // اگر این سطر شامل «نوع» بود، سلول بعدی مقدار نوع است
+                for (let i = 0; i < cells.length; i++) {
+                    const cellNorm = cells[i].replace(/[:：]/g, '').trim();
+                    if (/^نوع$/.test(cellNorm) && cells[i + 1]) {
+                        commentType = cells[i + 1].replace(/[:：]/g, '').trim();
+                    }
+                }
+            });
+
+            // === استخراج متن ملاحظه (ممکن است بین تگ‌های مختلف باشد) ===
+            // الگوی «متن ملاحظه یا نظریه:» تا قبل از بسته شدن جدول
+            const labelRe = /متن\s*ملاحظه\s*(?:یا\s*نظریه)?\s*[:：]?/i;
+            const textOnly = tableHtml.replace(/<[^>]+>/g, m => ' '.repeat(m.length));
+            const labelMatch = textOnly.match(labelRe);
+
+            if (labelMatch) {
+                const startIdx = labelMatch.index + labelMatch[0].length;
+                // برش HTML اصلی از اینجا تا انتهای جدول
+                let afterHtml = tableHtml.substring(startIdx);
+
+                // تبدیل به متن ساده برای استخراج
+                let afterText = afterHtml
+                    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+                    .replace(/<[^>]+>/g, '')
+                    .replace(/&nbsp;/g, ' ')
+                    .trim();
+
+                // پاکسازی ابتدای متن از کاراکترهای اضافی
+                afterText = afterText.replace(/^[\s:：\/\\\-–—،,]+/, '').trim();
+
+                // حذف خطوط نقطه‌چین و خطوط خالی
+                afterText = afterText
+                    .split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !/^[.…•·\-_]+$/.test(l))
+                    .join('\n')
+                    .trim();
+
+                commentText = afterText;
+            }
+
+            if (commentType || commentText) {
+                return { type: commentType, text: commentText };
+            }
+        }
+        return null;
+    }
+
     function formatBytes(bytes) {
         if (!bytes) return '۰ بایت';
 
@@ -1877,6 +2034,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mb >= 1024) return `${(mb / 1024).toFixed(2)} گیگابایت`;
         return `${mb.toFixed(2)} مگابایت`;
     }
+
+
+    // مقداردهی به select با اطمینان از وجود گزینه (اگر نبود، اضافه می‌شود)
+    function setSelectValueWithWait(selectIdOrName, value) {
+        const selectEl = $id(selectIdOrName) || document.querySelector(`select[name="${selectIdOrName}"]`);
+        if (!selectEl) {
+            console.warn(`select برای ${selectIdOrName} پیدا نشد.`);
+            return;
+        }
+
+        // اگر گزینه وجود ندارد، اضافه‌اش کن
+        const exists = Array.from(selectEl.options).some(o => o.value === value);
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = value;
+            selectEl.appendChild(opt);
+        }
+
+        selectEl.value = value;
+
+        // اگر مقدار واقعاً ست نشد، با تاخیر کوتاه دوباره تلاش کن
+        if (selectEl.value !== value) {
+            setTimeout(() => { selectEl.value = value; }, 100);
+        }
+    }
+
 
     // تابع بازیابی مقادیر نسخه انتخابی روی فرم
     window.restoreReportVersionToForm = function (versionData) {

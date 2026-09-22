@@ -1516,6 +1516,273 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ============================================================
+    // 📥 وارد کردن فایل Word (Drag & Drop)
+    // ============================================================
+    function initWordImporter() {
+        const zone = document.getElementById('word-import-zone');
+        const input = document.getElementById('word-import-input');
+        if (!zone || !input) return;
+
+        zone.addEventListener('click', () => input.click());
+
+        ['dragenter', 'dragover'].forEach(ev =>
+            zone.addEventListener(ev, e => {
+                e.preventDefault();
+                zone.classList.add('border-indigo-600', 'bg-indigo-50');
+            })
+        );
+        ['dragleave', 'drop'].forEach(ev =>
+            zone.addEventListener(ev, e => {
+                e.preventDefault();
+                zone.classList.remove('border-indigo-600', 'bg-indigo-50');
+            })
+        );
+
+        zone.addEventListener('drop', e => {
+            const f = e.dataTransfer.files?.[0];
+            if (f) handleWordFile(f);
+        });
+        input.addEventListener('change', () => {
+            const f = input.files?.[0];
+            if (f) handleWordFile(f);
+            input.value = '';
+        });
+    }
+
+    async function handleWordFile(file) {
+        if (!file.name.toLowerCase().endsWith('.docx')) {
+            showError('فقط فایل .docx پشتیبانی می‌شود.');
+            return;
+        }
+        const statusEl = document.getElementById('word-import-status');
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'text-xs mt-2 font-bold text-indigo-600';
+        statusEl.textContent = 'در حال پردازش فایل Word...';
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
+
+            // ۱. جدول متادیتا
+            const metaMap = extractMetadataTable(html);
+
+            // ۲. متن ساده برای بخش‌های پاراگرافی (عنوان، چکیده، متن کامل)
+            const plainText = html
+                .replace(/<\/(p|h[1-6]|li|tr)>/gi, '\n')
+                .replace(/<[^>]+>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .trim();
+
+            // ===== عنوان =====
+            const rawTitle = findLabeledValue(plainText, /عنوان\s*خبر/);
+            const title = (rawTitle || '').replace(/^[:\-–—\s]+/, '').trim();
+            if (title) setInputValue('report-title', title);
+
+            // ===== چکیده =====
+            const rawAbstract = findLabeledValue(plainText, /چکیده/);
+            const abstract = (rawAbstract || '').replace(/^[:\/\-–—\s]+/, '').trim();
+            if (abstract) setInputValue('report-abstract', abstract);
+
+            // ===== متن کامل گزارش (HTML دست‌نخورده با حفظ استایل و جدول) =====
+            const contentHtml = extractFullReportSectionHtml(html);
+            if (contentHtml && state.quill) {
+                state.quill.clipboard.dangerouslyPasteHTML(contentHtml);
+            }
+
+            // ===== تاریخ وقوع: از تاریخ آخرین ویرایش فایل Word =====
+            const modDate = new Date(file.lastModified);
+            applyShamsiDateToPicker(modDate);
+
+            // ===== طبقه‌بندی =====
+            const classificationVal = metaMap['طبقه بندی'] || metaMap['طبقه‌بندی'] || metaMap['طبقه'];
+            if (classificationVal) setInputValue('report-classification', classificationVal.trim());
+
+            // ===== نوع خبر (با قاعده اصل ۲۵ → خط) =====
+            const rawType = metaMap['نوع خبر'] || metaMap['نوع خبر (محیط-۲۵-منبع-۲۲-آشکار)'] || '';
+            const normalizedType = normalizeNewsType(rawType);
+            if (normalizedType) setInputValue('report-news-type', normalizedType);
+
+            // ===== نگاشت موضوعات / کیس / نویسنده به ID =====
+            const topicsRaw = metaMap['موضوع'] || metaMap['موضوعات'] || '';
+            const casesRaw = metaMap['کیس'] || metaMap['کیس ها'] || metaMap['کیس‌ها'] || '';
+            const authorRaw = metaMap['نویسنده'] || metaMap['نویسنده گزارش'] || '';
+
+            if (topicsRaw) applyTopicsFromText(topicsRaw);
+            if (casesRaw) applyCasesFromText(casesRaw);
+            if (authorRaw) applyAuthorFromText(authorRaw);
+
+            statusEl.className = 'text-xs mt-2 font-bold text-emerald-600';
+            statusEl.textContent = '✅ فایل با موفقیت خوانده و فیلدها پر شدند.';
+            showToast('فیلدهای گزارش از فایل Word بارگذاری شد.');
+        } catch (err) {
+            console.error('Word import error:', err);
+            statusEl.className = 'text-xs mt-2 font-bold text-rose-600';
+            statusEl.textContent = '❌ خطا در خواندن فایل Word.';
+            showError('خواندن فایل Word ممکن نشد.');
+        }
+    }
+
+    // ============ استخراج جدول متادیتا از HTML ============
+    function extractMetadataTable(html) {
+        const out = {};
+        const tableMatch = html.match(/<table[\s\S]*?<\/table>/i);
+        if (!tableMatch) return out;
+        const tableHtml = tableMatch[0];
+
+        const rows = tableHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+        rows.forEach(row => {
+            const cells = [];
+            const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+            let m;
+            while ((m = cellRegex.exec(row)) !== null) {
+                const txt = m[1].replace(/<[^>]+>/g, ' ')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                cells.push(txt);
+            }
+            for (let i = 0; i + 1 < cells.length; i += 2) {
+                const key = (cells[i] || '').replace(/[:：]/g, '').trim();
+                const val = (cells[i + 1] || '').trim();
+                if (key) out[key] = val;
+            }
+        });
+        return out;
+    }
+
+    function findLabeledValue(text, labelRegex) {
+        const re = new RegExp(labelRegex.source + '\\s*[:：\\-–—]?\\s*([^\\n]+)', 'i');
+        const m = text.match(re);
+        return m ? m[1].trim() : '';
+    }
+
+    // استخراج HTML بخش «متن کامل گزارش» با حفظ ساختار جدول و استایل
+    function extractFullReportSectionHtml(html) {
+        // پیدا کردن پوزیشن «متن کامل گزارش» در HTML به‌صورت متن ساده
+        const lowerHtml = html;
+        const startRe = /متن\s*کامل\s*(گزارش)?\s*[:：]?/i;
+
+        // چون ممکن است کلمه بین تگ‌ها باشد، جستجو را روی نسخه‌ی متنی انجام می‌دهیم
+        // و از ایندکس آن برای برش HTML استفاده می‌کنیم.
+        const textOnly = html.replace(/<[^>]+>/g, m => ' '.repeat(m.length));
+        const m = textOnly.match(startRe);
+        if (!m) return '';
+
+        const startIdx = m.index + m[0].length;
+
+        // پیدا کردن پایان بخش
+        const endRe = /(ملاحظات|نظریات|پیوست\s*های|پیوست‌های|پیوست)/i;
+        const restText = textOnly.substring(startIdx);
+        const endM = restText.match(endRe);
+        const endIdx = endM ? startIdx + endM.index : html.length;
+
+        // برش HTML اصلی
+        let sectionHtml = html.substring(startIdx, endIdx).trim();
+
+        // اگر ابتدای HTML با تگ نیمه‌باز شروع شد، تا اولین تگ کامل جلو برو
+        const firstTagIdx = sectionHtml.indexOf('<');
+        if (firstTagIdx > 0) sectionHtml = sectionHtml.substring(firstTagIdx);
+
+        return sectionHtml;
+    }
+
+    function normalizeNewsType(raw) {
+        const v = (raw || '').toString().trim();
+        if (!v) return '';
+        if (/^(اصل\s*)?(۲۵|25)$/i.test(v)) return 'خط';
+        if (/(اصل\s*)?(۲۵|25)(?!\d)/.test(v) && v.length <= 20) return 'خط';
+        return v;
+    }
+
+    // 📌 تاریخ آخرین ویرایش فایل Word → دیت‌پیکر شمسی
+    function applyShamsiDateToPicker(dateObj) {
+        try {
+            if (typeof persianDate === 'undefined') {
+                console.warn('persianDate در دسترس نیست.');
+                return;
+            }
+            const pd = new persianDate(dateObj);
+            $('#occurrence-date-picker').persianDatepicker('setDate', pd);
+
+            const hidden = document.getElementById('report-occurrence-date');
+            if (hidden) hidden.value = dateObj.toISOString();
+
+            // نمایش تاریخ به فرمت YYYY/MM/DD در ورودی متنی
+            pd.toLocale('en');
+            const formatted = `${pd.year()}/${String(pd.month()).padStart(2, '0')}/${String(pd.date()).padStart(2, '0')}`;
+            const pickerEl = document.getElementById('occurrence-date-picker');
+            if (pickerEl) pickerEl.value = formatted;
+
+            // به‌روزرسانی متادیتای هدر
+            const metaEl = document.getElementById('meta-occurrence-date');
+            if (metaEl) metaEl.textContent = dateObj.toLocaleDateString('fa-IR');
+        } catch (e) {
+            console.warn('خطا در تبدیل تاریخ:', e);
+        }
+    }
+
+    function applyTopicsFromText(rawValue) {
+        const tokens = splitDelimited(rawValue);
+        if (!tokens.length || !Array.isArray(state.allTopics)) return;
+
+        state.selectedTopics = [];
+        tokens.forEach(tok => {
+            const target = tok.toLowerCase();
+            const found = state.allTopics.find(t =>
+                (t.title || t.name || '').toLowerCase() === target ||
+                (t.title || t.name || '').toLowerCase().includes(target)
+            );
+            if (found && !state.selectedTopics.includes(found.id)) {
+                state.selectedTopics.push(found.id);
+            }
+        });
+        renderTopicsTags(state.allTopics);
+        renderTopicsList(state.allTopics);
+    }
+
+    function applyCasesFromText(rawValue) {
+        const tokens = splitDelimited(rawValue);
+        if (!tokens.length || !Array.isArray(state.allRawCases)) return;
+
+        state.selectedCases = [];
+        tokens.forEach(tok => {
+            const target = tok.toLowerCase();
+            const found = state.allRawCases.find(c =>
+                (c.title || '').toLowerCase() === target ||
+                (c.title || '').toLowerCase().includes(target)
+            );
+            if (found && !state.selectedCases.includes(found.id)) {
+                state.selectedCases.push(found.id);
+            }
+        });
+        renderCasesTags(state.allOrderedCases, state.allRawCases);
+        renderCasesList(state.allOrderedCases, state.allRawCases);
+    }
+
+    function applyAuthorFromText(rawValue) {
+        const tokens = splitDelimited(rawValue);
+        if (!tokens.length || !Array.isArray(state.allAuthorsList)) return;
+
+        const target = tokens[0].toLowerCase();
+        const found = state.allAuthorsList.find(u =>
+            (u.name || u.username || '').toLowerCase() === target ||
+            (u.name || u.username || '').toLowerCase().includes(target)
+        );
+        if (found) {
+            state.selectedAuthor = found;
+            renderAuthorTag();
+            renderAuthorList(groupUsersByDepartment(state.allAuthorsList), state.allAuthorsList);
+        }
+    }
+
+    function splitDelimited(v) {
+        return (v || '').toString()
+            .split(/[،,\n؛;]+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+    }
+
     // تابع کمکی برای پر کردن گزینه‌ها
     function populateSelectOptions(fieldName, values) {
         const selectEl = document.querySelector(`select[name="${fieldName}"]`);
@@ -1573,109 +1840,159 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // === بارگذاری و پارس فایل Word ===
-    function initWordImporter() {
-        const zone = document.getElementById('word-import-zone');
-        const input = document.getElementById('word-import-input');
-        if (!zone || !input) return;
-
-        zone.addEventListener('click', () => input.click());
-
-        ['dragenter', 'dragover'].forEach(ev =>
-            zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('border-indigo-600', 'bg-indigo-50'); }));
-        ['dragleave', 'drop'].forEach(ev =>
-            zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('border-indigo-600', 'bg-indigo-50'); }));
-
-        zone.addEventListener('drop', e => {
-            const f = e.dataTransfer.files?.[0];
-            if (f) handleWordFile(f);
-        });
-        input.addEventListener('change', () => {
-            const f = input.files?.[0];
-            if (f) handleWordFile(f);
-            input.value = '';
-        });
-    }
-
-    async function handleWordFile(file) {
-        if (!file.name.toLowerCase().endsWith('.docx')) {
-            showError('فقط فایل .docx پشتیبانی می‌شود.');
-            return;
-        }
-        const statusEl = document.getElementById('word-import-status');
-        statusEl.classList.remove('hidden');
-        statusEl.className = 'text-xs mt-2 font-bold text-indigo-600';
-        statusEl.textContent = 'در حال پردازش فایل Word...';
-
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.convertToHtml({ arrayBuffer });
-            const html = result.value || '';
-            const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-
-            // ===== استخراج فیلدها =====
-            // ۱. عنوان: اولین heading یا اولین پاراگراف
-            const titleMatch = html.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/i);
-            const title = titleMatch
-                ? titleMatch[1].replace(/<[^>]+>/g, '').trim()
-                : (text.split(/[.؟!\n]/)[0] || '').substring(0, 120);
-
-            // ۲. چکیده: بخش بعد از «چکیده» تا «متن»
-            const abstract = extractBetween(text, /چکیده[\s\/:：-]*/, /متن (کامل|گزارش)/) || '';
-
-            // ۳. متن کامل: بعد از «متن کامل» تا پایان یا «ملاحظات»
-            const content = extractBetween(text, /متن کامل[^:]*[:：]?/, /ملاحظات|نظریات|پیوست/) ||
-                text.substring(text.indexOf(title) + title.length).trim();
-
-            // ۴. تاریخ وقوع: اولین تاریخ شمسی موجود
-            const dateMatch = text.match(/(1[34]\d{2}\/\d{1,2}\/\d{1,2})/);
-
-            // ۵. طبقه‌بندی
-            const classMatch = text.match(/(خیلی محرمانه|محرمانه|سری|به کلی سری|عادی)/);
-
-            // ۶. نوع خبر (محیط، منبع، آشکار ...)
-            const typeMatch = text.match(/(محیط|منبع|آشکار|رسمی|فنی|سایبری|راوی|خط)/);
-
-            // ۷. ارزیابی
-            const evalMatch = text.match(/(صحت دارد|احتمالا صحت دارد|در دست بررسی|صحت ندارد)/);
-
-            // ===== تزریق در فرم =====
-            if (title) setInputValue('report-title', title);
-            if (abstract) setInputValue('report-abstract', abstract);
-            if (content && state.quill) state.quill.clipboard.dangerouslyPasteHTML(html);
-            else if (content && state.quill) state.quill.setText(content);
-
-            if (dateMatch) {
-                const parts = dateMatch[1].split('/').map(n => parseInt(n, 10));
-                if (typeof persianDate !== 'undefined') {
-                    const pd = new persianDate([parts[0], parts[1], parts[2]]);
-                    $('#occurrence-date-picker').persianDatepicker('setDate', pd);
-                    // ست‌کردن فیلد هیدن
-                    document.getElementById('report-occurrence-date').value = pd.toDate().toISOString();
-                }
-            }
-            if (classMatch) setInputValue('report-classification', classMatch[1]);
-            if (typeMatch) setInputValue('report-news-type', typeMatch[1]);
-            if (evalMatch) setInputValue('report-evaluation', evalMatch[1]);
-
-            statusEl.className = 'text-xs mt-2 font-bold text-emerald-600';
-            statusEl.textContent = '✅ فایل با موفقیت خوانده و فیلدها پر شدند.';
-            showToast('فیلدهای گزارش از فایل Word بارگذاری شد.');
-        } catch (err) {
-            console.error('Word import error:', err);
-            statusEl.className = 'text-xs mt-2 font-bold text-rose-600';
-            statusEl.textContent = '❌ خطا در خواندن فایل Word.';
-            showError('خواندن فایل Word ممکن نشد.');
-        }
-    }
-
-    function extractBetween(text, startRe, endRe) {
-        const s = text.search(startRe);
-        if (s === -1) return '';
-        const after = text.substring(s).replace(startRe, '');
-        const e = after.search(endRe);
-        return (e === -1 ? after : after.substring(0, e)).trim();
-    }
 });
 
 
+// ============ استخراج جدول متادیتا از HTML ============
+function extractMetadataTable(html) {
+    const out = {};
+    // اولین جدول را برمی‌داریم (جدول متادیتای ابتدای فایل)
+    const tableMatch = html.match(/<table[\s\S]*?<\/table>/i);
+    if (!tableMatch) return out;
+    const tableHtml = tableMatch[0];
+
+    // هر ردیف
+    const rowRegex = /<tr[\s\S]*?<\/tr>/gi;
+    const rows = tableHtml.match(rowRegex) || [];
+    rows.forEach(row => {
+        const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+        const cells = [];
+        let m;
+        while ((m = cellRegex.exec(row)) !== null) {
+            // تبدیل به متن خام
+            const txt = m[1].replace(/<[^>]+>/g, ' ')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            cells.push(txt);
+        }
+        // جفت‌های کلید-مقدار: سلول‌های 0,2,4,... کلید و 1,3,5,... مقدار
+        for (let i = 0; i + 1 < cells.length; i += 2) {
+            const key = (cells[i] || '').replace(/[:：]/g, '').trim();
+            const val = (cells[i + 1] || '').trim();
+            if (key) out[key] = val;
+        }
+    });
+    return out;
+}
+
+// پیدا کردن مقدار بعد از یک برچسب در متن: «عنوان خبر: ...»
+function findLabeledValue(text, labelRegex) {
+    const re = new RegExp(labelRegex.source + '\\s*[:：\\-–—]?\\s*([^\\n]+)', 'i');
+    const m = text.match(re);
+    return m ? m[1].trim() : '';
+}
+
+// استخراج بخش «متن کامل گزارش» تا «ملاحظات» یا «پیوست»
+function extractFullReportSection(text) {
+    const startRe = /متن\s*کامل\s*(گزارش)?\s*[:：]?/i;
+    const startM = text.search(startRe);
+    if (startM === -1) return '';
+    let body = text.substring(startM).replace(startRe, '').trim();
+    // پایان بخش‌ها
+    const endM = body.search(/(ملاحظات|نظریات|پیوست\s*های|پیوست‌های|پیوست)/i);
+    if (endM !== -1) body = body.substring(0, endM);
+    return body.trim();
+}
+
+// نرمال‌سازی نوع خبر: اصل ۲۵ → خط
+function normalizeNewsType(raw) {
+    const v = (raw || '').toString().trim();
+    if (!v) return '';
+    // اصل 25 / اصل25 / 25 / اصل ۲۵ / ۲۵
+    if (/^(اصل\s*)?(۲۵|25)$/i.test(v)) return 'خط';
+    // اگر داخل متن ترکیبی بود، همین بررسی را روی هر بخش اعمال کن
+    if (/(اصل\s*)?(۲۵|25)(?!\d)/.test(v) && v.length <= 20) return 'خط';
+    return v;
+}
+
+// اعمال تاریخ شمسی روی دیت‌پیکر
+function applyShamsiDateToPicker(dateStr) {
+    // نرمال‌سازی اعداد فارسی به لاتین
+    const normalized = dateStr.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    const m = normalized.match(/(\d{2,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+    if (!m) return;
+    let [_, y, mo, d] = m;
+    if (y.length === 2) y = '14' + y; // ۱۴۰۵ دو رقمی → 1405
+    const yi = parseInt(y, 10), mi = parseInt(mo, 10), di = parseInt(d, 10);
+    try {
+        const pd = new persianDate([yi, mi, di]);
+        $('#occurrence-date-picker').persianDatepicker('setDate', pd);
+        document.getElementById('report-occurrence-date').value = pd.toDate().toISOString();
+    } catch (e) {
+        console.warn('خطا در تبدیل تاریخ شمسی:', e);
+    }
+}
+
+// پیدا کردن تطبیق در لیست موضوعات
+function applyTopicsFromText(rawValue) {
+    const tokens = splitDelimited(rawValue);
+    if (!tokens.length || !Array.isArray(state.allTopics)) return;
+
+    state.selectedTopics = [];
+    tokens.forEach(tok => {
+        const target = tok.toLowerCase();
+        const found = state.allTopics.find(t =>
+            (t.title || t.name || '').toLowerCase() === target ||
+            (t.title || t.name || '').toLowerCase().includes(target)
+        );
+        if (found && !state.selectedTopics.includes(found.id)) {
+            state.selectedTopics.push(found.id);
+        }
+    });
+    renderTopicsTags(state.allTopics);
+    renderTopicsList(state.allTopics);
+}
+
+// پیدا کردن تطبیق در لیست کیس‌ها
+function applyCasesFromText(rawValue) {
+    const tokens = splitDelimited(rawValue);
+    if (!tokens.length || !Array.isArray(state.allRawCases)) return;
+
+    state.selectedCases = [];
+    tokens.forEach(tok => {
+        const target = tok.toLowerCase();
+        const found = state.allRawCases.find(c =>
+            (c.title || '').toLowerCase() === target ||
+            (c.title || '').toLowerCase().includes(target)
+        );
+        if (found && !state.selectedCases.includes(found.id)) {
+            state.selectedCases.push(found.id);
+        }
+    });
+    renderCasesTags(state.allOrderedCases, state.allRawCases);
+    renderCasesList(state.allOrderedCases, state.allRawCases);
+}
+
+// پیدا کردن تطبیق در لیست کارشناسان
+function applyAuthorFromText(rawValue) {
+    const tokens = splitDelimited(rawValue);
+    if (!tokens.length || !Array.isArray(state.allAuthorsList)) return;
+
+    const target = tokens[0].toLowerCase();
+    const found = state.allAuthorsList.find(u =>
+        (u.name || u.username || '').toLowerCase() === target ||
+        (u.name || u.username || '').toLowerCase().includes(target)
+    );
+    if (found) {
+        state.selectedAuthor = found;
+        renderAuthorTag();
+        renderAuthorList(groupUsersByDepartment(state.allAuthorsList), state.allAuthorsList);
+    }
+}
+
+// جدا کردن مقادیر با ویرگول فارسی/لاتین، خط جدید و ...
+function splitDelimited(v) {
+    return (v || '').toString()
+        .split(/[،,\n؛;]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+// escape HTML
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}

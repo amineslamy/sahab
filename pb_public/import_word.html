@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <title>ورود فایل ورد گزارش - سامانه مدیریت اخبار سحاب</title>
+
+    <!-- ۱. استایل هدر و Tailwind محلی -->
+    <link rel="stylesheet" href="css/header.css">
+    <script src="js/tailwindcss.js"></script>
+
+    <!-- ۲. کتابخانه‌های آفلاین -->
+    <script src="js/sweetalert2.all.min.js"></script>
+    <script src="js/mammoth.browser.min.js"></script>
+
+    <!-- ۳. تعریف فونت وزیرمتن به‌صورت ۱۰۰٪ آفلاین -->
+    <style>
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Black.woff2') format('woff2');
+            font-weight: 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        html {
+            font-size: 17px;
+        }
+
+        * {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif !important;
+        }
+
+        .gradient-title {
+            background: linear-gradient(135deg, #c506b5 0%, #06a5ad 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .drop-zone {
+            border: 2px dashed #6366f1;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .drop-zone.dragover {
+            background-color: #eef2ff;
+            border-color: #4f46e5;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 text-sm min-h-screen flex flex-col">
+
+    <!-- ۱. هدر سراسری سامانه سحاب -->
+    <div id="app-header"></div>
+
+    <!-- کانتینر محتوای اصلی -->
+    <main class="w-full max-w-[1200px] mx-auto p-4 sm:p-6 space-y-6">
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-6 space-y-6">
+            <div class="border-b border-slate-100 pb-4 flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h3 class="font-black text-lg gradient-title">ورود فایل ورد گزارش (Import Word)</h3>
+                    <p class="text-xs text-slate-500 mt-1">فایل ورد خود را انتخاب یا در کادر زیر رها کنید تا اطلاعات آن
+                        به‌صورت خودکار استخراج شود.</p>
+                </div>
+                <a href="index.html"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition">
+                    بازگشت به داشبورد
+                </a>
+            </div>
+
+            <!-- ناحیه دریافت فایل Drag & Drop -->
+            <div id="dropZone"
+                class="drop-zone bg-slate-50 p-8 rounded-2xl text-center cursor-pointer hover:bg-slate-100/80">
+                <div class="space-y-2">
+                    <span class="text-3xl block">📄</span>
+                    <strong class="text-slate-700 font-black text-sm block">فایل ورد (DOCX) را کشیده و اینجا رها
+                        کنید</strong>
+                    <span class="text-xs text-slate-500 block">یا برای انتخاب فایل از سیستم کلیک کنید</span>
+                </div>
+                <input type="file" id="fileInput" accept=".docx" class="hidden">
+            </div>
+
+            <!-- فرم ثبت اطلاعات -->
+            <form id="reportForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+                <div class="md:col-span-2">
+                    <label class="block text-slate-700 mb-1">عنوان خبر:</label>
+                    <input type="text" id="title"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">طبقه‌بندی:</label>
+                    <input type="text" id="classification"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">تاریخ وقوع:</label>
+                    <input type="text" id="occurrence_date"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">موضوع:</label>
+                    <input type="text" id="topics"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">تاریخ ثبت:</label>
+                    <input type="text" id="created_date"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">کیس:</label>
+                    <input type="text" id="cases"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">نویسنده:</label>
+                    <input type="text" id="author"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">اداره:</label>
+                    <input type="text" id="department"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 mb-1">نوع خبر:</label>
+                    <input type="text" id="news_type"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white">
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-slate-600 mb-1">چکیده / خلاصه خبر:</label>
+                    <textarea id="abstract" rows="3"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white"></textarea>
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-slate-600 mb-1">متن کامل گزارش (HTML):</label>
+                    <textarea id="content" rows="8"
+                        class="w-full border border-slate-300 rounded-xl p-2.5 outline-none focus:border-indigo-600 bg-white font-mono text-[11px]"></textarea>
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- اسکریپت‌های سیستم -->
+    <script src="js/jquery-3.6.4.min.js"></script>
+    <script src="js/header.js"></script>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                processDocxFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processDocxFile(e.target.files[0]);
+            }
+        });
+
+        function processDocxFile(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const buffer = e.target.result;
+
+                mammoth.convertToHtml({ arrayBuffer: buffer })
+                    .then(function (result) {
+                        parseTemplate0Html(result.value);
+                    })
+                    .catch(function (err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطا در خواندن فایل',
+                            text: err.message,
+                            confirmButtonText: 'تایید'
+                        });
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseTemplate0Html(htmlString) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+
+            // ۱. استخراج عنوان خبر
+            let title = "";
+            const bodyText = doc.body.innerText || "";
+            const titleMatch = bodyText.match(/عنوان خبر:\s*([^\n]+)/);
+            if (titleMatch && titleMatch[1]) {
+                title = titleMatch[1].trim();
+            }
+
+            // ۲. استخراج مقادیر داخل جدول
+            let classification = "", occurrence_date = "", topics = "", created_date = "", cases = "", author = "", department = "", rawNewsType = "";
+
+            const cells = Array.from(doc.querySelectorAll('td')).map(td => td.innerText.trim());
+
+            for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                if (cell.includes("طبقه بندی") && cells[i + 1]) classification = cells[i + 1];
+                if (cell.includes("تاریخ وقوع") && cells[i + 1]) occurrence_date = cells[i + 1];
+                if (cell.includes("موضوع") && cells[i + 1]) topics = cells[i + 1];
+                if (cell.includes("تاریخ ثبت") && cells[i + 1]) created_date = cells[i + 1];
+                if (cell.includes("کیس") && cells[i + 1]) cases = cells[i + 1];
+                if (cell.includes("نویسنده") && cells[i + 1]) author = cells[i + 1];
+                if (cell.includes("اداره") && cells[i + 1]) department = cells[i + 1];
+                if (cell.includes("نوع خبر") && cells[i + 1]) rawNewsType = cells[i + 1];
+            }
+
+            // ۳. اعمال منطق شرطی برای فیلد news_type
+            let finalNewsType = rawNewsType.trim();
+            const cleanNewsType = finalNewsType.replace(/\s+/g, '');
+
+            if (cleanNewsType === "25" || cleanNewsType === "اصل25") {
+                finalNewsType = "خط";
+            }
+
+            // ۴. استخراج چکیده / خلاصه خبر
+            let abstractText = "";
+            const abstractMatch = bodyText.match(/چکیده \/ خلاصه خبر:\s*([\s\S]*?)(?=متن کامل گزارش:|$)/);
+            if (abstractMatch && abstractMatch[1]) {
+                abstractText = abstractMatch[1].trim();
+            }
+
+            // ۵. استخراج متن کامل گزارش به صورت HTML
+            let contentHtml = "";
+            const htmlBody = doc.body.innerHTML;
+            const startKeyword = "متن کامل گزارش:";
+            const endKeyword = "💬 ملاحظات، نظریات:";
+
+            const startIndex = htmlBody.indexOf(startKeyword);
+            const endIndex = htmlBody.indexOf(endKeyword);
+
+            if (startIndex !== -1) {
+                if (endIndex !== -1) {
+                    contentHtml = htmlBody.substring(startIndex + startKeyword.length, endIndex);
+                } else {
+                    contentHtml = htmlBody.substring(startIndex + startKeyword.length);
+                }
+            }
+
+            // ۶. مقداردهی به فرم
+            document.getElementById('title').value = title;
+            document.getElementById('classification').value = classification;
+            document.getElementById('occurrence_date').value = occurrence_date;
+            document.getElementById('topics').value = topics;
+            document.getElementById('created_date').value = created_date;
+            document.getElementById('cases').value = cases;
+            document.getElementById('author').value = author;
+            document.getElementById('department').value = department;
+            document.getElementById('news_type').value = finalNewsType;
+            document.getElementById('abstract').value = abstractText;
+
+            document.getElementById('content').value = contentHtml.trim();
+            if (window.quill) {
+                window.quill.clipboard.dangerouslyPasteHTML(contentHtml.trim());
+            }
+
+            // نمایش پیام موفقیت با SweetAlert2
+            Swal.fire({
+                icon: 'success',
+                title: 'عملیات موفق',
+                text: 'اطلاعات فایل ورد با موفقیت استخراج و در فرم قرار گرفت.',
+                confirmButtonText: 'متوجه شدم'
+            });
+        }
+    </script>
+
+</body>
+
+</html>

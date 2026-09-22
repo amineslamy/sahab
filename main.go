@@ -28,63 +28,63 @@ type FolderRule struct {
 }
 
 var folderRules = map[string]FolderRule{
-	"ابطحی":                {"روحانیون سیاسی", "ابطحی", "70", "عمار", "اصل25"},
-	"اسلو":                 {"موسسات", "اسلو", "60", "مهدی بصیر", "اصل25"},
-	"امیری فر":             {"روحانیون سیاسی", "امیری فر", "70", "بهشتی", "اصل25"},
-	"ایازی":                {"روحانیون سیاسی", "ایازی", "70", "بهشتی", "اصل25"},
-	"ایرج":                 {"روحانیت شاخص", "ایرج", "60", "مصطفی غروی", "اصل25"},
-	"آرش":                  {"موسسات", "آرش", "60", "مهدی بصیر", "اصل25"},
-	"بهار":                 {"روحانیون سیاسی", "بهار", "70", "بهشتی", "اصل25"},
+	"ابطحی":                {"روحانیون سیاسی", "ابطحی", "70", "عمار", "خط"},
+	"اسلو":                 {"موسسات", "اسلو", "60", "مهدی بصیر", "خط"},
+	"امیری فر":             {"روحانیون سیاسی", "امیری فر", "70", "بهشتی", "خط"},
+	"ایازی":                {"روحانیون سیاسی", "ایازی", "70", "بهشتی", "خط"},
+	"ایرج":                 {"روحانیت شاخص", "ایرج", "60", "مصطفی غروی", "خط"},
+	"آرش":                  {"موسسات", "آرش", "60", "مهدی بصیر", "خط"},
+	"بهار":                 {"روحانیون سیاسی", "بهار", "70", "بهشتی", "خط"},
 	"پژمان":                {"روحانیون سیاسی", "پژمان", "70", "سبحان", "محیط"},
-	"تابان":                {"موسسات", "تابان", "60", "مهدی بصیر", "اصل25"},
-	"جنت":                  {"روحانیت شاخص", "جنت", "50", "کمیل", "اصل25"},
+	"تابان":                {"موسسات", "تابان", "60", "مهدی بصیر", "خط"},
+	"جنت":                  {"روحانیت شاخص", "جنت", "50", "کمیل", "خط"},
 	"جنگل":                 {"موسسات", "جنگل", "60", "شیرمردی", "محیط"},
 	"دری":                  {"موسسات", "دری", "60", "شیرمردی", "محیط"},
-	"یاسر":                 {"روحانیت شاخص", "یاسر", "50", "سید روح الله", "اصل25"},
-	"حافظ":                 {"روحانیت شاخص", "حافظ", "50", "سید روح الله", "اصل25"},
-	"حکمت":                 {"بین الملل", "حکمت", "60", "طالب", "اصل25"},
-	"خلیل":                 {"روحانیت شاخص", "خلیل", "50", "مصطفی", "اصل25"},
-	"اسفاروف":              {"بین الملل", "اسفاروف", "60", "حمد الله", "اصل25"},
-	"اقبال":                {"روحانیت شاخص", "اقبال", "50", "سید روح الله", "اصل25"},
+	"یاسر":                 {"روحانیت شاخص", "یاسر", "50", "سید روح الله", "خط"},
+	"حافظ":                 {"روحانیت شاخص", "حافظ", "50", "سید روح الله", "خط"},
+	"حکمت":                 {"بین الملل", "حکمت", "60", "طالب", "خط"},
+	"خلیل":                 {"روحانیت شاخص", "خلیل", "50", "مصطفی", "خط"},
+	"اسفاروف":              {"بین الملل", "اسفاروف", "60", "حمد الله", "خط"},
+	"اقبال":                {"روحانیت شاخص", "اقبال", "50", "سید روح الله", "خط"},
 	"سراب":                 {"موسسات", "سراب", "60", "مرتضی آیت", "محیط"},
-	"سرائر":                {"بین الملل", "سرائر", "60", "طالب", "اصل25"},
-	"سیامک":                {"موسسات", "سیامک", "60", "مهدی بصیر", "اصل25"},
+	"سرائر":                {"بین الملل", "سرائر", "60", "طالب", "خط"},
+	"سیامک":                {"موسسات", "سیامک", "60", "مهدی بصیر", "خط"},
 	"سید مهدی شهرستانی":    {"روحانیون سیاسی", "سید مهدی شهرستانی", "70", "جابر", "محیط"},
-	"شریف":                 {"روحانیون سیاسی", "شریف", "70", "سید محمود", "اصل25"},
+	"شریف":                 {"روحانیون سیاسی", "شریف", "70", "سید محمود", "خط"},
 	"شورا":                 {"موسسات", "شورا", "60", "مجتبی صادقی", "محیط"},
 	"صفر":                  {"موسسات", "صفر", "60", "حاج اسدالله", "محیط"},
 	"صفین":                 {"روحانیون سیاسی", "صفین", "60", "ابوالفضل", "محیط"},
-	"عشقعلی":               {"روحانیت شاخص", "عشقعلی", "50", "امیرحسین مصباح", "اصل25"},
-	"غلام":                 {"روحانیت شاخص", "غلام", "50", "صادق", "اصل25"},
-	"قابل":                 {"روحانیون سیاسی", "قابل", "70", "بهشتی", "اصل25"},
-	"قربان":                {"موسسات", "قربان", "60", "مصطفی غروی", "اصل25"},
-	"مازنی":                {"روحانیت شاخص", "مازنی", "70", "بهشتی", "اصل25"},
+	"عشقعلی":               {"روحانیت شاخص", "عشقعلی", "50", "امیرحسین مصباح", "خط"},
+	"غلام":                 {"روحانیت شاخص", "غلام", "50", "صادق", "خط"},
+	"قابل":                 {"روحانیون سیاسی", "قابل", "70", "بهشتی", "خط"},
+	"قربان":                {"موسسات", "قربان", "60", "مصطفی غروی", "خط"},
+	"مازنی":                {"روحانیت شاخص", "مازنی", "70", "بهشتی", "خط"},
 	"محفل":                 {"روحانیون سیاسی", "محفل", "70", "حسین اسدی", "محیط"},
-	"مدینه":                {"روحانیت شاخص", "مدینه", "50", "غروی", "اصل25"},
-	"مسیح":                 {"روحانیون سیاسی", "مسیح", "70", "عمار", "اصل25"},
+	"مدینه":                {"روحانیت شاخص", "مدینه", "50", "غروی", "خط"},
+	"مسیح":                 {"روحانیون سیاسی", "مسیح", "70", "عمار", "خط"},
 	"ممتاز":                {"موسسات", "ممتاز", "60", "مهدی بصیر", "محیط"},
-	"منتجب":                {"روحانیون سیاسی", "منتجب", "70", "بهشتی", "اصل25"},
-	"منصور":                {"روحانیت شاخص", "منصور", "60", "سید محمود", "اصل25"},
-	"ناظم":                 {"روحانیت شاخص", "ناظم", "50", "سید محمود", "اصل25"},
+	"منتجب":                {"روحانیون سیاسی", "منتجب", "70", "بهشتی", "خط"},
+	"منصور":                {"روحانیت شاخص", "منصور", "60", "سید محمود", "خط"},
+	"ناظم":                 {"روحانیت شاخص", "ناظم", "50", "سید محمود", "خط"},
 	"نجف":                  {"روحانیون سیاسی", "نجف", "50", "زمانی", "محیط"},
 	"نصوص":                 {"بین الملل", "نصوص", "60", "علوی", "محیط"},
-	"نواب":                 {"موسسات", "نواب", "60", "فاضل", "اصل25"},
-	"واسع":                 {"بین الملل", "واسع", "60", "مصطفی غروی", "اصل25"},
-	"هم نوا":               {"موسسات", "هم نوا", "60", "مرتضی آیت", "اصل25"},
-	"صلواتی":               {"روحانیون سیاسی", "صلواتی", "70", "زمانی", "اصل25"},
-	"پدرام":                {"موسسات", "پدرام", "60", "مهدی بصیر", "اصل25"},
-	"میرزا":                {"روحانیون سیاسی", "میرزا", "60", "حسین اسدی", "اصل25"},
-	"سینا":                 {"موسسات", "سینا", "60", "مهدی بصیر", "اصل25"},
-	"بازرس":                {"روحانیون سیاسی", "بازرس", "70", "نامشخص", "اصل25"},
-	"حاضری":                {"روحانیون سیاسی", "حاضری", "70", "نامشخص", "اصل25"},
-	"دردکشان":              {"روحانیون سیاسی", "دردکشان", "نامشخص", "نامشخص", "اصل25"},
-	"سراج":                 {"روحانیون سیاسی", "سراج", "نامشخص", "نامشخص", "اصل25"},
-	"سعیدیان":              {"روحانیون سیاسی", "سعیدیان", "نامشخص", "نامشخص", "اصل25"},
-	"سید ابوالفضل موسویان": {"روحانیون سیاسی", "موسویان", "نامشخص", "نامشخص", "اصل25"},
-	"طوسی":                 {"موسسات", "طوسی", "60", "مهدی بصیر", "اصل25"},
-	"محلوجی":               {"نامشخص", "محلوجی", "نامشخص", "نامشخص", "اصل25"},
-	"منتظر القائم":         {"روحانیون سیاسی", "منتظر القائم", "نامشخص", "نامشخص", "اصل25"},
-	"شیخ رباط":             {"نامشخص", "شیخ رباط", "نامشخص", "نامشخص", "اصل25"},
+	"نواب":                 {"موسسات", "نواب", "60", "فاضل", "خط"},
+	"واسع":                 {"بین الملل", "واسع", "60", "مصطفی غروی", "خط"},
+	"هم نوا":               {"موسسات", "هم نوا", "60", "مرتضی آیت", "خط"},
+	"صلواتی":               {"روحانیون سیاسی", "صلواتی", "70", "زمانی", "خط"},
+	"پدرام":                {"موسسات", "پدرام", "60", "مهدی بصیر", "خط"},
+	"میرزا":                {"روحانیون سیاسی", "میرزا", "60", "حسین اسدی", "خط"},
+	"سینا":                 {"موسسات", "سینا", "60", "مهدی بصیر", "خط"},
+	"بازرس":                {"روحانیون سیاسی", "بازرس", "70", "نامشخص", "خط"},
+	"حاضری":                {"روحانیون سیاسی", "حاضری", "70", "نامشخص", "خط"},
+	"دردکشان":              {"روحانیون سیاسی", "دردکشان", "نامشخص", "نامشخص", "خط"},
+	"سراج":                 {"روحانیون سیاسی", "سراج", "نامشخص", "نامشخص", "خط"},
+	"سعیدیان":              {"روحانیون سیاسی", "سعیدیان", "نامشخص", "نامشخص", "خط"},
+	"سید ابوالفضل موسویان": {"روحانیون سیاسی", "موسویان", "نامشخص", "نامشخص", "خط"},
+	"طوسی":                 {"موسسات", "طوسی", "60", "مهدی بصیر", "خط"},
+	"محلوجی":               {"نامشخص", "محلوجی", "نامشخص", "نامشخص", "خط"},
+	"منتظر القائم":         {"روحانیون سیاسی", "منتظر القائم", "نامشخص", "نامشخص", "خط"},
+	"شیخ رباط":             {"نامشخص", "شیخ رباط", "نامشخص", "نامشخص", "خط"},
 }
 
 func main() {
@@ -199,36 +199,27 @@ func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderR
 	}
 	modTime := fileInfo.ModTime()
 
-	text, err := extractTextFromDocx(filePath)
+	htmlContent, err := extractTextFromDocx(filePath)
 	if err != nil {
 		return fmt.Errorf("استخراج متن ناموفق بود: %w", err)
 	}
 
-	lines := strings.Split(text, "\n")
-	var cleanLines []string
+	// استخراج عنوان از اولین پاراگراف یا تیتر تولیدشده
+	lines := strings.Split(htmlContent, "\n")
+	cleanTitle := "بدون عنوان"
+
+	// پاک‌سازی تگ‌های HTML برای به‌دست آوردن عنوان متنی ساده (Clean Title)
+	reStripTags := regexp.MustCompile("<[^>]*>")
+
 	for _, l := range lines {
-		trimmed := strings.TrimSpace(l)
-		if trimmed != "" {
-			cleanLines = append(cleanLines, trimmed)
+		plainText := strings.TrimSpace(reStripTags.ReplaceAllString(l, ""))
+		if plainText != "" {
+			sanitized := sanitizeTitle(plainText)
+			if sanitized != "" {
+				cleanTitle = sanitized
+				break
+			}
 		}
-	}
-
-	if len(cleanLines) == 0 {
-		return fmt.Errorf("محتوای متنی داخل فایل یافت نشد")
-	}
-
-	rawTitle := cleanLines[0]
-	cleanTitle := sanitizeTitle(rawTitle)
-	if cleanTitle == "" && len(cleanLines) > 1 {
-		cleanTitle = sanitizeTitle(cleanLines[1])
-	}
-	if cleanTitle == "" {
-		cleanTitle = "بدون عنوان"
-	}
-
-	htmlContent := ""
-	for _, l := range cleanLines {
-		htmlContent += fmt.Sprintf("<p>%s</p>", l)
 	}
 
 	// استخراج یا ایجاد رکورد موضوع (Topic)
@@ -434,8 +425,19 @@ func extractTextFromDocx(filePath string) (string, error) {
 	buf.ReadFrom(rc)
 
 	decoder := xml.NewDecoder(buf)
-	var sb strings.Builder
-	var paragraphText strings.Builder
+	var mainBuilder strings.Builder
+
+	inParagraph := false
+	inRun := false
+	inBold := false
+	inItalic := false
+	headingTag := "" // ذخیره تگ h1 تا h4
+
+	// inTable := false
+	inCell := false
+	var currentRow []string
+	var currentCell strings.Builder
+	var paragraphBuilder strings.Builder
 
 	for {
 		t, tokenErr := decoder.Token()
@@ -445,34 +447,104 @@ func extractTextFromDocx(filePath string) (string, error) {
 
 		switch elem := t.(type) {
 		case xml.StartElement:
-			if elem.Name.Local == "p" {
-				// انتهای پاراگراف قبلی را ثبت کن
-				if paragraphText.Len() > 0 {
-					line := strings.TrimSpace(paragraphText.String())
-					if line != "" {
-						sb.WriteString(line + "\n")
+			switch elem.Name.Local {
+			case "tbl":
+				mainBuilder.WriteString("<table border=\"1\" style=\"border-collapse: collapse; width: 100%;\">\n")
+			case "tr":
+				currentRow = []string{}
+			case "tc":
+				inCell = true
+				currentCell.Reset()
+			case "p":
+				inParagraph = true
+				paragraphBuilder.Reset()
+				headingTag = ""
+			case "pStyle":
+				for _, attr := range elem.Attr {
+					if attr.Name.Local == "val" {
+						val := strings.ToLower(attr.Value)
+						if strings.Contains(val, "heading") || strings.Contains(val, "1") || strings.Contains(val, "2") || strings.Contains(val, "3") {
+							if strings.Contains(val, "1") {
+								headingTag = "h1"
+							} else if strings.Contains(val, "2") {
+								headingTag = "h2"
+							} else if strings.Contains(val, "3") {
+								headingTag = "h3"
+							} else {
+								headingTag = "h4"
+							}
+						}
 					}
-					paragraphText.Reset()
 				}
-			} else if elem.Name.Local == "br" {
-				paragraphText.WriteString("\n")
+			case "r":
+				inRun = true
+				inBold = false
+				inItalic = false
+			case "b":
+				inBold = true
+			case "i":
+				inItalic = true
+			case "br":
+				if inCell {
+					currentCell.WriteString("<br>")
+				} else {
+					paragraphBuilder.WriteString("<br>")
+				}
 			}
+
+		case xml.EndElement:
+			switch elem.Name.Local {
+			case "r":
+				inRun = false
+			case "p":
+				inParagraph = false
+				pText := strings.TrimSpace(paragraphBuilder.String())
+				if pText != "" {
+					var formattedP string
+					if headingTag != "" {
+						formattedP = fmt.Sprintf("<%s>%s</%s>\n", headingTag, pText, headingTag)
+					} else {
+						formattedP = fmt.Sprintf("<p>%s</p>\n", pText)
+					}
+
+					if inCell {
+						currentCell.WriteString(formattedP)
+					} else {
+						mainBuilder.WriteString(formattedP)
+					}
+				}
+			case "tc":
+				inCell = false
+				currentRow = append(currentRow, fmt.Sprintf("<td style=\"padding: 6px; border: 1px solid #ccc;\">%s</td>", strings.TrimSpace(currentCell.String())))
+			case "tr":
+				if len(currentRow) > 0 {
+					mainBuilder.WriteString("  <tr>" + strings.Join(currentRow, "") + "</tr>\n")
+				}
+			case "tbl":
+				mainBuilder.WriteString("</table>\n")
+			}
+
 		case xml.CharData:
-			// متن‌ها مستقیماً و بدون اسپیس اجباری اضافه می‌شوند (اسپیس‌های خود متن حفظ می‌شوند)
-			paragraphText.WriteString(string(elem))
+			text := string(elem)
+			if inRun && strings.TrimSpace(text) != "" {
+				if inBold {
+					text = "<b>" + text + "</b>"
+				}
+				if inItalic {
+					text = "<i>" + text + "</i>"
+				}
+			}
+
+			if inCell {
+				currentCell.WriteString(text)
+			} else if inParagraph {
+				paragraphBuilder.WriteString(text)
+			}
 		}
 	}
 
-	// ثبت آخرین پاراگراف
-	if paragraphText.Len() > 0 {
-		line := strings.TrimSpace(paragraphText.String())
-		if line != "" {
-			sb.WriteString(line + "\n")
-		}
-	}
-
-	extracted := sb.String()
-	if strings.TrimSpace(extracted) == "" {
+	extracted := strings.TrimSpace(mainBuilder.String())
+	if extracted == "" {
 		return "", fmt.Errorf("محتوای متنی داخل فایل یافت نشد")
 	}
 

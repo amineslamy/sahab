@@ -1,9 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
-  const collection = app.findCollectionByNameOrId("pbc_1615648943")
+  const collection = app.findCollectionByNameOrId("pbc_2012230717")
 
   // update field
-  collection.fields.addAt(13, new Field({
+  collection.fields.addAt(15, new Field({
     "help": "",
     "hidden": false,
     "id": "select1493410210",
@@ -14,23 +14,25 @@ migrate((app) => {
     "system": false,
     "type": "select",
     "values": [
+      "محیط",
+      "خط",
       "آشکار",
       "رسمی",
       "فنی",
       "سایبری",
       "منبع",
       "راوی",
-      "خط",
-      "محیط"
+      "اصل 25",
+      "اصل25"
     ]
   }))
 
   return app.save(collection)
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_1615648943")
+  const collection = app.findCollectionByNameOrId("pbc_2012230717")
 
   // update field
-  collection.fields.addAt(13, new Field({
+  collection.fields.addAt(15, new Field({
     "help": "",
     "hidden": false,
     "id": "select1493410210",
@@ -41,6 +43,8 @@ migrate((app) => {
     "system": false,
     "type": "select",
     "values": [
+      "محیط",
+      "خط",
       "آشکار",
       "رسمی",
       "فنی",

@@ -1253,9 +1253,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('گزارش با موفقیت ثبت شد.');
             }
 
-            // ذخیره کامنت‌های موقتی در صورت وجود
+            // =====================================================
+            // ✅ ذخیره کامنت‌های موقتی (فارغ از حالت ایجاد/ویرایش)
+            // =====================================================
             if (typeof window.savePendingComments === 'function') {
-                await window.savePendingComments(savedReport.id);
+                try {
+                    await window.savePendingComments(savedReport.id);
+                    console.log('✅ کامنت‌های موقت با موفقیت ذخیره شدند.');
+                } catch (pcErr) {
+                    console.error('خطا در ذخیره کامنت‌های موقت:', pcErr);
+                }
+            }
+
+            // =====================================================
+            // 🛟 پشتیبان: اگر comments.js کامنت‌های موقت را ذخیره نکرد، خودمان ذخیره کنیم
+            // =====================================================
+            if (Array.isArray(window.pendingComments) && window.pendingComments.length > 0) {
+                console.log(`🛟 یافت شد ${window.pendingComments.length} کامنت موقت ذخیره‌نشده. در حال ذخیره‌سازی...`);
+                const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
+                const successfulIndexes = [];
+
+                for (let i = 0; i < window.pendingComments.length; i++) {
+                    const c = window.pendingComments[i];
+                    try {
+                        await state.pb.collection('comments').create({
+                            report: savedReport.id,
+                            author: currentUser.id,
+                            type: c.type || 'ملاحظه',
+                            text: c.text || '',
+                            parent: c.parent || null,
+                            version: 1
+                        });
+                        successfulIndexes.push(i);
+                    } catch (cErr) {
+                        console.warn('خطا در ذخیره کامنت موقت:', cErr);
+                    }
+                }
+
+                // حذف کامنت‌های موفق از آرایه
+                for (let i = successfulIndexes.length - 1; i >= 0; i--) {
+                    window.pendingComments.splice(successfulIndexes[i], 1);
+                }
+
+                if (successfulIndexes.length > 0) {
+                    console.log(`✅ ${successfulIndexes.length} کامنت موقت ذخیره شد.`);
+                }
             }
 
             // =====================================================
@@ -1697,6 +1739,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('⚠️ جدول ملاحظات/نظریات در فایل Word پیدا نشد یا خالی بود.');
             }
 
+            // ===== استخراج تصاویر از فایل Word و افزودن به پیوست‌ها =====
+            try {
+                const addedCount = await extractImagesFromWordHtml(html, file);
+                if (addedCount > 0) {
+                    console.log(`🖼 ${addedCount} تصویر از فایل Word به لیست پیوست‌ها اضافه شد.`);
+                    renderAttachmentsList();
+                } else {
+                    console.log('ℹ️ تصویری در فایل Word پیدا نشد.');
+                }
+            } catch (imgErr) {
+                console.warn('خطا در استخراج تصاویر Word:', imgErr);
+            }
 
             statusEl.className = 'text-xs mt-2 font-bold text-emerald-600';
             statusEl.textContent = '✅ فایل با موفقیت خوانده و فیلدها پر شدند.';
@@ -1708,6 +1762,66 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('خواندن فایل Word ممکن نشد.');
         }
     }
+
+
+    // ============================================================
+    // 🖼 استخراج تصاویر Base64 از HTML فایل Word و تبدیل به پیوست
+    // ============================================================
+    async function extractImagesFromWordHtml(html, sourceFile) {
+        const imgRegex = /<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi;
+        const dataUrls = [];
+        let m;
+        while ((m = imgRegex.exec(html)) !== null) {
+            const src = m[1];
+            if (src.startsWith('data:image/')) dataUrls.push(src);
+        }
+
+        if (dataUrls.length === 0) return 0;
+
+        const fileBaseName = (sourceFile?.name || 'word-image').replace(/\.docx$/i, '');
+        let addedCount = 0;
+
+        for (let i = 0; i < dataUrls.length; i++) {
+            const dataUrl = dataUrls[i];
+            try {
+                const mimeMatch = dataUrl.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,/);
+                if (!mimeMatch) continue;
+                const mime = mimeMatch[1];
+                const ext = mime.split('/')[1].replace('jpeg', 'jpg').replace('svg+xml', 'svg');
+
+                const base64Data = dataUrl.substring(dataUrl.indexOf(',') + 1);
+                const byteChars = atob(base64Data);
+                const bytes = new Uint8Array(byteChars.length);
+                for (let j = 0; j < byteChars.length; j++) {
+                    bytes[j] = byteChars.charCodeAt(j);
+                }
+                const blob = new Blob([bytes], { type: mime });
+                const fileName = `${fileBaseName}_image_${i + 1}.${ext}`;
+                const imgFile = new File([blob], fileName, { type: mime });
+
+                // بررسی محدودیت تعداد
+                if (state.existingAttachments.length + state.selectedAttachments.length + 1 > LIMITS.attachmentsMaxCount) {
+                    console.warn('به حداکثر تعداد پیوست رسیدیم، بقیه تصاویر اضافه نشدند.');
+                    break;
+                }
+
+                // بررسی محدودیت حجم
+                const currentSize = state.selectedAttachments.reduce((sum, f) => sum + f.size, 0);
+                if (currentSize + imgFile.size > LIMITS.attachmentsMaxBytes) {
+                    console.warn('حجم پیوست‌ها از حد مجاز گذشت، بقیه تصاویر اضافه نشدند.');
+                    break;
+                }
+
+                state.selectedAttachments.push(imgFile);
+                addedCount++;
+            } catch (convErr) {
+                console.warn(`خطا در تبدیل تصویر ${i + 1}:`, convErr);
+            }
+        }
+
+        return addedCount;
+    }
+
 
     // ============ استخراج جدول متادیتا از HTML ============
     function extractMetadataTable(html) {
@@ -2096,156 +2210,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// ============ استخراج جدول متادیتا از HTML ============
-function extractMetadataTable(html) {
-    const out = {};
-    // اولین جدول را برمی‌داریم (جدول متادیتای ابتدای فایل)
-    const tableMatch = html.match(/<table[\s\S]*?<\/table>/i);
-    if (!tableMatch) return out;
-    const tableHtml = tableMatch[0];
-
-    // هر ردیف
-    const rowRegex = /<tr[\s\S]*?<\/tr>/gi;
-    const rows = tableHtml.match(rowRegex) || [];
-    rows.forEach(row => {
-        const cellRegex = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
-        const cells = [];
-        let m;
-        while ((m = cellRegex.exec(row)) !== null) {
-            // تبدیل به متن خام
-            const txt = m[1].replace(/<[^>]+>/g, ' ')
-                .replace(/&nbsp;/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-            cells.push(txt);
-        }
-        // جفت‌های کلید-مقدار: سلول‌های 0,2,4,... کلید و 1,3,5,... مقدار
-        for (let i = 0; i + 1 < cells.length; i += 2) {
-            const key = (cells[i] || '').replace(/[:：]/g, '').trim();
-            const val = (cells[i + 1] || '').trim();
-            if (key) out[key] = val;
-        }
-    });
-    return out;
-}
-
-// پیدا کردن مقدار بعد از یک برچسب در متن: «عنوان خبر: ...»
-function findLabeledValue(text, labelRegex) {
-    const re = new RegExp(labelRegex.source + '\\s*[:：\\-–—]?\\s*([^\\n]+)', 'i');
-    const m = text.match(re);
-    return m ? m[1].trim() : '';
-}
-
-// استخراج بخش «متن کامل گزارش» تا «ملاحظات» یا «پیوست»
-function extractFullReportSection(text) {
-    const startRe = /متن\s*کامل\s*(گزارش)?\s*[:：]?/i;
-    const startM = text.search(startRe);
-    if (startM === -1) return '';
-    let body = text.substring(startM).replace(startRe, '').trim();
-    // پایان بخش‌ها
-    const endM = body.search(/(ملاحظات|نظریات|پیوست\s*های|پیوست‌های|پیوست)/i);
-    if (endM !== -1) body = body.substring(0, endM);
-    return body.trim();
-}
-
-// نرمال‌سازی نوع خبر: اصل ۲۵ → خط
-function normalizeNewsType(raw) {
-    const v = (raw || '').toString().trim();
-    if (!v) return '';
-    // اصل 25 / اصل25 / 25 / اصل ۲۵ / ۲۵
-    if (/^(اصل\s*)?(۲۵|25)$/i.test(v)) return 'خط';
-    // اگر داخل متن ترکیبی بود، همین بررسی را روی هر بخش اعمال کن
-    if (/(اصل\s*)?(۲۵|25)(?!\d)/.test(v) && v.length <= 20) return 'خط';
-    return v;
-}
-
-// اعمال تاریخ شمسی روی دیت‌پیکر
-function applyShamsiDateToPicker(dateStr) {
-    // نرمال‌سازی اعداد فارسی به لاتین
-    const normalized = dateStr.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
-        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-    const m = normalized.match(/(\d{2,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-    if (!m) return;
-    let [_, y, mo, d] = m;
-    if (y.length === 2) y = '14' + y; // ۱۴۰۵ دو رقمی → 1405
-    const yi = parseInt(y, 10), mi = parseInt(mo, 10), di = parseInt(d, 10);
-    try {
-        const pd = new persianDate([yi, mi, di]);
-        $('#occurrence-date-picker').persianDatepicker('setDate', pd);
-        document.getElementById('report-occurrence-date').value = pd.toDate().toISOString();
-    } catch (e) {
-        console.warn('خطا در تبدیل تاریخ شمسی:', e);
-    }
-}
-
-// پیدا کردن تطبیق در لیست موضوعات
-function applyTopicsFromText(rawValue) {
-    const tokens = splitDelimited(rawValue);
-    if (!tokens.length || !Array.isArray(state.allTopics)) return;
-
-    state.selectedTopics = [];
-    tokens.forEach(tok => {
-        const target = tok.toLowerCase();
-        const found = state.allTopics.find(t =>
-            (t.title || t.name || '').toLowerCase() === target ||
-            (t.title || t.name || '').toLowerCase().includes(target)
-        );
-        if (found && !state.selectedTopics.includes(found.id)) {
-            state.selectedTopics.push(found.id);
-        }
-    });
-    renderTopicsTags(state.allTopics);
-    renderTopicsList(state.allTopics);
-}
-
-// پیدا کردن تطبیق در لیست کیس‌ها
-function applyCasesFromText(rawValue) {
-    const tokens = splitDelimited(rawValue);
-    if (!tokens.length || !Array.isArray(state.allRawCases)) return;
-
-    state.selectedCases = [];
-    tokens.forEach(tok => {
-        const target = tok.toLowerCase();
-        const found = state.allRawCases.find(c =>
-            (c.title || '').toLowerCase() === target ||
-            (c.title || '').toLowerCase().includes(target)
-        );
-        if (found && !state.selectedCases.includes(found.id)) {
-            state.selectedCases.push(found.id);
-        }
-    });
-    renderCasesTags(state.allOrderedCases, state.allRawCases);
-    renderCasesList(state.allOrderedCases, state.allRawCases);
-}
-
-// پیدا کردن تطبیق در لیست کارشناسان
-function applyAuthorFromText(rawValue) {
-    const tokens = splitDelimited(rawValue);
-    if (!tokens.length || !Array.isArray(state.allAuthorsList)) return;
-
-    const target = tokens[0].toLowerCase();
-    const found = state.allAuthorsList.find(u =>
-        (u.name || u.username || '').toLowerCase() === target ||
-        (u.name || u.username || '').toLowerCase().includes(target)
-    );
-    if (found) {
-        state.selectedAuthor = found;
-        renderAuthorTag();
-        renderAuthorList(groupUsersByDepartment(state.allAuthorsList), state.allAuthorsList);
-    }
-}
-
-// جدا کردن مقادیر با ویرگول فارسی/لاتین، خط جدید و ...
-function splitDelimited(v) {
-    return (v || '').toString()
-        .split(/[،,\n؛;]+/)
-        .map(s => s.trim())
-        .filter(Boolean);
-}
-
-// escape HTML
-function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
-}

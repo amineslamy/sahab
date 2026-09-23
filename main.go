@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/rand"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
@@ -27,65 +28,7 @@ type FolderRule struct {
 	NewsType   string
 }
 
-var folderRules = map[string]FolderRule{
-	"ابطحی":                {"روحانیون سیاسی", "ابطحی", "70", "عمار", "خط"},
-	"اسلو":                 {"موسسات", "اسلو", "60", "مهدی بصیر", "خط"},
-	"امیری فر":             {"روحانیون سیاسی", "امیری فر", "70", "بهشتی", "خط"},
-	"ایازی":                {"روحانیون سیاسی", "ایازی", "70", "بهشتی", "خط"},
-	"ایرج":                 {"روحانیت شاخص", "ایرج", "60", "مصطفی غروی", "خط"},
-	"آرش":                  {"موسسات", "آرش", "60", "مهدی بصیر", "خط"},
-	"بهار":                 {"روحانیون سیاسی", "بهار", "70", "بهشتی", "خط"},
-	"پژمان":                {"روحانیون سیاسی", "پژمان", "70", "سبحان", "محیط"},
-	"تابان":                {"موسسات", "تابان", "60", "مهدی بصیر", "خط"},
-	"جنت":                  {"روحانیت شاخص", "جنت", "50", "کمیل", "خط"},
-	"جنگل":                 {"موسسات", "جنگل", "60", "شیرمردی", "محیط"},
-	"دری":                  {"موسسات", "دری", "60", "شیرمردی", "محیط"},
-	"یاسر":                 {"روحانیت شاخص", "یاسر", "50", "سید روح الله", "خط"},
-	"حافظ":                 {"روحانیت شاخص", "حافظ", "50", "سید روح الله", "خط"},
-	"حکمت":                 {"بین الملل", "حکمت", "60", "طالب", "خط"},
-	"خلیل":                 {"روحانیت شاخص", "خلیل", "50", "مصطفی", "خط"},
-	"اسفاروف":              {"بین الملل", "اسفاروف", "60", "حمد الله", "خط"},
-	"اقبال":                {"روحانیت شاخص", "اقبال", "50", "سید روح الله", "خط"},
-	"سراب":                 {"موسسات", "سراب", "60", "مرتضی آیت", "محیط"},
-	"سرائر":                {"بین الملل", "سرائر", "60", "طالب", "خط"},
-	"سیامک":                {"موسسات", "سیامک", "60", "مهدی بصیر", "خط"},
-	"سید مهدی شهرستانی":    {"روحانیون سیاسی", "سید مهدی شهرستانی", "70", "جابر", "محیط"},
-	"شریف":                 {"روحانیون سیاسی", "شریف", "70", "سید محمود", "خط"},
-	"شورا":                 {"موسسات", "شورا", "60", "مجتبی صادقی", "محیط"},
-	"صفر":                  {"موسسات", "صفر", "60", "حاج اسدالله", "محیط"},
-	"صفین":                 {"روحانیون سیاسی", "صفین", "60", "ابوالفضل", "محیط"},
-	"عشقعلی":               {"روحانیت شاخص", "عشقعلی", "50", "امیرحسین مصباح", "خط"},
-	"غلام":                 {"روحانیت شاخص", "غلام", "50", "صادق", "خط"},
-	"قابل":                 {"روحانیون سیاسی", "قابل", "70", "بهشتی", "خط"},
-	"قربان":                {"موسسات", "قربان", "60", "مصطفی غروی", "خط"},
-	"مازنی":                {"روحانیت شاخص", "مازنی", "70", "بهشتی", "خط"},
-	"محفل":                 {"روحانیون سیاسی", "محفل", "70", "حسین اسدی", "محیط"},
-	"مدینه":                {"روحانیت شاخص", "مدینه", "50", "غروی", "خط"},
-	"مسیح":                 {"روحانیون سیاسی", "مسیح", "70", "عمار", "خط"},
-	"ممتاز":                {"موسسات", "ممتاز", "60", "مهدی بصیر", "محیط"},
-	"منتجب":                {"روحانیون سیاسی", "منتجب", "70", "بهشتی", "خط"},
-	"منصور":                {"روحانیت شاخص", "منصور", "60", "سید محمود", "خط"},
-	"ناظم":                 {"روحانیت شاخص", "ناظم", "50", "سید محمود", "خط"},
-	"نجف":                  {"روحانیون سیاسی", "نجف", "50", "زمانی", "محیط"},
-	"نصوص":                 {"بین الملل", "نصوص", "60", "علوی", "محیط"},
-	"نواب":                 {"موسسات", "نواب", "60", "فاضل", "خط"},
-	"واسع":                 {"بین الملل", "واسع", "60", "مصطفی غروی", "خط"},
-	"هم نوا":               {"موسسات", "هم نوا", "60", "مرتضی آیت", "خط"},
-	"صلواتی":               {"روحانیون سیاسی", "صلواتی", "70", "زمانی", "خط"},
-	"پدرام":                {"موسسات", "پدرام", "60", "مهدی بصیر", "خط"},
-	"میرزا":                {"روحانیون سیاسی", "میرزا", "60", "حسین اسدی", "خط"},
-	"سینا":                 {"موسسات", "سینا", "60", "مهدی بصیر", "خط"},
-	"بازرس":                {"روحانیون سیاسی", "بازرس", "70", "نامشخص", "خط"},
-	"حاضری":                {"روحانیون سیاسی", "حاضری", "70", "نامشخص", "خط"},
-	"دردکشان":              {"روحانیون سیاسی", "دردکشان", "نامشخص", "نامشخص", "خط"},
-	"سراج":                 {"روحانیون سیاسی", "سراج", "نامشخص", "نامشخص", "خط"},
-	"سعیدیان":              {"روحانیون سیاسی", "سعیدیان", "نامشخص", "نامشخص", "خط"},
-	"سید ابوالفضل موسویان": {"روحانیون سیاسی", "موسویان", "نامشخص", "نامشخص", "خط"},
-	"طوسی":                 {"موسسات", "طوسی", "60", "مهدی بصیر", "خط"},
-	"محلوجی":               {"نامشخص", "محلوجی", "نامشخص", "نامشخص", "خط"},
-	"منتظر القائم":         {"روحانیون سیاسی", "منتظر القائم", "نامشخص", "نامشخص", "خط"},
-	"شیخ رباط":             {"نامشخص", "شیخ رباط", "نامشخص", "نامشخص", "خط"},
-}
+var folderRules map[string]FolderRule
 
 func main() {
 	// اگر کاربر هیچ دستوری وارد نکرد (مثلاً دابل‌کلیک روی exe)،
@@ -96,6 +39,17 @@ func main() {
 
 	app := pocketbase.New()
 	baseDir := "./import_files"
+
+	// مسیر فایل CSV قوانین
+	csvPath := filepath.Join(baseDir, "logic.csv")
+
+	var err error
+	folderRules, err = loadFolderRulesFromCSV(csvPath)
+	if err != nil {
+		log.Fatalf("❌ خطا در بارگذاری فایل قوانین (%s): %v", csvPath, err)
+	}
+	log.Printf("✅ %d قانون از فایل CSV بارگذاری شد.", len(folderRules))
+	debugFolderMatching(baseDir)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		go func() {
@@ -114,6 +68,9 @@ func main() {
 	}
 }
 
+// ============================================================
+// processImportDirectories - پیمایش پوشه‌ها و پردازش فایل‌ها
+// ============================================================
 func processImportDirectories(app *pocketbase.PocketBase, baseDir string) {
 	entries, err := os.ReadDir(baseDir)
 	if err != nil {
@@ -198,6 +155,33 @@ func processImportDirectories(app *pocketbase.PocketBase, baseDir string) {
 	log.Println("=========================================")
 }
 
+// ============================================================
+// debugFolderMatching - فقط برای عیب‌یابی تطبیق نام‌ها
+// ============================================================
+func debugFolderMatching(baseDir string) {
+	log.Println("========= 🔍 دیباگ تطبیق نام پوشه‌ها و CSV =========")
+
+	// چاپ تمام کلیدهای CSV با byte representation
+	log.Println("📄 کلیدهای موجود در CSV:")
+	for k := range folderRules {
+		log.Printf("  CSV Key: [%s] | len=%d | hex=% x", k, len(k), []byte(k))
+	}
+
+	// چاپ نام پوشه‌های موجود
+	entries, _ := os.ReadDir(baseDir)
+	log.Println("📁 نام پوشه‌های موجود در import_files:")
+	for _, e := range entries {
+		if e.IsDir() {
+			log.Printf("  Folder:  [%s] | len=%d | hex=% x", e.Name(), len(e.Name()), []byte(e.Name()))
+		}
+	}
+
+	log.Println("=======================================================")
+}
+
+// ============================================================
+// processSingleFile - پردازش یک فایل Word و ثبت رکورد در PocketBase
+// ============================================================
 func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderRule) error {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
@@ -210,11 +194,8 @@ func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderR
 		return fmt.Errorf("استخراج متن ناموفق بود: %w", err)
 	}
 
-	// استخراج عنوان از اولین پاراگراف یا تیتر تولیدشده
 	lines := strings.Split(htmlContent, "\n")
 	cleanTitle := "بدون عنوان"
-
-	// پاک‌سازی تگ‌های HTML برای به‌دست آوردن عنوان متنی ساده (Clean Title)
 	reStripTags := regexp.MustCompile("<[^>]*>")
 
 	for _, l := range lines {
@@ -228,31 +209,26 @@ func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderR
 		}
 	}
 
-	// استخراج یا ایجاد رکورد موضوع (Topic)
 	topicID, err := getOrCreateRecord(app, "topics", "title", rule.Topic)
 	if err != nil {
 		return fmt.Errorf("خطا در ثبت Topic: %w", err)
 	}
 
-	// استخراج یا ایجاد رکورد پرونده (Case)
 	caseID, err := getOrCreateRecord(app, "cases", "title", rule.Case)
 	if err != nil {
 		return fmt.Errorf("خطا در ثبت Case: %w", err)
 	}
 
-	// استخراج ID دپارتمان از جدول users بر اساس dept_code یا user_code با نقش department
 	depID, err := getDepartmentUserID(app, rule.Department)
 	if err != nil {
 		return fmt.Errorf("خطا در یافتن دپارتمان (%s): %w", rule.Department, err)
 	}
 
-	// استخراج یا ایجاد نویسنده (Author)
-	authorID, err := getAuthorUserID(app, rule.Author)
+	authorID, err := getAuthorUserID(app, rule.Author, depID)
 	if err != nil {
 		return fmt.Errorf("خطا در تعیین نویسنده (%s): %w", rule.Author, err)
 	}
 
-	// تولید شناسه اتوماسیون یکتا جهت جلوگیری از تداخل با ایندکس UNIQUE
 	randomSuffix := make([]byte, 3)
 	rand.Read(randomSuffix)
 	automationID := fmt.Sprintf("BULK-%s-%s", modTime.Format("20060102-150405"), hex.EncodeToString(randomSuffix))
@@ -267,17 +243,12 @@ func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderR
 	record.Set("content", htmlContent)
 	record.Set("abstract", cleanTitle)
 
-	// تبدیل تاریخ وقوع/تغییر فایل به فرمت استاندارد UTC برای PocketBase
 	formattedModTime := modTime.UTC().Format("2006-01-02 15:04:05.000Z")
-
 	record.Set("occurrence_date", formattedModTime)
-	record.Set("created", formattedModTime) // تنظیم تاریخ ثبت رکورد معادل تاریخ وقوع/فایل
+	record.Set("created", formattedModTime)
 	record.Set("automation_id", automationID)
-
-	// اصلاح مهم: ارسال اسلایس متنی به دلیل maxSelect: 10 در اسکیما
 	record.Set("topics_rel", []string{topicID})
 	record.Set("cases_rel", []string{caseID})
-
 	record.Set("department", depID)
 	record.Set("author", authorID)
 	record.Set("news_type", rule.NewsType)
@@ -289,6 +260,92 @@ func processSingleFile(app *pocketbase.PocketBase, filePath string, rule FolderR
 	return app.Save(record)
 }
 
+// ============================================================
+// loadFolderRulesFromCSV - خواندن قوانین از CSV (با پشتیبانی از کاما و Tab)
+// ============================================================
+func loadFolderRulesFromCSV(csvPath string) (map[string]FolderRule, error) {
+	raw, err := os.ReadFile(csvPath)
+	if err != nil {
+		return nil, fmt.Errorf("خطا در خواندن فایل CSV: %w", err)
+	}
+
+	// حذف BOM UTF-8 در صورت وجود (فایل‌های ذخیره‌شده در Excel)
+	raw = bytes.TrimPrefix(raw, []byte{0xEF, 0xBB, 0xBF})
+
+	// تابع کمکی برای پارس با جداکننده دلخواه
+	parse := func(comma rune) ([][]string, error) {
+		r := csv.NewReader(bytes.NewReader(raw))
+		r.Comma = comma
+		r.FieldsPerRecord = -1
+		r.TrimLeadingSpace = true
+		r.LazyQuotes = true
+		return r.ReadAll()
+	}
+
+	// تلاش اول: کاما
+	records, err := parse(',')
+	// اگر خطا داشت یا ستون‌ها کمتر از ۳ بود، با Tab امتحان کن
+	if err != nil || len(records) == 0 || (len(records) > 0 && len(records[0]) < 3) {
+		log.Println("ℹ️ تلاش مجدد برای خواندن CSV با جداکننده Tab...")
+		records, err = parse('\t')
+		if err != nil {
+			return nil, fmt.Errorf("خطا در خواندن CSV (هم با کاما و هم با Tab): %w", err)
+		}
+	}
+
+	if len(records) < 2 {
+		return nil, fmt.Errorf("فایل CSV خالی است یا فقط هدر دارد")
+	}
+
+	rules := make(map[string]FolderRule)
+
+	for i, row := range records {
+		if len(row) == 0 {
+			continue
+		}
+
+		// پاک‌سازی هر سلول: حذف فاصله اضافی و BOM
+		for j := range row {
+			row[j] = strings.TrimSpace(strings.TrimPrefix(row[j], "\ufeff"))
+		}
+
+		// رد کردن هدر (خط اول)
+		if i == 0 {
+			first := strings.ToLower(row[0])
+			if strings.Contains(first, "folder") ||
+				strings.Contains(first, "پوشه") ||
+				strings.Contains(first, "نام") ||
+				first == "name" {
+				continue
+			}
+		}
+
+		// رد کردن خطوط خالی
+		if row[0] == "" {
+			continue
+		}
+
+		getCol := func(idx int) string {
+			if idx < len(row) && row[idx] != "" {
+				return row[idx]
+			}
+			return "نامشخص"
+		}
+
+		folderName := row[0]
+		rules[folderName] = FolderRule{
+			Topic:      getCol(1),
+			Case:       getCol(2),
+			Department: getCol(3),
+			Author:     getCol(4),
+			NewsType:   normalizeNewsType(getCol(5)), // ← نرمال‌سازی
+		}
+	}
+
+	return rules, nil
+}
+
+// ============================================================
 func getDepartmentUserID(app *pocketbase.PocketBase, deptCode string) (string, error) {
 	record, err := app.FindFirstRecordByFilter(
 		"users",
@@ -304,19 +361,13 @@ func getDepartmentUserID(app *pocketbase.PocketBase, deptCode string) (string, e
 	}
 
 	if err == nil && record != nil {
-		// مقداردهی یا بروزرسانی department_rel بر اساس مقدار department کاربر
-		deptVal := record.GetString("department")
-		if deptVal != "" && (record.GetString("department_rel") == "" || record.GetString("department_rel") != deptVal) {
-			record.Set("department_rel", deptVal)
-			_ = app.Save(record)
-		}
 		return record.Id, nil
 	}
 
 	return "", fmt.Errorf("کاربر دپارتمان با کد یا نام '%s' در سیستم یافت نشد", deptCode)
 }
 
-func getAuthorUserID(app *pocketbase.PocketBase, authorName string) (string, error) {
+func getAuthorUserID(app *pocketbase.PocketBase, authorName string, departmentUserID string) (string, error) {
 	// 1. جستجو بر اساس username یا name
 	record, err := app.FindFirstRecordByFilter(
 		"users",
@@ -324,11 +375,12 @@ func getAuthorUserID(app *pocketbase.PocketBase, authorName string) (string, err
 		dbx.Params{"name": authorName},
 	)
 	if err == nil && record != nil {
-		// مقداردهی یا بروزرسانی department_rel بر اساس مقدار department کاربر
-		deptVal := record.GetString("department")
-		if deptVal != "" && (record.GetString("department_rel") == "" || record.GetString("department_rel") != deptVal) {
-			record.Set("department_rel", deptVal)
-			_ = app.Save(record)
+		// ✅ تنظیم department_rel بر اساس ID دپارتمان (اسلایس)
+		if departmentUserID != "" {
+			record.Set("department_rel", []string{departmentUserID})
+			if saveErr := app.Save(record); saveErr != nil {
+				log.Printf("⚠️ هشدار: خطا در بروزرسانی department_rel کاربر %s: %v", authorName, saveErr)
+			}
 		}
 		return record.Id, nil
 	}
@@ -344,7 +396,7 @@ func getAuthorUserID(app *pocketbase.PocketBase, authorName string) (string, err
 	rand.Read(randomBuf)
 	genUsername := fmt.Sprintf("user_%s_%d", hex.EncodeToString(randomBuf), time.Now().Unix())
 
-	// 4. محاسبه user_code جدید به صورت خودکار (پیدا کردن بزرگترین user_code عددی موجود)
+	// 4. محاسبه user_code جدید
 	var maxCode int
 	err = app.DB().Select("COALESCE(MAX(CAST(user_code AS INTEGER)), 900)").
 		From("users").
@@ -362,11 +414,16 @@ func getAuthorUserID(app *pocketbase.PocketBase, authorName string) (string, err
 	newRecord.Set("username", genUsername)
 	newRecord.Set("user_code", nextUserCode)
 	newRecord.Set("role", "expert")
-	newRecord.SetPassword("123456789") // حداقل ۸ کاراکتر طبق اسکیما
+	newRecord.SetPassword("123456789")
+
+	// ✅ تنظیم department_rel همان لحظه که رکورد ساخته می‌شود
+	if departmentUserID != "" {
+		newRecord.Set("department_rel", []string{departmentUserID})
+	}
 
 	err = app.Save(newRecord)
 	if err != nil {
-		// اگر به هر دلیلی باز هم تداخل کد رخ داد، یک شناسه بر اساس نانوسانیه ثبت کن
+		// تلاش مجدد با fallbackCode
 		fallbackCode := fmt.Sprintf("%d", time.Now().UnixNano()%899999+100000)
 		newRecord.Set("user_code", fallbackCode)
 		err = app.Save(newRecord)
@@ -375,16 +432,12 @@ func getAuthorUserID(app *pocketbase.PocketBase, authorName string) (string, err
 		}
 	}
 
-	// اگر هنگام ایجاد کاربر جدید فیلد department تنظیم شد، فیلد department_rel را هم ست کنید
-	deptVal := newRecord.GetString("department")
-	if deptVal != "" {
-		newRecord.Set("department_rel", deptVal)
-		_ = app.Save(newRecord)
-	}
-
 	return newRecord.Id, nil
 }
 
+// ============================================================
+// sanitizeTitle - حذف عبارات ابتدایی مذهبی از عنوان
+// ============================================================
 func sanitizeTitle(text string) string {
 	pattern := `(?i)^(بسمه تعالی|بسم الله الرحمن الرحیم|به نام خدا|بسمه‌تعالی|باسمه تعالی)[\s:\-,،]*`
 
@@ -402,6 +455,45 @@ func sanitizeTitle(text string) string {
 	return strings.TrimSpace(result)
 }
 
+// ============================================================
+// normalizeNewsType - نرمال‌سازی مقدار news_type
+// مقادیر «25»، «اصل 25»، «اصل25»، «اصل ۲۵» → «خط»
+// ============================================================
+func normalizeNewsType(v string) string {
+	// حذف فاصله اضافی
+	v = strings.TrimSpace(v)
+
+	// اگر خالی بود، مقدار پیش‌فرض
+	if v == "" {
+		return "خط"
+	}
+
+	// نرمال‌سازی اعداد فارسی/عربی به انگلیسی برای مقایسه
+	normalized := v
+	normalized = strings.ReplaceAll(normalized, "۲", "2")
+	normalized = strings.ReplaceAll(normalized, "٢", "2")
+	normalized = strings.ReplaceAll(normalized, "۵", "5")
+	normalized = strings.ReplaceAll(normalized, "٥", "5")
+	normalized = strings.ReplaceAll(normalized, "‌", "") // حذف نیم‌فاصله
+	normalized = strings.ReplaceAll(normalized, " ", "") // حذف فاصله برای مقایسه
+
+	// مقایسه با مقادیر معادل «اصل 25»
+	switch normalized {
+	case "25", "اصل25", "اصل٢٥", "اصل۲۵":
+		return "خط"
+	}
+
+	// اگر «اصل 25» با فاصله بود
+	if strings.Contains(v, "اصل") && strings.Contains(normalized, "25") {
+		return "خط"
+	}
+
+	return v
+}
+
+// ============================================================
+// extractTextFromDocx - استخراج متن و ساختار از فایل Word
+// ============================================================
 func extractTextFromDocx(filePath string) (string, error) {
 	r, err := zip.OpenReader(filePath)
 	if err != nil {
@@ -439,7 +531,6 @@ func extractTextFromDocx(filePath string) (string, error) {
 	inItalic := false
 	headingTag := "" // ذخیره تگ h1 تا h4
 
-	// inTable := false
 	inCell := false
 	var currentRow []string
 	var currentCell strings.Builder
@@ -557,6 +648,9 @@ func extractTextFromDocx(filePath string) (string, error) {
 	return extracted, nil
 }
 
+// ============================================================
+// getOrCreateRecord - یافتن یا ایجاد رکورد در یک مجموعه
+// ============================================================
 func getOrCreateRecord(app *pocketbase.PocketBase, collectionName, fieldName, value string) (string, error) {
 	record, err := app.FindFirstRecordByData(collectionName, fieldName, value)
 	if err == nil && record != nil {

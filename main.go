@@ -88,6 +88,12 @@ var folderRules = map[string]FolderRule{
 }
 
 func main() {
+	// اگر کاربر هیچ دستوری وارد نکرد (مثلاً دابل‌کلیک روی exe)،
+	// به‌طور پیش‌فرض "serve" را اجرا کن تا PocketBase بالا بیاید.
+	if len(os.Args) == 1 {
+		os.Args = append(os.Args, "serve")
+	}
+
 	app := pocketbase.New()
 	baseDir := "./import_files"
 

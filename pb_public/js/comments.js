@@ -254,12 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
 
                     state.pendingComments.push(tempComment);
+                    window.pendingComments = state.pendingComments;
                     renderCommentsList();
-                    //     Swal.fire({
-                    //         icon: 'info',
-                    //         title: 'ثبت موقت',
-                    //         text: 'پاسخ شما به‌صورت موقت ثبت شد و پس از ذخیره نهایی گزارش، ثبت خواهد شد.'
-                    //     });
+                  
 
                     let timerInterval;
                     Swal.fire({
@@ -497,6 +494,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             state.pendingComments.push(tempComment);
+            // 🔁 آینه‌سازی روی window برای دسترسی از create-report.js
+            window.pendingComments = state.pendingComments;
             resetCommentForm();
             renderCommentsList();
             Swal.fire({
@@ -521,8 +520,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const replyNotice = $id('reply-notice');
         if (replyNotice) replyNotice.classList.add('hidden');
     }
+
+    // در comments.js، داخل DOMContentLoaded
+    window.reloadComments = async function (newReportId) {
+        if (newReportId) state.reportId = newReportId;
+        if (!state.reportId) return;
+        state.comments = [];
+        state.pendingComments = [];
+        window.pendingComments = state.pendingComments;
+        await fetchComments();
+        console.log('🔄 لیست کامنت‌ها رفرش شد.');
+    };
+
+    
     // 5. عمومی‌سازی تابع ثبت کامنت‌های موقت پس از ایجاد موفق گزارش
     window.savePendingComments = async function (newReportId) {
+        console.log('🔵 savePendingComments صدا زده شد. تعداد pending:', state.pendingComments.length);
         if (!state.pendingComments || state.pendingComments.length === 0) return;
 
         // نقشه‌برداری شناسه والد برای پاسخ‌هایی که به کامنت‌های موقت وابسته هستند
@@ -543,11 +556,14 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const createdRecord = await state.pb.collection(COMMENTS_COLLECTION).create(payload);
                 idMapping[item.id] = createdRecord.id;
+                console.log('✅ کامنت موقت ذخیره شد:', createdRecord.id, '-', payload.text.substring(0, 30) + '...');
             } catch (err) {
-                console.error('خطا در ذخیره‌سازی کامنت موقت:', err);
+                console.error('❌ خطا در ذخیره‌سازی کامنت موقت:', err?.data || err);
             }
         }
 
         state.pendingComments = [];
+        window.pendingComments = state.pendingComments; // 🔁 آینه‌سازی صفر شدن
+        console.log('🟢 savePendingComments با موفقیت تمام شد.');
     };
 });

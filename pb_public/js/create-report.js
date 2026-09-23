@@ -1266,75 +1266,106 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // =====================================================
-            // 🛟 پشتیبان: اگر comments.js کامنت‌های موقت را ذخیره نکرد، خودمان ذخیره کنیم
+            // 🛟 پشتیبان نهایی: چک می‌کنیم اگر کامنت موقتی مانده، ذخیره کنیم
             // =====================================================
-            if (Array.isArray(window.pendingComments) && window.pendingComments.length > 0) {
-                console.log(`🛟 یافت شد ${window.pendingComments.length} کامنت موقت ذخیره‌نشده. در حال ذخیره‌سازی...`);
+            const stillPending = (window.pendingComments && Array.isArray(window.pendingComments))
+                ? window.pendingComments
+                : [];
+            console.log('🛟 تعداد کامنت‌های موقت باقی‌مانده پس از savePendingComments:', stillPending.length);
+
+            if (stillPending.length > 0) {
                 const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
                 const successfulIndexes = [];
 
-                for (let i = 0; i < window.pendingComments.length; i++) {
-                    const c = window.pendingComments[i];
+                for (let i = 0; i < stillPending.length; i++) {
+                    const c = stillPending[i];
                     try {
                         await state.pb.collection('comments').create({
                             report: savedReport.id,
-                            author: currentUser.id,
+                            author: c.author || currentUser.id,
                             type: c.type || 'ملاحظه',
                             text: c.text || '',
-                            parent: c.parent || null,
+                            parent: c.parent && c.parent.startsWith('temp_') ? null : (c.parent || null),
                             version: 1
                         });
                         successfulIndexes.push(i);
+                        console.log('🛟 کامنت پشتیبان ذخیره شد.');
                     } catch (cErr) {
-                        console.warn('خطا در ذخیره کامنت موقت:', cErr);
+                        console.error('❌ خطا در ذخیره کامنت پشتیبان:', cErr?.data || cErr);
                     }
                 }
 
-                // حذف کامنت‌های موفق از آرایه
                 for (let i = successfulIndexes.length - 1; i >= 0; i--) {
-                    window.pendingComments.splice(successfulIndexes[i], 1);
+                    stillPending.splice(successfulIndexes[i], 1);
                 }
 
                 if (successfulIndexes.length > 0) {
-                    console.log(`✅ ${successfulIndexes.length} کامنت موقت ذخیره شد.`);
+                    console.log(`✅ ${successfulIndexes.length} کامنت پشتیبان ذخیره شد.`);
                 }
             }
-
             // =====================================================
             // 🧠 ثبت خودکار دیدگاه (اگر کاربر دکمه ثبت دیدگاه را نزده بود)
             // =====================================================
-            if (window.__pendingAutoComment && savedReport?.id) {
+            const autoComment = window.__pendingAutoComment || state.__commentFromWord;
+
+            if (autoComment && savedReport?.id) {
                 try {
-                    const { type, text } = window.__pendingAutoComment;
+                    const { type, text } = autoComment;
                     const commentTextEl = $id('comment-text');
 
-                    const existing = await state.pb.collection('comments').getList(1, 1, {
-                        filter: `report = "${savedReport.id}" && text = "${text.replace(/"/g, '\\"')}"`
-                    });
+                    // چک تکراری بودن با روش پایدار (fetch و مقایسه متنی)
+                    let alreadyExists = false;
+                    try {
+                        const sameTypeComments = await state.pb.collection('comments').getFullList({
+                            filter: `report = "${savedReport.id}"`
+                        });
+                        alreadyExists = sameTypeComments.some(c => (c.text || '').trim() === (text || '').trim());
+                    } catch (chkErr) {
+                        console.warn('⚠️ خطا در بررسی تکراری بودن:', chkErr);
+                        alreadyExists = false;
+                    }
 
-                    if (existing.total === 0) {
+                    if (!alreadyExists && text && text.trim()) {
                         const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
-                        await state.pb.collection('comments').create({
+                        const created = await state.pb.collection('comments').create({
                             report: savedReport.id,
                             author: currentUser.id,
-                            type: type,
+                            type: type || 'ملاحظه',
                             text: text,
                             parent: null,
                             version: 1
                         });
-                        console.log('✅ دیدگاه به‌صورت خودکار ثبت شد.');
+                        console.log('✅ دیدگاه به‌صورت خودکار ثبت شد. شناسه:', created.id);
                         showToast('دیدگاه کارشناسی نیز ثبت شد.');
+
+                        // 🔄 کامنت‌های موجود در DOM را بدون رفرش صفحه به‌روزرسانی کن
+                        try {
+                            // راه ۱: اگر comments.js تابع عمومی برای رفرش دارد
+                            if (typeof window.reloadComments === 'function') {
+                                await window.reloadComments(savedReport.id);
+                                console.log('🔄 لیست کامنت‌ها از طریق reloadComments به‌روزرسانی شد.');
+                            } else {
+                                // راه ۲: ساده‌ترین راه — لینک reportId را در comments.js به‌روز کن و کامنت را مستقیم به DOM اضافه کن
+                                appendCommentToDom(created, type || 'ملاحظه');
+                                console.log('🔄 کامنت به DOM اضافه شد.');
+                            }
+                        } catch (domErr) {
+                            console.warn('خطا در به‌روزرسانی DOM کامنت‌ها:', domErr);
+                        }
+                    } else if (alreadyExists) {
+                        console.log('ℹ️ دیدگاه مشابه قبلاً ثبت شده بود.');
                     } else {
-                        console.log('ℹ️ دیدگاه قبلاً ثبت شده بود، از ثبت دوباره صرف‌نظر شد.');
+                        console.log('ℹ️ متنی برای ثبت دیدگاه خودکار وجود نداشت.');
                     }
 
                     if (commentTextEl) commentTextEl.value = '';
                     window.__pendingAutoComment = null;
+                    state.__commentFromWord = null;
                 } catch (cErr) {
-                    console.error('خطا در ثبت خودکار دیدگاه:', cErr);
+                    console.error('❌ خطا در ثبت خودکار دیدگاه:', cErr?.data || cErr);
+                    showError('خطا در ثبت دیدگاه کارشناسی. لطفاً دیدگاه را دستی ثبت کنید.');
                 }
-            }
-
+            }            
             // به‌روزرسانی باکس متادیتا با اطلاعات تازه ثبت شده
             updateMetadataDisplay(savedReport);
 
@@ -1734,11 +1765,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const commentTextarea = $id('comment-text');
                     if (commentTextarea) commentTextarea.value = commentData.text;
                 }
+                // 🚩 پرچم: کامنت از فایل Word آمده و باید بعد از ذخیره گزارش حتماً ثبت شود
+                state.__commentFromWord = {
+                    type: finalType,
+                    text: commentData.text || '',
+                    importedAt: Date.now()
+                };
                 console.log('💬 [Word Import] commentData =', commentData);
             } else {
                 console.warn('⚠️ جدول ملاحظات/نظریات در فایل Word پیدا نشد یا خالی بود.');
             }
-
             // ===== استخراج تصاویر از فایل Word و افزودن به پیوست‌ها =====
             try {
                 const addedCount = await extractImagesFromWordHtml(html, file);
@@ -2059,6 +2095,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 🧩 افزودن دستی یک کامنت به DOM بدون رفرش صفحه
+    function appendCommentToDom(comment, commentType) {
+        const container = document.getElementById('comments-container');
+        if (!container) return;
+
+        const currentUser = state.pb.authStore.record || state.pb.authStore.model || {};
+        const authorName = currentUser.name || currentUser.username || 'کاربر سیستم';
+        const createdDate = new Date().toLocaleDateString('fa-IR');
+
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-xl border border-slate-200 bg-white shadow-sm space-y-2';
+        card.innerHTML = `
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-slate-900">👤 ${authorName}</span>
+                    <span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded-md">${commentType}</span>
+                </div>
+                <span class="text-xs text-slate-400 font-medium">${createdDate}</span>
+            </div>
+            <div class="text-sm text-slate-700 leading-relaxed font-semibold">${comment.text}</div>
+        `;
+
+        // اگر پیام «هنوز نظری ثبت نشده» هست، پاکش کن
+        const emptyMsg = container.querySelector('.text-center.text-slate-400');
+        if (emptyMsg) emptyMsg.remove();
+
+        container.appendChild(card);
+    }
 
     // استخراج «نوع» و «متن ملاحظه یا نظریه» از جدول ملاحظات فایل Word
     function extractCommentFromWord(html) {

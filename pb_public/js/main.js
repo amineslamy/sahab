@@ -431,7 +431,7 @@ async function loadReportsTable() {
                     <!-- ۲. عنوان خبر و شناسه -->
                     <td class="p-2.5 align-middle">
                         <div class="flex items-center gap-1.5 font-bold text-slate-900">
-                            <a href="create-report.html?id=${rec.id}" title="ویرایش گزارش" class="truncate max-w-[280px] hover:text-indigo-600 hover:underline transition-colors">
+                            <a href="create-report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش گزارش" class="truncate max-w-[280px] hover:text-indigo-600 hover:underline transition-colors">
                                 ${rec.title || 'بدون عنوان'}
                             </a>
                             ${mediaIcons}
@@ -478,7 +478,7 @@ async function loadReportsTable() {
                             <button onclick="openDetailModal('${rec.id}')" title="مشاهده جزئیات" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
                                 🔍
                             </button>
-                            <a href="create-report.html?id=${rec.id}" title="ویرایش" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">
+                            <a href="create-report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">
                                 ✏️
                             </a>
                             <button onclick="deleteReport('${rec.id}')" title="حذف" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition">

@@ -752,17 +752,9 @@
                             </div>
                             <div>
                                 <label for="report-marjaa" class="block text-xs font-semibold text-slate-600 mb-1.5">مرجع انتشار خبر (marjaa)</label>
-                                <select id="report-marjaa" name="marjaa"
-                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm cursor-pointer">
-                                    <option value="">-- بدون مرجع --</option>
-                                    <option value="خبرگزاری">خبرگزاری</option>
-                                    <option value="مطبوعات">مطبوعات</option>
-                                    <option value="صداوسیما">صداوسیما</option>
-                                    <option value="رسانه-های-بیگانه">رسانه‌های بیگانه</option>
-                                    <option value="صفحات-مجازی">صفحات مجازی</option>
-                                    <option value="رسمی">رسمی</option>
-                                    <option value="غیررسمی">غیررسمی</option>
-                                </select>
+                                <input type="text" id="report-marjaa" name="marjaa" autocomplete="off"
+                                    placeholder="نام مرجع انتشار خبر را وارد کنید..."
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm">
                             </div>
                         </div>
 <!-- ساختار سازمانی: سطح هدف + آبشاری معاونت > اداره > میز > موضوع > هدف -->
@@ -775,23 +767,10 @@
                                 <span class="text-[11px] text-slate-400">target_type</span>
                             </div>
 
-                            <div>
-                                <label for="report-target-level" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
-                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">★</span>
-                                    سطح هدف خبر (target_type)
-                                    <span class="tooltip-hint text-slate-400"><i class="fa-regular fa-circle-question"></i>
-                                        <span class="tooltip-text">مشخص می‌شود خبر روی کدام سطح سازمانی متمرکز است و فیلد target_* متناظر پر می‌شود</span>
-                                    </span>
-                                </label>
-                                <select id="report-target-level" name="target_type"
-                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer">
-                                    <option value="">-- بدون هدف سازمانی --</option>
-                                    <option value="deputy">معاونت</option>
-                                    <option value="department">اداره</option>
-                                    <option value="desk">میز</option>
-                                    <option value="topic">موضوع</option>
-                                    <option value="goal">هدف</option>
-                                </select>
+                            <input type="hidden" id="report-target-level" name="target_type" value="">
+                            <div class="flex items-center gap-2 rounded-xl bg-purple-50 border border-purple-100 px-3 py-2 text-xs">
+                                <span class="font-semibold text-slate-600">سطح هدف (خودکار):</span>
+                                <span id="target-level-auto-label" class="font-extrabold text-purple-700">بدون هدف سازمانی</span>
                             </div>
 
                             <div data-org-level="1">
@@ -972,7 +951,7 @@
 
         const MAX_RELATIONS = 10;
 
-        /* سطوح هدف خبر (target_type) و فیلد رابطی متناظر */
+        /* سطوح سلسله‌مراتبی خبر؛ سطح هدف از آخرین انتخاب کاربر استخراج می‌شود. */
         const TARGET_LEVEL_DEFS = [
             { value: 'deputy', label: 'معاونت', field: 'target_deputy' },
             { value: 'department', label: 'اداره', field: 'target_department' },
@@ -1141,43 +1120,35 @@
             }
         }
 
-        /* با انتخاب سطح هدف، سطوح پایین‌تر مخفی و ریست می‌شوند */
-        function applyTargetLevel(levelValue) {
-            const idx = targetLevelIndex(levelValue);
-            TARGET_LEVEL_DEFS.forEach((def, i) => {
-                const wrap = document.querySelector(`[data-org-level="${i + 1}"]`);
-                const sel = orgSel[def.value];
-                if (!wrap || !sel) return;
-                if (levelValue && i + 1 > (idx + 1)) {
-                    wrap.classList.add('hidden');
-                    sel.value = '';
-                    sel.disabled = true;
-                    fillSelect(sel, [], '-- برای این سطح هدف لازم نیست --');
-                } else {
-                    wrap.classList.remove('hidden');
-                }
+        function syncTargetTypeFromSelections() {
+            const deepest = [...TARGET_LEVEL_DEFS].reverse().find(def => orgSel[def.value].value);
+            const level = deepest ? deepest.value : '';
+            selTargetLevel.value = level;
+            const label = $id('target-level-auto-label');
+            if (label) label.textContent = deepest ? deepest.label : 'بدون هدف سازمانی';
+            return level;
+        }
+
+        function resetOrgLevelsAfter(levelValue) {
+            const currentIndex = targetLevelIndex(levelValue);
+            TARGET_LEVEL_DEFS.forEach((def, index) => {
+                if (index <= currentIndex) return;
+                const select = orgSel[def.value];
+                select.value = '';
+                select.disabled = true;
+                fillSelect(select, [], levelPlaceholder(def.value));
             });
-            if (!levelValue) {
-                // حذف سطح هدف: ریست کامل زنجیره
-                TARGET_LEVEL_DEFS.forEach((def, i) => {
-                    const sel = orgSel[def.value];
-                    sel.value = '';
-                    sel.disabled = true;
-                    fillSelect(sel, [], i === 0 ? '-- انتخاب معاونت --' : levelPlaceholder(def.value));
-                });
-                return;
-            }
-            // سطح اول (معاونت) فعال می‌شود و بقیه ریست می‌شوند
-            const firstSel = orgSel.deputy;
-            firstSel.value = '';
-            firstSel.disabled = false;
-            fillSelect(firstSel, state.org.deputies, '-- انتخاب معاونت --');
+        }
+
+        function initializeOrgSelectors() {
+            fillSelect(orgSel.deputy, state.org.deputies, '-- انتخاب معاونت --');
+            orgSel.deputy.disabled = false;
             TARGET_LEVEL_DEFS.slice(1).forEach(def => {
-                const sel = orgSel[def.value];
-                sel.value = '';
-                sel.disabled = true;
-                fillSelect(sel, [], levelPlaceholder(def.value));
+                const select = orgSel[def.value];
+                select.disabled = true;
+                fillSelect(select, [], levelPlaceholder(def.value));
             });
+            syncTargetTypeFromSelections();
         }
 
         function loadChildOptions(levelValue, parentValue) {
@@ -1198,25 +1169,18 @@
 
         CASCADE_CHAINS.forEach(chain => {
             orgSel[chain.level].addEventListener('change', function () {
-                const childSel = orgSel[chain.child];
-                childSel.value = '';
-                childSel.disabled = true;
-                fillSelect(childSel, [], levelPlaceholder(chain.child));
+                resetOrgLevelsAfter(chain.level);
                 if (this.value) {
                     loadChildOptions(chain.child, this.value);
                 }
+                syncTargetTypeFromSelections();
                 updateProgress();
                 markDirty();
             });
         });
 
         orgSel.goal.addEventListener('change', function () {
-            updateProgress();
-            markDirty();
-        });
-
-        selTargetLevel.addEventListener('change', function () {
-            applyTargetLevel(this.value);
+            syncTargetTypeFromSelections();
             updateProgress();
             markDirty();
         });
@@ -1274,7 +1238,7 @@
 
         /* پیلود هدف: فقط فیلد target_* متناظر با سطح انتخاب‌شده ارسال می‌شود */
         function getTargetPayload() {
-            const level = selTargetLevel.value;
+            const level = syncTargetTypeFromSelections();
             if (!level) return {};
             const def = TARGET_LEVEL_DEFS.find(d => d.value === level);
             const sel = orgSel[level];
@@ -1640,15 +1604,16 @@
             markDirty();
         });
 
-        ['report-source', 'report-classification', 'report-marjaa'].forEach(id => {
+        ['report-source', 'report-classification'].forEach(id => {
             $id(id).addEventListener('change', markDirty);
         });
+        $id('report-marjaa').addEventListener('input', markDirty);
 
         function updateProgress() {
             const titleOk = titleInput.value.trim().length > 0;
             const bodyOk = state.quillBody && state.quillBody.getText().trim().length > 0;
             const dateOk = !!$id('report-occurred-at').value;
-            const level = selTargetLevel.value;
+            const level = syncTargetTypeFromSelections();
             const orgOk = !!(level && orgSel[level] && orgSel[level].value);
             document.querySelector('[data-step="org"]').classList.toggle('done', orgOk);
             const checks = [titleOk, bodyOk, dateOk, orgOk];
@@ -1776,23 +1741,20 @@
 
                 // ساختار سازمانی: بازسازی زنجیره از رکورد
                 if (rec.target_type && rec['target_' + rec.target_type]) {
-                    selTargetLevel.value = rec.target_type;
-                    applyTargetLevel(rec.target_type);
                     const chain = resolveChain(rec.target_type, rec['target_' + rec.target_type]);
+                    fillSelect(orgSel.deputy, state.org.deputies, '-- انتخاب معاونت --');
+                    orgSel.deputy.disabled = false;
                     let parentValue = chain.deputy;
                     ['department', 'desk', 'topic', 'goal'].forEach(lv => {
-                        if (!parentValue) return;
                         const items = childItemsOf(lv, parentValue);
-                        fillSelect(orgSel[lv], items, items.length ? '-- ... --' : levelPlaceholder(lv));
-                        orgSel[lv].disabled = !items.length;
+                        fillSelect(orgSel[lv], items, items.length ? `-- انتخاب ${TARGET_LEVEL_DEFS.find(def => def.value === lv).label} --` : levelPlaceholder(lv));
+                        orgSel[lv].disabled = !(parentValue && items.length);
+                        orgSel[lv].value = chain[lv] || '';
                         parentValue = chain[lv] || null;
                     });
-                    TARGET_LEVEL_DEFS.forEach(def => {
-                        if (chain[def.value] && orgSel[def.value]) {
-                            orgSel[def.value].value = chain[def.value];
-                        }
-                    });
+                    orgSel.deputy.value = chain.deputy || '';
                 }
+                syncTargetTypeFromSelections();
 
                 // اشخاص و کلیدواژه‌ها
                 state.selectedPeople = Array.isArray(rec.mentioned_people) ? rec.mentioned_people.slice(0, MAX_RELATIONS) : [];
@@ -1842,33 +1804,20 @@
                 $id('content-error').classList.remove('flex');
             }
 
-            // اعتبارسنجی هدف سازمانی: اگر سطح هدف انتخاب شده، گره متناظر الزامی است
-            const lvl = selTargetLevel.value;
-            if (lvl && !orgSel[lvl].value) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'سطح هدف ناقص است',
-                    text: 'سطح هدف خبر را انتخاب کرده‌اید؛ لطفاً گره متناظر آن را نیز در زنجیره سازمانی مشخص کنید.',
-                    confirmButtonText: 'باشه',
-                    confirmButtonColor: '#6366f1'
-                });
-                firstInvalid = firstInvalid || orgSel[lvl];
-            }
+            syncTargetTypeFromSelections();
 
             if (firstInvalid) {
                 const card = firstInvalid.closest('.glass-card') || firstInvalid;
                 card.classList.add('shake');
                 setTimeout(() => card.classList.remove('shake'), 500);
                 firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                if (!(lvl && !orgSel[lvl].value)) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'لطفاً فیلدهای الزامی را تکمیل کنید',
-                        text: 'عنوان، متن اصلی خبر و تاریخ وقوع نمی‌توانند خالی باشند.',
-                        confirmButtonText: 'باشه',
-                        confirmButtonColor: '#6366f1'
-                    });
-                }
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'لطفاً فیلدهای الزامی را تکمیل کنید',
+                    text: 'عنوان، متن اصلی خبر و تاریخ وقوع نمی‌توانند خالی باشند.',
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#6366f1'
+                });
                 return;
             }
 
@@ -1943,6 +1892,7 @@
 
             // بارگذاری داده‌های روابط
             await loadRelationData();
+            initializeOrgSelectors();
 
             // راه‌اندازی ادیتورها
             initQuillEditors();

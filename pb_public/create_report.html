@@ -721,20 +721,6 @@
 
                     <div class="sticky-toc space-y-6">
 
-                        <!-- Mini Navigation -->
-                        <nav class="glass-card p-4 rounded-2xl hidden lg:block fade-in-up">
-                            <p class="text-[11px] font-extrabold text-slate-400 mb-2 px-1">پیمایش سریع</p>
-                            <ul class="space-y-1 text-xs font-semibold text-slate-600">
-                                <li><a href="#section-title" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-heading text-blue-500 w-4"></i> اطلاعات اصلی</a></li>
-                                <li><a href="#section-content" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-align-right text-emerald-500 w-4"></i> متن خبر (body)</a></li>
-                                <li><a href="#section-notes" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-comment-medical text-amber-500 w-4"></i> تحلیل و ملاحظات</a></li>
-                                <li><a href="#section-classification" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-layer-group text-rose-500 w-4"></i> طبقه‌بندی و منبع</a></li>
-                                <li><a href="#section-org" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-sitemap text-purple-500 w-4"></i> ساختار سازمانی</a></li>
-                                <li><a href="#section-people" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-users text-rose-500 w-4"></i> اشخاص مرتبط</a></li>
-                                <li><a href="#section-tags" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-tags text-teal-500 w-4"></i> کلیدواژه‌ها</a></li>
-                            </ul>
-                        </nav>
-
                         <!-- طبقه‌بندی، منشا و مرجع انتشار -->
                         <div id="section-classification" class="glass-card card-glow-rose p-6 rounded-2xl space-y-4 relative z-10 fade-in-up">
                             <div class="flex items-center gap-2.5 mb-1">
@@ -891,7 +877,7 @@
                             <div id="people-create-form" class="hidden glass-card p-3 rounded-xl space-y-2 bg-rose-50/60 border border-rose-200">
                                 <input type="text" id="people-new-name" placeholder="نام کامل (full_name)"
                                     class="field-input w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
-                                <input type="text" id="people-new-desc" placeholder="توضیحات (اختیاری) (description)"
+                                <input type="text" id="people-new-desc" placeholder="سِمَت، مسئولیت و توضیحات"
                                     class="field-input w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
                                 <div class="flex items-center gap-2">
                                     <button type="button" id="people-save-btn" class="btn-press flex-1 text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-lg transition border border-rose-300">
@@ -1552,7 +1538,7 @@
         function initQuillEditors() {
             state.quillBody = new Quill('#editor-body', {
                 theme: 'snow',
-                placeholder: 'متن اصلی خبر را بنویسید یا فایل Word را در باکس بالا بارگذاری کنید...',
+                placeholder: 'متن اصلی خبر را بنویسید...',
                 modules: { toolbar: QUILL_TOOLBAR }
             });
             state.quillMolaheze = new Quill('#editor-molaheze', {
@@ -1966,6 +1952,7 @@
             state.editingId = urlParams.get('id');
             let initialFa = null;
             if (state.editingId) {
+                $id('word-import-zone').classList.add('hidden');
                 const btnText = $id('btn-text');
                 if (btnText) btnText.textContent = 'بروزرسانی خبر';
                 initialFa = await loadRecordForEdit();

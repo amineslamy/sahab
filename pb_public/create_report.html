@@ -971,7 +971,9 @@
             people: [],
             keywords: [],
             selectedPeople: [],
-            selectedKeywords: []
+            originalPersonIds: [],
+            selectedKeywords: [],
+            originalKeywordIds: []
         };
 
         const $id = (id) => document.getElementById(id);
@@ -1317,7 +1319,7 @@
                 <button type="button" class="suggest-item" data-people-id="${p.id}">
                     <i class="fa-solid fa-user text-rose-400 text-[10px]"></i>
                     <span class="flex-1 text-right">${escapeHtml(p.full_name || 'بدون نام')}</span>
-                    <span class="suggest-sub">${escapeHtml((p.description || '').slice(0, 40))}</span>
+                    <span class="suggest-sub">${escapeHtml((p.description || '').slice(0, 30))}${p.description ? ' · ' : ''}${toPersianDigits(Array.isArray(p.news) ? p.news.length : (p.news ? 1 : 0))} خبر مرتبط</span>
                 </button>`).join('');
             box.classList.remove('hidden');
         }
@@ -1416,7 +1418,6 @@
             $id('keyword-search-input').value = '';
             renderKeywordSuggestions();
             markDirty();
-            bumpKeywordUsage(id);
         }
 
         function renderKeywordSuggestions() {
@@ -1432,18 +1433,50 @@
                 <button type="button" class="suggest-item" data-keyword-id="${k.id}">
                     <i class="fa-solid fa-tag text-teal-400 text-[10px]"></i>
                     <span class="flex-1 text-right">${escapeHtml(k.title || 'بدون عنوان')}</span>
-                    <span class="suggest-sub">${toPersianDigits(k.usage_count || 0)} بار استفاده</span>
+                    <span class="suggest-sub">${toPersianDigits(Array.isArray(k.news) ? k.news.length : (k.news ? 1 : 0))} خبر مرتبط</span>
                 </button>`).join('');
             box.classList.remove('hidden');
         }
 
-        /* هر بار انتخاب یک کلیدواژه موجود، شمارنده استفاده زیاد می‌شود (غیر مسدود) */
-        function bumpKeywordUsage(id) {
-            const k = findKeyword(id);
-            if (!k) return;
-            const next = (Number(k.usage_count) || 0) + 1;
-            k.usage_count = next;
-            state.pb.collection(COLLECTIONS.keywords).update(id, { usage_count: next }).catch(() => {});
+        function relationIds(value) {
+            if (Array.isArray(value)) return value.filter(Boolean);
+            return value ? [value] : [];
+        }
+
+        /* همگام‌سازی رابطهٔ معکوس news روی رکوردهای وابسته، پس از ذخیرهٔ خبر */
+        async function syncNewsRelations(collectionName, selectedRecordIds, previousRecordIds, cachedRecords, newsId) {
+            const selectedIds = new Set(selectedRecordIds);
+            const previousIds = new Set(previousRecordIds);
+            const affectedIds = new Set([...selectedIds, ...previousIds]);
+            const failures = [];
+
+            for (const recordId of affectedIds) {
+                try {
+                    const record = await state.pb.collection(collectionName).getOne(recordId, { requestKey: null });
+                    const linkedNews = new Set(relationIds(record.news));
+                    if (selectedIds.has(recordId)) linkedNews.add(newsId);
+                    else linkedNews.delete(newsId);
+
+                    const nextNews = [...linkedNews];
+                    const currentNews = relationIds(record.news);
+                    if (nextNews.length !== currentNews.length || nextNews.some(id => !currentNews.includes(id))) {
+                        await state.pb.collection(collectionName).update(recordId, { news: nextNews }, { requestKey: null });
+                    }
+                    const cachedRecord = cachedRecords.find(item => item.id === recordId);
+                    if (cachedRecord) cachedRecord.news = nextNews;
+                } catch (err) {
+                    failures.push({ recordId, error: err });
+                }
+            }
+            return failures;
+        }
+
+        function syncKeywordNewsRelations(newsId) {
+            return syncNewsRelations(COLLECTIONS.keywords, state.selectedKeywords, state.originalKeywordIds, state.keywords, newsId);
+        }
+
+        function syncPersonNewsRelations(newsId) {
+            return syncNewsRelations(COLLECTIONS.people, state.selectedPeople, state.originalPersonIds, state.people, newsId);
         }
 
         $id('keyword-search-input').addEventListener('input', renderKeywordSuggestions);
@@ -1471,7 +1504,7 @@
                 return;
             }
             try {
-                const rec = await state.pb.collection(COLLECTIONS.keywords).create({ title: title, usage_count: 1 });
+                const rec = await state.pb.collection(COLLECTIONS.keywords).create({ title });
                 state.keywords.push(rec);
                 addKeywordChip(rec.id);
                 $id('keyword-new-title').value = '';
@@ -1758,7 +1791,9 @@
 
                 // اشخاص و کلیدواژه‌ها
                 state.selectedPeople = Array.isArray(rec.mentioned_people) ? rec.mentioned_people.slice(0, MAX_RELATIONS) : [];
+                state.originalPersonIds = state.selectedPeople.slice();
                 state.selectedKeywords = Array.isArray(rec.keywords) ? rec.keywords.slice(0, MAX_RELATIONS) : [];
+                state.originalKeywordIds = state.selectedKeywords.slice();
                 renderPeopleChips();
                 renderKeywordChips();
 
@@ -1845,20 +1880,34 @@
                 btnSpinner.classList.remove('hidden');
                 btnText.textContent = state.editingId ? 'در حال بروزرسانی...' : 'در حال ذخیره‌سازی...';
 
+                let savedNews;
                 if (state.editingId) {
-                    await state.pb.collection(COLLECTIONS.news).update(state.editingId, payload);
+                    savedNews = await state.pb.collection(COLLECTIONS.news).update(state.editingId, payload);
                 } else {
                     payload.created_by = state.currentUser.id;
-                    await state.pb.collection(COLLECTIONS.news).create(payload);
+                    savedNews = await state.pb.collection(COLLECTIONS.news).create(payload);
                 }
 
+                const [keywordSyncFailures, personSyncFailures] = await Promise.all([
+                    syncKeywordNewsRelations(savedNews.id),
+                    syncPersonNewsRelations(savedNews.id)
+                ]);
+                if (!keywordSyncFailures.length) {
+                    state.originalKeywordIds = state.selectedKeywords.slice();
+                }
+                if (!personSyncFailures.length) {
+                    state.originalPersonIds = state.selectedPeople.slice();
+                }
+                const relationSyncFailureCount = keywordSyncFailures.length + personSyncFailures.length;
                 formTouched = false;
                 Swal.fire({
-                    icon: 'success',
-                    title: state.editingId ? 'با موفقیت بروزرسانی شد!' : 'با موفقیت ذخیره شد!',
-                    text: 'اطلاعات خبر در کالکشن news ثبت شد.',
+                    icon: relationSyncFailureCount ? 'warning' : 'success',
+                    title: relationSyncFailureCount ? 'خبر ذخیره شد، اما پیوند اشخاص یا کلیدواژه‌ها کامل نشد' : (state.editingId ? 'با موفقیت بروزرسانی شد!' : 'با موفقیت ذخیره شد!'),
+                    text: relationSyncFailureCount
+                        ? `خبر ذخیره شد، اما اتصال ${relationSyncFailureCount} مورد از اشخاص یا کلیدواژه‌ها ناموفق بود. قواعد دسترسی و فیلد news در کالکشن‌های people و keywords را بررسی کنید.`
+                        : 'اطلاعات خبر و پیوند اشخاص و کلیدواژه‌های آن ذخیره شد.',
                     confirmButtonText: 'باشه',
-                    confirmButtonColor: '#10b981'
+                    confirmButtonColor: relationSyncFailureCount ? '#f59e0b' : '#10b981'
                 });
             } catch (err) {
                 console.error('خطا در ذخیره‌سازی خبر:', err);

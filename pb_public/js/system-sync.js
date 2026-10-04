@@ -64,7 +64,7 @@ async function exportZip() {
             pbInstance.collection('comments').getFullList({ sort: '-created' }),
             pbInstance.collection('cases').getFullList({ sort: '-created' }),
             pbInstance.collection('topics').getFullList({ sort: '-created' }),
-            pbInstance.collection('users').getFullList({ sort: '-created' })
+            pbInstance.collection('a_users').getFullList({ sort: '-created' })
         ]);
 
         // استخراج کلیه شناسه‌های ریلیشن‌های وابسته به گزارش‌های انتخاب‌شده
@@ -660,4 +660,35 @@ async function importRecordWithFiles(pbInstance, zip, collectionName, recordData
         console.error(`خطا در پردازش رکورد در مجموعه ${collectionName}:`, error);
         return { status: 'failed', error: error };
     }
+}
+
+// خروجی ZIP سازگار با شمای فعلی news و داده‌های سازمانی وابسته
+async function exportZip() {
+    const selectedIds = Array.from(window.selectedReportIds || []);
+    if (!selectedIds.length) return Swal.fire({icon:'warning', title:'انتخاب خبر', text:'حداقل یک خبر را انتخاب کنید.'});
+    const btn = document.querySelector('button[onclick="exportZip()"]');
+    const oldText = btn?.innerHTML;
+    try {
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ در حال آماده‌سازی...'; }
+        const client = window.pb;
+        const filter = selectedIds.map(id => `id = "${String(id).replace(/"/g, '\\"')}"`).join(' || ');
+        const news = await client.collection('news').getFullList({filter, sort:'-created'});
+        const collectionNames = ['1deputies','2departments','3desks','4topics','5goals','people','keywords'];
+        const records = await Promise.all(collectionNames.map(name => client.collection(name).getFullList()));
+        const related = Object.fromEntries(collectionNames.map((name,i) => [name, records[i]]));
+        const wanted = { '1deputies':new Set(), '2departments':new Set(), '3desks':new Set(), '4topics':new Set(), '5goals':new Set(), people:new Set(), keywords:new Set() };
+        for (const n of news) {
+            for (const level of ['deputy','department','desk','topic','goal']) if(n[`target_${level}`]) wanted[({deputy:'1deputies',department:'2departments',desk:'3desks',topic:'4topics',goal:'5goals'})[level]].add(n[`target_${level}`]);
+            (n.mentioned_people || []).forEach(id=>wanted.people.add(id)); (n.keywords || []).forEach(id=>wanted.keywords.add(id));
+        }
+        for (const [child,parent,parentField] of [['2departments','1deputies','deputy'],['3desks','2departments','relation'],['4topics','3desks','desk'],['5goals','4topics','topic']]) {
+            for (const item of related[child]) if(wanted[child].has(item.id) && item[parentField]) wanted[parent].add(item[parentField]);
+        }
+        const data = {news};
+        for (const name of collectionNames) data[name] = related[name].filter(item=>wanted[name].has(item.id));
+        const zip = new JSZip(); zip.file('data.json', JSON.stringify({exported_at:new Date().toISOString(), data}, null, 2));
+        const blob = await zip.generateAsync({type:'blob'}); const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob); link.download = `news_${new Date().toISOString().slice(0,10)}.zip`; link.click(); URL.revokeObjectURL(link.href);
+    } catch (e) { Swal.fire({icon:'error', title:'خطا در خروجی ZIP', text:e.message}); }
+    finally { if(btn) {btn.disabled=false;btn.innerHTML=oldText;} }
 }

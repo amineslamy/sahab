@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // استعلام صحت توکن از سرور PocketBase
     try {
-        await pb.collection('users').authRefresh();
+        await pb.collection('a_users').authRefresh();
     } catch (authErr) {
         console.warn("نشست کاربر منقضی یا باطل شده است:", authErr);
         pb.authStore.clear();
@@ -50,7 +50,7 @@ async function setupExpertProfile(currentUser) {
     let freshUser = currentUser;
 
     try {
-        freshUser = await pb.collection('users').getOne(currentUser.id, { expand: 'department_rel' });
+        freshUser = await pb.collection('a_users').getOne(currentUser.id, { expand: 'department_rel' });
     } catch (fetchErr) {
         console.warn("عدم موفقیت در بروزرسانی اطلاعات از سرور، استفاده از داده‌های محلی:", fetchErr);
     }
@@ -106,7 +106,7 @@ async function handleProfileFormSubmit(event) {
     btnSave.innerText = 'در حال ذخیره‌سازی...';
 
     try {
-        const updatedUser = await pb.collection('users').update(currentUser.id, formData);
+        const updatedUser = await pb.collection('a_users').update(currentUser.id, formData);
         pb.authStore.save(pb.authStore.token, updatedUser); // بروزرسانی authStore محلی
 
         if (password) {
@@ -184,7 +184,7 @@ function populateDepartmentDropdown(users) {
 // بارگذاری لیست تمامی کاربران از پاکت‌بیس
 async function loadUsers() {
     try {
-        const records = await pb.collection('users').getFullList({
+        const records = await pb.collection('a_users').getFullList({
             sort: '-created',
             expand: 'department_rel'
         });
@@ -489,7 +489,7 @@ async function handleUserFormSubmit(event) {
 
     try {
         if (userId) {
-            await pb.collection('users').update(userId, formData);
+            await pb.collection('a_users').update(userId, formData);
             // در صورتی که پسورد جدید وارد شده باشد، از طریق مسیر سفارشی به روز می‌شود
             if (password) {
                 await pb.send('/api/custom-change-password', {
@@ -523,7 +523,7 @@ async function handleUserFormSubmit(event) {
                 formData.append('password', password);
                 formData.append('passwordConfirm', password);
             }
-            await pb.collection('users').create(formData);
+            await pb.collection('a_users').create(formData);
         }
 
         closeUserModal();
@@ -578,7 +578,7 @@ async function deleteUser(userId, userName) {
     }
 
     try {
-        await pb.collection('users').delete(userId);
+        await pb.collection('a_users').delete(userId);
         await loadUsers();
 
         if (typeof Swal !== 'undefined') {

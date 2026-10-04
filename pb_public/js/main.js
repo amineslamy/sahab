@@ -3,6 +3,12 @@ let allReports = [];
 let allTopics = [];
 let allCases = [];
 let allUsers = [];
+let allDeputies = [];
+let allDepartments = [];
+let allDesks = [];
+let allGoals = [];
+let allPeople = [];
+let allKeywords = [];
 let chartInstances = {};
 let currentPage = 1;
 let perPage = 100;
@@ -58,96 +64,27 @@ function exportBulletin() {
 }
 
 async function deleteReport(id) {
-    const confirmResult = await Swal.fire({
-        title: 'آیا اطمینان دارید؟',
-        text: 'این گزارش و کامنت‌های آن به سطل آشغال منتقل و حذف خواهند شد.',
+    const confirmation = await Swal.fire({
         icon: 'warning',
+        title: 'حذف دائمی خبر؟',
+        text: 'این خبر برای همیشه حذف می‌شود و امکان بازیابی آن وجود ندارد.',
         showCancelButton: true,
-        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'بله، حذف دائمی شود',
+        cancelButtonText: 'انصراف',
+        confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b',
-        confirmButtonText: 'بله، حذف شود',
-        cancelButtonText: 'انصراف'
+        reverseButtons: true
     });
-
-    if (!confirmResult.isConfirmed) return;
+    if (!confirmation.isConfirmed) return;
 
     try {
-        // ۱. دریافت اطلاعات کامل گزارش فعلی
-        const reportData = await pb.collection('reports').getOne(id, { requestKey: null });
-
-        // ۲. دریافت تمام کامنت‌ها و نسخه‌های مرتبط با این گزارش
-        const [relatedComments, relatedVersions] = await Promise.all([
-            pb.collection('comments').getFullList({
-                filter: `report ~ "${id}" || report = "${id}"`,
-                requestKey: null
-            }),
-            pb.collection('report_versions').getFullList({
-                filter: `report = "${id}"`,
-                requestKey: null
-            })
-        ]);
-
-        // ۳. ارسال داده‌های گزارش، کامنت‌ها و نسخه‌ها به کالکشن سطل آشغال (trash_reports)
-        const currentUser = pb.authStore.model;
-        await pb.collection('trash_reports').create({
-            original_id: id,
-            report_data: reportData,
-            comments_data: relatedComments,
-            versions_data: relatedVersions,
-            deleted_by: currentUser ? currentUser.id : null
-        }, { requestKey: null });
-
-        // ۴. حذف تمامی کامنت‌ها و نسخه‌های پیدا شده از کالکشن‌های اصلی
-        for (const comment of relatedComments) {
-            await pb.collection('comments').delete(comment.id, { requestKey: null });
-        }
-        for (const version of relatedVersions) {
-            await pb.collection('report_versions').delete(version.id, { requestKey: null });
-        }
-
-        // ۵. حذف خودِ گزارش از کالکشن اصلی
-        await pb.collection('reports').delete(id, { requestKey: null });
-
+        await pb.collection('news').delete(id, { requestKey: null });
         selectedReportIds.delete(id);
+        await Swal.fire({ icon: 'success', title: 'خبر حذف شد', text: 'خبر به‌صورت دائمی حذف شد.' });
         loadReportsTable();
-
-        Swal.fire({
-            title: 'موفقیت‌آمیز',
-            text: 'گزارش و کامنت‌های مربوطه با موفقیت به سطل آشغال منتقل و پاک شدند.',
-            icon: 'success',
-            confirmButtonText: 'تایید',
-            confirmButtonColor: '#4f46e5'
-        });
     } catch (err) {
-        console.error("خطا در فرآیند انتقال به سطل آشغال و حذف گزارش:", err);
-
-        const status = err?.status || 0;
-        const msg = err?.message || "";
-
-        let errorTitle = "خطا در عملیات";
-        let errorText = msg || 'خطایی رخ داده است.';
-
-        if (status === 400 && msg.includes("required relation reference")) {
-            errorTitle = "عدم امکان حذف";
-            errorText = "کامنت‌ها یا وابستگی‌های اجباری این گزارش پاک نشده‌اند و دیتابیس اجازه حذف نمی‌دهد.";
-        } else if (status === 403) {
-            errorTitle = "عدم داشتن دسترسی";
-            errorText = "شما مجوز لازم روی کالکشن سطل آشغال، کامنت‌ها یا گزارش‌ها را ندارید (API Rules را بررسی کنید).";
-        } else if (status === 404) {
-            errorTitle = "یافت نشد";
-            errorText = "گزارش یا کامنت مورد نظر یافت نشد.";
-        } else if (status === 0 || msg.includes("Failed to fetch")) {
-            errorTitle = "خطای ارتباط با سرور";
-            errorText = "اتصال به سرور برقرار نیست.";
-        }
-
-        Swal.fire({
-            title: errorTitle,
-            text: errorText,
-            icon: 'error',
-            confirmButtonText: 'متوجه شدم',
-            confirmButtonColor: '#4f46e5'
-        });
+        console.error('خطا در حذف دائمی خبر:', err);
+        Swal.fire({ icon: 'error', title: 'حذف انجام نشد', text: err?.message || 'خطا در حذف خبر از پایگاه داده.' });
     }
 }
 function updateSelectionUI() {
@@ -184,16 +121,16 @@ function getRoleBasedFilter() {
 
     // اداره: گزارش‌های خودش + اخبار کارشناسان زیرمجموعه‌اش
     if (role === 'department') {
-        return `(author = "${user.id}" || author.department_rel = "${user.id}")`;
+        return `(created_by = "${user.id}" || created_by.department_rel = "${user.id}")`;
     }
 
     // کارشناس: فقط گزارش‌های خودش
     if (role === 'expert') {
-        return `author = "${user.id}"`;
+        return `created_by = "${user.id}"`;
     }
 
     // نقش پیش‌فرض/ناشناخته
-    return `author = "${user.id}"`;
+    return `created_by = "${user.id}"`;
 }
 const chartFont = 'Vazirmatn, sans-serif';
 function setupApexDefaults() {
@@ -211,6 +148,7 @@ function setupApexDefaults() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     pb = new PocketBase(window.location.origin);
+    window.pb = pb;
 
     if (!pb.authStore.isValid) {
         window.location.href = 'login.html';
@@ -234,10 +172,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (authorSel) {
             authorSel.value = authorParam;
         }
-        currentFilterQuery = `author = "${authorParam}"`;
+        currentFilterQuery = `created_by = "${authorParam}"`;
     }
 
-    renderOverviewCharts();
     loadReportsTable();
 
 });
@@ -311,34 +248,39 @@ function getHighlightedSnippet(text, keyword) {
 async function loadAllBaseData() {
     try {
         const roleFilter = getRoleBasedFilter();
-        const [reports, topics, cases, users] = await Promise.all([
-            pb.collection('reports').getFullList({
+        const [news, deputies, departments, desks, topics, goals, people, keywords, users] = await Promise.all([
+            pb.collection('news').getFullList({
                 sort: '-created',
-                expand: 'cases_rel,topics_rel,author.department_rel,department,submitter',
+                expand: 'created_by,mentioned_people,keywords,target_deputy,target_department,target_desk,target_topic,target_goal',
                 filter: roleFilter,
                 requestKey: null
             }),
-            pb.collection('topics').getFullList({ requestKey: null }),
-            pb.collection('cases').getFullList({ requestKey: null }),
-            pb.collection('users').getFullList({ requestKey: null })
+            pb.collection('1deputies').getFullList({ requestKey: null }),
+            pb.collection('2departments').getFullList({ requestKey: null }),
+            pb.collection('3desks').getFullList({ requestKey: null }),
+            pb.collection('4topics').getFullList({ requestKey: null }),
+            pb.collection('5goals').getFullList({ requestKey: null }),
+            pb.collection('people').getFullList({ requestKey: null }),
+            pb.collection('keywords').getFullList({ requestKey: null }),
+            pb.collection('a_users').getFullList({ requestKey: null })
         ]);
 
-        allReports = reports;
+        allReports = news;
+        allDeputies = deputies;
+        allDepartments = departments;
+        allDesks = desks;
         allTopics = topics;
-        allCases = cases;
+        allGoals = goals;
+        allPeople = people;
+        allKeywords = keywords;
         allUsers = users;
 
-        // استخراج کیس‌های منحصر‌به‌فرد از روی اخبار قابل دسترسی کاربر
-        const activeUserCases = new Set();
-        allReports.forEach(r => {
-            const cases = r.expand?.cases_rel || [];
-            cases.forEach(c => activeUserCases.add(c.id));
-        });
+        const usedSources = new Set(allReports.map(item => item.source).filter(Boolean));
 
         const statTotal = document.getElementById('stat-total-reports-1');
         const statCases = document.getElementById('stat-active-cases');
         if (statTotal) statTotal.innerText = allReports.length;
-        if (statCases) statCases.innerText = activeUserCases.size;
+        if (statCases) statCases.innerText = usedSources.size;
 
     } catch (err) {
         console.error("خطا در بارگذاری اطلاعات پایه دیتابیس:", err);
@@ -431,7 +373,7 @@ async function loadReportsTable() {
                     <!-- ۲. عنوان خبر و شناسه -->
                     <td class="p-2.5 align-middle">
                         <div class="flex items-center gap-1.5 font-bold text-slate-900">
-                            <a href="create-report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش گزارش" class="truncate max-w-[280px] hover:text-indigo-600 hover:underline transition-colors">
+                            <a href="create_report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش گزارش" class="truncate max-w-[280px] hover:text-indigo-600 hover:underline transition-colors">
                                 ${rec.title || 'بدون عنوان'}
                             </a>
                             ${mediaIcons}
@@ -478,7 +420,7 @@ async function loadReportsTable() {
                             <button onclick="openDetailModal('${rec.id}')" title="مشاهده جزئیات" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
                                 🔍
                             </button>
-                            <a href="create-report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">
+                            <a href="create_report.html?id=${rec.id}" target="_blank" rel="noopener noreferrer" title="ویرایش" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg transition">
                                 ✏️
                             </a>
                             <button onclick="deleteReport('${rec.id}')" title="حذف" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition">
@@ -818,7 +760,7 @@ async function openDetailModal(id) {
             ${attachmentsHtml} 
         `;
 
-        document.getElementById('modal-edit-link').href = `create-report.html?id=${report.id}`;
+        document.getElementById('modal-edit-link').href = `create_report.html?id=${report.id}`;
         document.getElementById('detail-modal').classList.remove('hidden');
         document.getElementById('detail-modal').classList.add('flex');
     } catch (err) {
@@ -826,8 +768,303 @@ async function openDetailModal(id) {
     }
 }
 
+function getHighlightedSnippet(text, keyword) {
+    const cleanText = String(text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!cleanText) return '';
+    const term = String(keyword || '').trim().split(/\s+/)[0];
+    const index = term ? cleanText.toLowerCase().indexOf(term.toLowerCase()) : -1;
+    const start = index >= 0 ? Math.max(0, index - 45) : 0;
+    let snippet = cleanText.slice(start, start + 110);
+    if (start > 0) snippet = `…${snippet}`;
+    if (start + 110 < cleanText.length) snippet += '…';
+    let safe = escapeHtml(snippet);
+    if (term) {
+        const escapedTerm = escapeHtml(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        safe = safe.replace(new RegExp(`(${escapedTerm})`, 'ig'), '<mark class="bg-yellow-200">$1</mark>');
+    }
+    return `<div class="text-[10px] text-slate-500 mt-1">${safe}</div>`;
+}
+
 function closeDetailModal() {
     const modal = document.getElementById('detail-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+}
+
+// ---------- News collection dashboard ----------
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
+function displayChoice(value) {
+    return String(value || '---').replaceAll('-', ' ');
+}
+
+function lookupTitle(items, id, field = 'title') {
+    if (!id) return '';
+    const record = items.find((item) => item.id === id);
+    return record ? (record[field] || record.title || record.name || record.username || id) : id;
+}
+
+function relationId(value) {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+function getNewsTargetPath(news) {
+    const level = news.target_type;
+    const id = relationId(news[`target_${level}`]);
+    if (!level || !id) return 'بدون هدف سازمانی';
+    const path = [];
+    if (level === 'deputy') path.unshift(lookupTitle(allDeputies, id));
+    if (level === 'department') {
+        const department = allDepartments.find((item) => item.id === id);
+        if (department?.deputy) path.unshift(lookupTitle(allDeputies, department.deputy));
+        path.push(lookupTitle(allDepartments, id));
+    }
+    if (level === 'desk') {
+        const desk = allDesks.find((item) => item.id === id);
+        const department = allDepartments.find((item) => item.id === desk?.relation);
+        if (department?.deputy) path.push(lookupTitle(allDeputies, department.deputy));
+        if (desk?.relation) path.push(lookupTitle(allDepartments, desk.relation));
+        path.push(lookupTitle(allDesks, id));
+    }
+    if (level === 'topic') {
+        const topic = allTopics.find((item) => item.id === id);
+        const desk = allDesks.find((item) => item.id === topic?.desk);
+        const department = allDepartments.find((item) => item.id === desk?.relation);
+        if (department?.deputy) path.push(lookupTitle(allDeputies, department.deputy));
+        if (desk?.relation) path.push(lookupTitle(allDepartments, desk.relation));
+        if (topic?.desk) path.push(lookupTitle(allDesks, topic.desk));
+        path.push(lookupTitle(allTopics, id));
+    }
+    if (level === 'goal') {
+        const goal = allGoals.find((item) => item.id === id);
+        const topic = allTopics.find((item) => item.id === goal?.topic);
+        const desk = allDesks.find((item) => item.id === topic?.desk);
+        const department = allDepartments.find((item) => item.id === desk?.relation);
+        if (department?.deputy) path.push(lookupTitle(allDeputies, department.deputy));
+        if (desk?.relation) path.push(lookupTitle(allDepartments, desk.relation));
+        if (topic?.desk) path.push(lookupTitle(allDesks, topic.desk));
+        if (goal?.topic) path.push(lookupTitle(allTopics, goal.topic));
+        path.push(lookupTitle(allGoals, id));
+    }
+    return path.filter(Boolean).join(' ← ') || 'بدون هدف سازمانی';
+}
+
+function fillFilterSelect(id, records, emptyLabel) {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const priorValue = select.value;
+    select.innerHTML = `<option value="">${escapeHtml(emptyLabel)}</option>` + records
+        .map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(record.title || record.name || record.username || record.id)}</option>`)
+        .join('');
+    if (records.some((record) => record.id === priorValue)) select.value = priorValue;
+}
+
+function refreshOrgFilterChildren(level) {
+    const order = ['deputy', 'department', 'desk', 'topic', 'goal'];
+    const ids = ['adv-filter-deputy', 'adv-filter-department', 'adv-filter-desk', 'adv-filter-topic', 'adv-filter-goal'];
+    const selectedIndex = order.indexOf(level);
+    for (let i = selectedIndex + 1; i < order.length; i++) {
+        const select = document.getElementById(ids[i]);
+        if (select) select.value = '';
+    }
+    const parentValues = Object.fromEntries(order.map((item, i) => [item, document.getElementById(ids[i])?.value || '']));
+    const departments = parentValues.deputy ? allDepartments.filter((item) => item.deputy === parentValues.deputy) : [];
+    const desks = parentValues.department ? allDesks.filter((item) => item.relation === parentValues.department) : [];
+    const topics = parentValues.desk ? allTopics.filter((item) => item.desk === parentValues.desk) : [];
+    const goals = parentValues.topic ? allGoals.filter((item) => item.topic === parentValues.topic) : [];
+    if (selectedIndex < 1) fillFilterSelect(ids[1], departments, parentValues.deputy ? 'همه اداره‌ها' : 'ابتدا معاونت را انتخاب کنید');
+    if (selectedIndex < 2) fillFilterSelect(ids[2], desks, parentValues.department ? 'همه میزها' : 'ابتدا اداره را انتخاب کنید');
+    if (selectedIndex < 3) fillFilterSelect(ids[3], topics, parentValues.desk ? 'همه موضوعات' : 'ابتدا میز را انتخاب کنید');
+    if (selectedIndex < 4) fillFilterSelect(ids[4], goals, parentValues.topic ? 'همه هدف‌ها' : 'ابتدا موضوع را انتخاب کنید');
+}
+
+function populateSearchDropdowns() {
+    fillFilterSelect('adv-filter-deputy', allDeputies, 'همه معاونت‌ها');
+    fillFilterSelect('adv-filter-department', [], 'ابتدا معاونت را انتخاب کنید');
+    fillFilterSelect('adv-filter-desk', [], 'ابتدا اداره را انتخاب کنید');
+    fillFilterSelect('adv-filter-topic', [], 'ابتدا میز را انتخاب کنید');
+    fillFilterSelect('adv-filter-goal', [], 'ابتدا موضوع را انتخاب کنید');
+    fillFilterSelect('adv-filter-author', allUsers, 'همه کاربران');
+    ['deputy', 'department', 'desk', 'topic'].forEach((level) => {
+        const select = document.getElementById(`adv-filter-${level}`);
+        select?.addEventListener('change', () => refreshOrgFilterChildren(level));
+    });
+}
+
+function escapeFilterValue(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function buildHierarchyFilter(level, id) {
+    const levels = ['deputy', 'department', 'desk', 'topic', 'goal'];
+    const index = levels.indexOf(level);
+    if (index < 0 || !id) return '';
+    let idsByLevel = { deputy: [], department: [], desk: [], topic: [], goal: [] };
+    idsByLevel[level] = [id];
+    if (index <= 0) idsByLevel.department = [...new Set([...idsByLevel.department, ...allDepartments.filter((item) => item.deputy === id).map((item) => item.id)])];
+    if (index <= 1) {
+        const parents = idsByLevel.department;
+        idsByLevel.desk = [...new Set([...idsByLevel.desk, ...allDesks.filter((item) => parents.includes(item.relation)).map((item) => item.id)])];
+    }
+    if (index <= 2) {
+        const parents = idsByLevel.desk;
+        idsByLevel.topic = [...new Set([...idsByLevel.topic, ...allTopics.filter((item) => parents.includes(item.desk)).map((item) => item.id)])];
+    }
+    if (index <= 3) {
+        const parents = idsByLevel.topic;
+        idsByLevel.goal = [...new Set([...idsByLevel.goal, ...allGoals.filter((item) => parents.includes(item.topic)).map((item) => item.id)])];
+    }
+    return levels.map((item) => {
+        const field = `target_${item}`;
+        return idsByLevel[item].map((targetId) => `${field} = "${escapeFilterValue(targetId)}"`).join(' || ');
+    }).filter(Boolean).map((part) => `(${part})`).join(' || ');
+}
+
+function currentNewsFilter() {
+    const filters = [];
+    const query = document.getElementById('global-search-input')?.value.trim();
+    if (query) {
+        for (const word of query.split(/\s+/).filter(Boolean)) {
+            const value = escapeFilterValue(word);
+            filters.push(`(title ~ "${value}" || body ~ "${value}" || molaheze ~ "${value}" || nazarie ~ "${value}" || orders ~ "${value}")`);
+        }
+    }
+    for (const [level, id] of [
+        ['deputy', 'adv-filter-deputy'], ['department', 'adv-filter-department'],
+        ['desk', 'adv-filter-desk'], ['topic', 'adv-filter-topic'], ['goal', 'adv-filter-goal']
+    ]) {
+        const value = document.getElementById(id)?.value;
+        if (value) filters.push(`(${buildHierarchyFilter(level, value)})`);
+    }
+    for (const field of ['classification', 'source', 'marjaa']) {
+        const value = document.getElementById(`adv-filter-${field}`)?.value;
+        if (value) filters.push(`${field} = "${escapeFilterValue(value)}"`);
+    }
+    const creator = document.getElementById('adv-filter-author')?.value;
+    if (creator) filters.push(`created_by = "${escapeFilterValue(creator)}"`);
+    const roleFilter = getRoleBasedFilter();
+    if (roleFilter) filters.unshift(`(${roleFilter})`);
+    return filters.join(' && ');
+}
+
+function applyAdvancedFilters() {
+    currentFilterQuery = currentNewsFilter();
+    currentPage = 1;
+    loadReportsTable();
+}
+
+function resetAdvancedFilters() {
+    document.getElementById('global-search-input').value = '';
+    ['deputy', 'department', 'desk', 'topic', 'goal', 'classification', 'source', 'marjaa', 'author'].forEach((name) => {
+        const select = document.getElementById(`adv-filter-${name}`);
+        if (select) select.value = '';
+    });
+    refreshOrgFilterChildren('deputy');
+    currentFilterQuery = '';
+    currentPage = 1;
+    loadReportsTable();
+}
+
+function toggleAdvancedFilterAccordion() {
+    document.getElementById('advanced-filter-accordion')?.classList.toggle('hidden');
+}
+
+function renderOverviewCharts() {
+    const targetCounts = {};
+    const sourceCounts = {};
+    allReports.forEach((news) => {
+        const target = getNewsTargetPath(news);
+        targetCounts[target] = (targetCounts[target] || 0) + 1;
+        if (news.source) sourceCounts[displayChoice(news.source)] = (sourceCounts[displayChoice(news.source)] || 0) + 1;
+    });
+    const chartOptions = (counts) => ({
+        series: Object.values(counts).length ? Object.values(counts) : [1],
+        labels: Object.keys(counts).length ? Object.keys(counts) : ['بدون داده'],
+        chart: { type: 'donut', height: 260 }, colors: extendedPalette,
+        legend: { fontFamily: chartFont, fontSize: '12px' }
+    });
+    renderChart('#chart-topics', chartOptions(targetCounts));
+    renderChart('#chart-cases', chartOptions(sourceCounts));
+}
+
+async function loadReportsTable() {
+    const tbody = document.getElementById('table-reports-body');
+    if (!tbody) return;
+    try {
+        const filter = currentFilterQuery || getRoleBasedFilter();
+        const result = await pb.collection('news').getList(currentPage, perPage, {
+            sort: '-created',
+            expand: 'created_by,mentioned_people,keywords,target_deputy,target_department,target_desk,target_topic,target_goal',
+            filter,
+            requestKey: null
+        });
+        if (!result.items.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center p-6 text-slate-500 font-bold">خبری با این مشخصات پیدا نشد.</td></tr>';
+            document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
+            document.getElementById('pagination-controls').innerHTML = '';
+            return;
+        }
+        tbody.innerHTML = result.items.map((news, index) => {
+            const exp = news.expand || {};
+            const personIds = Array.isArray(news.mentioned_people) ? news.mentioned_people : [];
+            const keywordIds = Array.isArray(news.keywords) ? news.keywords : [];
+            const names = (ids, items, field) => ids.map((id) => lookupTitle(items, id, field)).filter(Boolean);
+            const people = names(personIds, allPeople, 'full_name');
+            const keywords = names(keywordIds, allKeywords);
+            const createdBy = exp.created_by || allUsers.find((user) => user.id === news.created_by);
+            const classification = displayChoice(news.classification || 'عادی');
+            const classificationClass = /سری/.test(classification) ? 'bg-red-100 text-red-800 border border-red-200' : /محرمانه/.test(classification) ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-700';
+            const checked = selectedReportIds.has(news.id) ? 'checked' : '';
+            const background = index % 2 ? 'bg-slate-50/70' : 'bg-white';
+            const chips = [...people.slice(0, 2), ...keywords.slice(0, 2)].map((name) => `<span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(name)}</span>`).join(' ');
+            return `<tr class="${background} hover:bg-indigo-50/40 transition-colors">
+                <td class="p-2.5 text-center"><input type="checkbox" value="${escapeHtml(news.id)}" ${checked} onchange="toggleReportSelection('${escapeHtml(news.id)}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600"></td>
+                <td class="p-2.5"><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-900 hover:text-indigo-600 hover:underline">${escapeHtml(news.title || 'بدون عنوان')}</a><div class="text-[10px] text-slate-500 mt-1">ثبت‌کننده: ${escapeHtml(createdBy?.name || createdBy?.username || '---')}</div>${getHighlightedSnippet(news.body || '', document.getElementById('global-search-input')?.value || '')}</td>
+                <td class="p-2.5 whitespace-normal min-w-[200px]">${escapeHtml(getNewsTargetPath(news))}</td>
+                <td class="p-2.5 whitespace-normal"><div class="flex flex-wrap gap-1">${chips || '<span class="text-slate-400">---</span>'}</div></td>
+                <td class="p-2.5"><div>${escapeHtml(displayChoice(news.source))}</div><div class="text-[10px] text-slate-500">${escapeHtml(displayChoice(news.marjaa))}</div></td>
+                <td class="p-2.5">${escapeHtml(formatDateToFa(news.occurred_at))}</td>
+                <td class="p-2.5"><span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${classificationClass}">${escapeHtml(classification)}</span></td>
+                <td class="p-2.5 text-center"><div class="flex items-center justify-center gap-1"><button onclick="openDetailModal('${escapeHtml(news.id)}')" title="جزئیات" class="p-1.5 bg-slate-100 rounded-lg">🔍</button><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" title="ویرایش" class="p-1.5 bg-indigo-50 text-indigo-700 rounded-lg">✏️</a><button onclick="deleteReport('${escapeHtml(news.id)}')" title="حذف" class="p-1.5 bg-red-50 text-red-600 rounded-lg">❌</button></div></td>
+            </tr>`;
+        }).join('');
+        updateSelectionUI();
+        document.getElementById('pagination-info').innerText = `صفحه ${result.page} از ${result.totalPages} (مجموع ${result.totalItems} خبر)`;
+        document.getElementById('pagination-controls').innerHTML = `<button onclick="goToPage(${result.page - 1})" ${result.page === 1 ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">قبلی</button><span class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg">${result.page}</span><button onclick="goToPage(${result.page + 1})" ${result.page === result.totalPages ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">بعدی</button>`;
+    } catch (err) {
+        console.error('خطا در دریافت اخبار:', err);
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-rose-600">خطا در دریافت اخبار: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
+
+async function openDetailModal(id) {
+    try {
+        const news = await pb.collection('news').getOne(id, {
+            expand: 'created_by,mentioned_people,keywords,target_deputy,target_department,target_desk,target_topic,target_goal'
+        });
+        const plain = (html) => escapeHtml(String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || '---');
+        const exp = news.expand || {};
+        const field = (label, value, wide = false) => `<div class="${wide ? 'col-span-2' : ''} bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-500 text-[10px] block mb-0.5">${escapeHtml(label)}:</span><div class="text-slate-900 font-bold text-xs whitespace-pre-wrap break-words">${value}</div></div>`;
+        const personNames = (news.mentioned_people || []).map((personId) => lookupTitle(allPeople, personId, 'full_name'));
+        const keywordNames = (news.keywords || []).map((keywordId) => lookupTitle(allKeywords, keywordId));
+        document.getElementById('modal-content-container').innerHTML = [
+            field('عنوان خبر', plain(news.title)), field('ثبت‌کننده', plain(exp.created_by?.name || exp.created_by?.username)),
+            field('مسیر هدف سازمانی', plain(getNewsTargetPath(news)), true), field('سطح هدف', plain(news.target_type)),
+            field('منشا خبر', plain(displayChoice(news.source))), field('مرجع انتشار', plain(displayChoice(news.marjaa))),
+            field('طبقه‌بندی', plain(displayChoice(news.classification))), field('تاریخ وقوع', plain(formatDateToFa(news.occurred_at))),
+            field('اشخاص مرتبط', plain(personNames.join('، '))), field('کلیدواژه‌ها', plain(keywordNames.join('، '))),
+            field('متن اصلی خبر', plain(news.body), true), field('ملاحظه', plain(news.molaheze), true),
+            field('نظریه', plain(news.nazarie), true), field('دستورات صادره', plain(news.orders), true)
+        ].join('');
+        document.getElementById('modal-edit-link').href = `create_report.html?id=${encodeURIComponent(news.id)}`;
+        document.getElementById('detail-modal').classList.remove('hidden');
+        document.getElementById('detail-modal').classList.add('flex');
+    } catch (err) {
+        console.error('خطا در نمایش جزئیات خبر:', err);
+        Swal.fire({ icon: 'error', title: 'خطا در دریافت خبر', text: err.message || 'خبر در دسترس نیست.' });
+    }
 }

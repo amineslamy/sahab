@@ -139,7 +139,7 @@ async function setupSubordinatesDropdown(activeAuthorId) {
     }
 
     try {
-        const users = await pb.collection('users').getFullList({
+        const users = await pb.collection('a_users').getFullList({
             filter: filterQuery,
             sort: 'name'
         });
@@ -199,7 +199,7 @@ async function loadAnalyticsBaseData(authorId = null) {
             let authorFilter = `author = "${authorId}"`;
 
             try {
-                const targetUser = await pb.collection('users').getOne(authorId);
+                const targetUser = await pb.collection('a_users').getOne(authorId);
                 const userName = targetUser.name || targetUser.username || 'کاربر انتخاب شده';
                 if (userNameEl) userNameEl.innerText = userName;
                 setAvatar(targetUser);

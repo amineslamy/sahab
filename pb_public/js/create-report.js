@@ -192,11 +192,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             // ۱. مقداردهی فیلدهای متنی و انتخابی ساده
             setInputValue('report-title', report.title);
-            setInputValue('report-abstract', report.abstract);
+            setInputValue('report-observation', report.observation);
+            setInputValue('report-theory', report.theory);
+            setInputValue('report-office', report.office);
+            setInputValue('report-desk', report.desk);
+            setInputValue('report-target-at', report.target_at);
+            setInputValue('report-tags', report.tags);
+            setInputValue('report-publication-reference', report.publication_reference);
+            setInputValue('report-issued-orders', report.issued_orders);
+            restoreMentionedPeople(report.mentioned_people);
             setInputValue('report-classification', report.classification);
             setInputValue('report-priority', report.priority);
             setInputValue('report-news-type', report.news_type);
             setInputValue('report-evaluation', report.evaluation);
+            setInputValue('report-deputy', report.deputy);
 
             // ۲. مقداردهی تاریخ وقوع
             if (report.occurrence_date) {
@@ -375,9 +384,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // ۳. راه اندازی کارشناسان (با ساختار دپارتمان ↲ کارشناس)
         if (usersResult.status === 'fulfilled') {
             setupAuthorPicker(usersResult.value);
+            setupDeputyPicker(usersResult.value);
         } else {
             console.error('خطا در بارگذاری کارشناسان:', usersResult.reason);
         }
+    }
+
+    function setupDeputyPicker(users) {
+        const select = $id('report-deputy');
+        if (!select) return;
+        users.filter((user) => user.role === 'department')
+            .sort((a, b) => (a.name || a.username || '').localeCompare(b.name || b.username || '', 'fa'))
+            .forEach((user) => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name || user.username || user.id;
+                select.appendChild(option);
+            });
     }
 
     // --- مدیریت انتخاب موضوعات ---
@@ -1138,7 +1161,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             appendValue(formData, 'occurrence_date', occurrenceDateVal); // ارسال دقیق تاریخ آماده‌شده
-            appendValue(formData, 'abstract', getValue('report-abstract'));
+            formData.append('observation', getValue('report-observation'));
+            formData.append('theory', getValue('report-theory'));
+            formData.append('office', getValue('report-office'));
+            formData.append('desk', getValue('report-desk'));
+            formData.append('target_at', getValue('report-target-at'));
+            formData.append('tags', getValue('report-tags'));
+            formData.append('publication_reference', getValue('report-publication-reference'));
+            formData.append('issued_orders', getValue('report-issued-orders'));
+            formData.append('mentioned_people', JSON.stringify(readMentionedPeople()));
+            formData.append('deputy', getValue('report-deputy'));
             appendValue(formData, 'classification', getValue('report-classification'));
             appendValue(formData, 'priority', getValue('report-priority'));
             appendValue(formData, 'news_type', getValue('report-news-type'));
@@ -1220,6 +1252,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     report: state.reportId,
                     title: currentReport.title || '',
                     abstract: currentReport.abstract || '',
+                    observation: currentReport.observation || '',
+                    theory: currentReport.theory || '',
+                    office: currentReport.office || '',
+                    desk: currentReport.desk || '',
+                    target_at: currentReport.target_at || '',
+                    tags: currentReport.tags || '',
+                    publication_reference: currentReport.publication_reference || '',
+                    issued_orders: currentReport.issued_orders || '',
+                    mentioned_people: currentReport.mentioned_people || '[]',
+                    deputy: currentReport.deputy || null,
                     content: currentReport.content || '',
                     automation_id: currentReport.automation_id || '',
                     classification: currentReport.classification || '',
@@ -1405,7 +1447,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'ورود شرح/متن خبر الزامی است.';
         }
         if (!getValue('report-occurrence-date')) return 'تاریخ وقوع الزامی است.';
-        if (state.selectedCases.length === 0) return 'انتخاب حداقل یک کیس الزامی است.';
         if (state.selectedTopics.length === 0) return 'انتخاب حداقل یک موضوع الزامی است.';
 
         return '';
@@ -2245,7 +2286,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!versionData) return;
 
         setInputValue('report-title', versionData.title);
-        setInputValue('report-abstract', versionData.abstract);
+        setInputValue('report-observation', versionData.observation);
+        setInputValue('report-theory', versionData.theory);
+        setInputValue('report-office', versionData.office);
+        setInputValue('report-desk', versionData.desk);
+        setInputValue('report-target-at', versionData.target_at);
+        setInputValue('report-tags', versionData.tags);
+        setInputValue('report-publication-reference', versionData.publication_reference);
+        setInputValue('report-issued-orders', versionData.issued_orders);
+        restoreMentionedPeople(versionData.mentioned_people);
+        setInputValue('report-deputy', versionData.deputy);
         setInputValue('report-classification', versionData.classification);
         setInputValue('report-priority', versionData.priority);
         setInputValue('report-news-type', versionData.news_type);
@@ -2270,6 +2320,39 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(`اطلاعات نسخه ${versionData.version} با موفقیت روی فرم جایگذاری شد.`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    function readMentionedPeople() {
+        return Array.from(document.querySelectorAll('#mentioned-people-list .mentioned-person-row'))
+            .map((row) => ({
+                name: row.querySelector('[data-person-name]')?.value.trim() || '',
+                responsibility: row.querySelector('[data-person-role]')?.value.trim() || ''
+            }))
+            .filter((person) => person.name || person.responsibility);
+    }
+
+    function restoreMentionedPeople(value) {
+        const list = $id('mentioned-people-list');
+        if (!list) return;
+        let people = [];
+        try { people = Array.isArray(value) ? value : JSON.parse(value || '[]'); } catch (_) { people = []; }
+        list.innerHTML = '';
+        (people.length ? people : [{}]).forEach((person) => {
+            const row = document.createElement('div');
+            row.className = 'mentioned-person-row grid grid-cols-1 md:grid-cols-2 gap-2';
+            row.innerHTML = '<input type="text" data-person-name placeholder="نام شخص" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm"><input type="text" data-person-role placeholder="مسئولیت در خبر" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm">';
+            row.querySelector('[data-person-name]').value = person.name || '';
+            row.querySelector('[data-person-role]').value = person.responsibility || '';
+            list.appendChild(row);
+        });
+    }
+
+    $id('add-mentioned-person')?.addEventListener('click', () => {
+        const list = $id('mentioned-people-list');
+        const row = document.createElement('div');
+        row.className = 'mentioned-person-row grid grid-cols-1 md:grid-cols-2 gap-2';
+        row.innerHTML = '<input type="text" data-person-name placeholder="نام شخص" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm"><input type="text" data-person-role placeholder="مسئولیت در خبر" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm">';
+        list.appendChild(row);
+    });
 
 });
 

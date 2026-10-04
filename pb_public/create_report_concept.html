@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت و ویرایش خبر - سامانه مدیریت تحقیقات</title>
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- PocketBase SDK (محلی) -->
+    <script src="js/pocketbase.umd.js"></script>
+
+    <!-- Tailwind CSS (محلی) -->
+    <script src="js/tailwindcss.js"></script>
+
+    <!-- FontAwesome Icons (محلی) -->
+    <link rel="stylesheet" href="css/all.min.css">
+
+    <!-- Vazirmatn Font (محلی) -->
+    <style>
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 500 900;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('fonts/Vazirmatn-Black.woff2') format('woff2');
+            font-weight: 900;
+        }
+    </style>
+
+    <!-- jQuery & Persian Datepicker (محلی) -->
+    <script src="js/jquery-3.6.4.min.js"></script>
+    <link rel="stylesheet" href="css/persian-datepicker.min.css">
+    <script src="js/persian-date.min.js"></script>
+    <script src="js/persian-datepicker.min.js"></script>
+
+    <!-- Mammoth.js (Word .docx importer) -->
+    <script src="js/mammoth.browser.min.js"></script>
+
+    <!-- Quill.js Editor (محلی) -->
+    <link href="css/quill.snow.css" rel="stylesheet">
+    <script src="js/quill.min.js"></script>
+
+    <!-- SweetAlert2 (محلی) -->
+    <link rel="stylesheet" href="css/sweetalert2.min.css">
+    <script src="js/sweetalert2.all.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7ff 0%, #fdf4ff 45%, #f0fdfa 100%);
+            color: #0f172a;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        ::selection {
+            background: #c7d2fe;
+            color: #1e1b4b;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #a5b4fc, #c4b5fd);
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #818cf8, #a78bfa);
+        }
+
+        .glow-orb-1 {
+            position: fixed;
+            top: -120px;
+            right: -120px;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: floatOrb 14s ease-in-out infinite;
+        }
+
+        .glow-orb-2 {
+            position: fixed;
+            top: 35%;
+            left: -180px;
+            width: 620px;
+            height: 620px;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: floatOrb 18s ease-in-out infinite reverse;
+        }
+
+        .glow-orb-3 {
+            position: fixed;
+            bottom: 5%;
+            right: -120px;
+            width: 580px;
+            height: 580px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: floatOrb 16s ease-in-out infinite;
+        }
+
+        .glow-orb-4 {
+            position: fixed;
+            bottom: -150px;
+            left: 10%;
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: floatOrb 20s ease-in-out infinite reverse;
+        }
+
+        @keyframes floatOrb {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(30px, -30px) scale(1.08);
+            }
+        }
+.glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 30px -8px rgba(79, 70, 229, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .glass-card:hover {
+            box-shadow: 0 16px 40px -10px rgba(79, 70, 229, 0.14), 0 10px 14px -6px rgba(0, 0, 0, 0.04);
+        }
+
+        .card-glow-blue {
+            border: 1.5px solid rgba(59, 130, 246, 0.85) !important;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .card-glow-green {
+            border: 1.5px solid rgba(16, 185, 129, 0.85) !important;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .card-glow-purple {
+            border: 1.5px solid rgba(168, 85, 247, 0.85) !important;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .card-glow-amber {
+            border: 1.5px solid rgba(245, 158, 11, 0.85) !important;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .card-glow-rose {
+            border: 1.5px solid rgba(244, 63, 94, 0.85) !important;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .card-glow-teal {
+            border: 1.5px solid rgba(20, 184, 166, 0.85) !important;
+            box-shadow: 0 0 20px rgba(20, 184, 166, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        /* استایل عمومی ادیتورهای Quill */
+        .ql-toolbar.ql-snow {
+            background: linear-gradient(90deg, rgba(240, 253, 244, 0.9), rgba(236, 253, 245, 0.9));
+            border-color: rgba(167, 243, 208, 0.9) !important;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+
+        .ql-toolbar.ql-snow.ql-toolbar-amber {
+            background: linear-gradient(90deg, rgba(254, 243, 199, 0.9), rgba(253, 242, 224, 0.9));
+            border-color: rgba(252, 211, 77, 0.6) !important;
+        }
+
+        .ql-container.ql-snow {
+            border-color: rgba(167, 243, 208, 0.9) !important;
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+            background: #ffffff;
+            color: #0f172a;
+            min-height: 200px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+        }
+
+        .ql-container.ql-snow.ql-container-amber {
+            border-color: rgba(252, 211, 77, 0.6) !important;
+        }
+
+        .ql-editor.ql-blank::before {
+            font-family: 'Vazirmatn', sans-serif;
+            font-style: normal;
+            color: #94a3b8;
+        }
+
+        .floating-bar {
+            animation: slideUp 0.5s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(120%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease both;
+        }
+
+        select:disabled,
+        input:disabled,
+        textarea:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #f1f5f9 !important;
+        }
+
+        .field-input {
+            transition: all 0.2s ease;
+        }
+
+        .field-valid {
+            border-color: rgba(16, 185, 129, 0.8) !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+        }
+
+        .field-invalid {
+            border-color: rgba(244, 63, 94, 0.8) !important;
+            box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12) !important;
+        }
+
+        .shake {
+            animation: shake 0.45s ease;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-6px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(6px);
+            }
+        }
+
+        .progress-wrap {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            height: 5px;
+            background: rgba(226, 232, 240, 0.6);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+            background-size: 200% 100%;
+            animation: gradientMove 3s linear infinite;
+            transition: width 0.35s ease;
+            border-radius: 999px;
+        }
+
+        @keyframes gradientMove {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 200% 50%;
+            }
+        }
+.word-drop-zone {
+            background: linear-gradient(135deg, rgba(238, 242, 255, 0.9), rgba(250, 245, 255, 0.9));
+            transition: all 0.3s ease;
+        }
+
+        .word-drop-zone.drag-over {
+            background: linear-gradient(135deg, rgba(199, 210, 254, 0.9), rgba(233, 213, 255, 0.9));
+            border-color: #6366f1 !important;
+            transform: scale(1.01);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            animation: fadeInUp 0.3s ease both;
+        }
+
+        .tooltip-hint {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip-hint:hover .tooltip-text {
+            opacity: 1;
+            transform: translateY(0) translateX(-50%);
+            pointer-events: auto;
+        }
+
+        .tooltip-text {
+            position: absolute;
+            bottom: 130%;
+            left: 50%;
+            transform: translateY(6px) translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 50;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
+        }
+
+        .char-counter {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn-press:active {
+            transform: scale(0.97);
+        }
+
+        .pulse-dot {
+            animation: pulseDot 1.6s ease-in-out infinite;
+        }
+
+        @keyframes pulseDot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(1.3);
+            }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 37%, #e2e8f0 63%);
+            background-size: 400% 100%;
+            animation: skeletonLoading 1.4s ease infinite;
+        }
+
+        @keyframes skeletonLoading {
+            0% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0 50%;
+            }
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #cbd5e1;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.done {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            width: 20px;
+        }
+
+        .sticky-toc {
+            position: sticky;
+            top: 16px;
+        }
+
+        a.nav-link {
+            transition: all 0.2s ease;
+        }
+
+        a.nav-link:hover {
+            color: #4f46e5;
+            padding-right: 4px;
+        }
+
+        /* ---------- جستجوی پیشنهادی روابط (suggestions) ---------- */
+        .suggest-wrap {
+            position: relative;
+        }
+
+        .suggest-box {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            left: 0;
+            margin-top: 4px;
+            background: #ffffff;
+            border: 1px solid rgba(99, 102, 241, 0.45);
+            border-radius: 12px;
+            box-shadow: 0 10px 22px -6px rgba(79, 70, 229, 0.22);
+            max-height: 230px;
+            overflow: auto;
+            z-index: 60;
+        }
+
+        .suggest-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            text-align: right;
+            padding: 7px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .suggest-item:hover,
+        .suggest-item:focus-visible {
+            background: linear-gradient(90deg, #eef2ff, #fdf4ff);
+        }
+
+        .suggest-item .suggest-sub {
+            font-size: 10px;
+            color: #94a3b8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .suggest-empty {
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+        }
+
+        /* ---------- چیپ‌های روابط (اشخاص / کلیدواژه) ---------- */
+        .relation-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            animation: fadeInUp 0.3s ease both;
+        }
+
+        .relation-chip button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #e11d48;
+            font-size: 10px;
+            line-height: 1;
+        }
+
+        .relation-chip button:hover {
+            color: #be123c;
+        }
+
+        .relation-limit-hint {
+            font-size: 10px;
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="p-3 md:p-8">
+    <!-- Ambient Colorful Glow Orbs -->
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+    <div class="glow-orb-3"></div>
+    <div class="glow-orb-4"></div>
+
+    <!-- Progress Indicator -->
+    <div class="max-w-6xl mx-auto mb-3 relative z-20">
+        <div class="progress-wrap">
+            <div id="form-progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto space-y-6 relative z-10">
+
+        <!-- Header -->
+        <header class="glass-card p-5 md:p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 relative z-10 overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-l from-indigo-500/5 via-fuchsia-500/5 to-sky-500/5 pointer-events-none"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="section-badge bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30">
+                    <i class="fa-solid fa-newspaper text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+                        ایجاد | ویرایش خبر
+                    </h1>
+                    <p class="text-xs text-slate-500 font-medium mt-0.5">کالکشن news — ثبت اطلاعات کامل خبر و اتصال به روابط سازمانی</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 relative z-10">
+                <div id="autosave-indicator" class="hidden items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span>
+                    پیش‌نویس ذخیره شد
+                </div>
+                <div id="current-user-badge" class="hidden items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-white/80 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer" title="خروج از سامانه">
+                    <i class="fa-solid fa-user text-indigo-400"></i>
+                    <span id="current-user-name">...</span>
+                    <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
+                </div>
+                <div class="flex items-center gap-1.5" id="step-dots">
+                    <span class="step-dot" data-step="title"></span>
+                    <span class="step-dot" data-step="content"></span>
+                    <span class="step-dot" data-step="date"></span>
+                    <span class="step-dot" data-step="org"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Form Container -->
+        <form id="create-news-form" novalidate autocomplete="off">
+<!-- Word Import Drop Zone -->
+            <div id="word-import-zone"
+                class="word-drop-zone glass-card p-6 md:p-8 rounded-3xl mb-6 border-2 border-dashed border-indigo-300 hover:border-indigo-500 transition cursor-pointer text-center relative overflow-hidden fade-in-up">
+                <input type="file" id="word-import-input" accept=".docx" class="hidden">
+                <div class="relative z-10 flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
+                        <i class="fa-solid fa-file-word text-2xl text-white"></i>
+                    </div>
+                    <p class="text-base font-extrabold text-slate-800">فایل Word (.docx) را اینجا بکشید و رها کنید</p>
+                    <p class="text-xs text-slate-500 mt-1.5">یا برای انتخاب فایل از روی سیستم کلیک کنید — عنوان و متن خبر به‌صورت خودکار در فیلد body پر می‌شود</p>
+                    <button type="button" id="word-import-btn" class="btn-press mt-4 px-5 py-2 rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold shadow-sm hover:bg-indigo-50 transition flex items-center gap-2">
+                        <i class="fa-solid fa-folder-open"></i>
+                        انتخاب فایل از سیستم
+                    </button>
+                    <p id="word-import-status" class="hidden text-xs mt-3 font-bold px-3 py-1.5 rounded-lg"></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Main Content Area -->
+                <main class="lg:col-span-2 space-y-6">
+
+                    <!-- Title & Occurrence Date -->
+                    <div id="section-title" class="glass-card card-glow-blue p-6 rounded-3xl space-y-4 relative z-10 fade-in-up">
+                        <div class="flex items-center gap-2.5 mb-1">
+                            <span class="section-badge bg-blue-100"><i class="fa-solid fa-heading text-blue-600"></i></span>
+                            <h2 class="text-sm font-extrabold text-slate-800">اطلاعات اصلی خبر</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="report-title" class="flex items-center justify-between text-sm font-semibold text-slate-700 mb-2">
+                                    <span>عنوان خبر <span class="text-rose-500">*</span></span>
+                                    <span id="title-char-count" class="char-counter text-[11px] text-slate-400 font-normal">0 / 500</span>
+                                </label>
+                                <input type="text" id="report-title" name="title" required maxlength="500"
+                                    placeholder="عنوان خبر را وارد کنید..."
+                                    class="field-input w-full bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl px-4 py-2.5 text-slate-800 placeholder-slate-400 outline-none shadow-sm">
+                                <p id="title-error" class="hidden text-[11px] text-rose-500 font-semibold mt-1.5 items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> عنوان خبر الزامی است</p>
+                            </div>
+                            <div>
+                                <label for="occurrence-date-picker" class="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
+                                    تاریخ وقوع <span class="text-rose-500">*</span>
+                                    <span class="tooltip-hint text-slate-400"><i class="fa-regular fa-circle-question"></i>
+                                        <span class="tooltip-text">تاریخ دقیق وقوع رویداد خبری (فیلد occurred_at)</span>
+                                    </span>
+                                </label>
+                                <div class="relative">
+                                    <input type="text" id="occurrence-date-picker" readonly required inputmode="none"
+                                        class="field-input w-full bg-white border border-slate-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-xl pr-3 pl-9 py-2.5 text-slate-800 outline-none shadow-sm cursor-pointer"
+                                        placeholder="انتخاب تاریخ شمسی">
+                                    <i class="fa-regular fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 text-sm pointer-events-none"></i>
+                                </div>
+                                <input type="hidden" id="report-occurred-at" name="occurred_at">
+                                <p id="date-error" class="hidden text-[11px] text-rose-500 font-semibold mt-1.5 items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> انتخاب تاریخ وقوع الزامی است</p>
+                            </div>
+                        </div>
+                    </div>
+<!-- Rich Text Editor: body -->
+                    <div id="section-content" class="glass-card card-glow-green p-6 rounded-3xl space-y-3 relative z-10 fade-in-up">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div class="flex items-center gap-2.5">
+                                <span class="section-badge bg-emerald-100"><i class="fa-solid fa-align-right text-emerald-600"></i></span>
+                                <label for="editor-body" class="text-sm font-extrabold text-slate-800">
+                                    متن اصلی خبر <span class="text-rose-500">*</span>
+                                    <span class="tooltip-hint text-slate-400"><i class="fa-regular fa-circle-question"></i>
+                                        <span class="tooltip-text">فیلد body — متن کامل خبر به‌صورت HTML</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <span id="body-char-count" class="char-counter text-[11px] text-slate-400 font-semibold bg-slate-100 px-2.5 py-1 rounded-lg">0 کاراکتر</span>
+                        </div>
+                        <div id="editor-body" aria-label="متن اصلی خبر"></div>
+                        <p id="content-error" class="hidden text-[11px] text-rose-500 font-semibold mt-1 items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> متن اصلی خبر الزامی است</p>
+                    </div>
+
+                    <!-- ملاحظه و نظریه و دستورات -->
+                    <div id="section-notes" class="glass-card card-glow-amber p-6 rounded-3xl space-y-4 relative z-10 fade-in-up">
+                        <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                            <div class="flex items-center gap-2.5">
+                                <span class="section-badge bg-amber-100"><i class="fa-solid fa-comment-medical text-amber-600"></i></span>
+                                <h2 class="text-sm font-extrabold text-slate-800">تحلیل، ملاحظات و دستورات</h2>
+                            </div>
+                            <span class="text-[11px] text-slate-400">molaheze / nazarie / orders</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="editor-molaheze" class="flex items-center justify-between text-sm font-semibold text-slate-700 mb-2">
+                                    <span>ملاحظه</span>
+                                    <span id="molaheze-char-count" class="char-counter text-[11px] text-slate-400 font-normal">0 کاراکتر</span>
+                                </label>
+                                <div id="editor-molaheze" aria-label="ملاحظات کارشناسی"></div>
+                            </div>
+                            <div>
+                                <label for="editor-nazarie" class="flex items-center justify-between text-sm font-semibold text-slate-700 mb-2">
+                                    <span>نظریه</span>
+                                    <span id="nazarie-char-count" class="char-counter text-[11px] text-slate-400 font-normal">0 کاراکتر</span>
+                                </label>
+                                <div id="editor-nazarie" aria-label="نظریه کارشناسی"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="report-orders" class="flex items-center justify-between text-sm font-semibold text-slate-700 mb-2">
+                                <span>دستورات صادره</span>
+                                <span id="orders-char-count" class="char-counter text-[11px] text-slate-400 font-normal">0 کاراکتر</span>
+                            </label>
+                            <textarea id="report-orders" name="orders" rows="3" placeholder="دستورات صادر شده در خصوص این خبر را وارد کنید..."
+                                class="field-input w-full bg-white border border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 rounded-xl px-4 py-3 text-sm outline-none shadow-sm resize-none"></textarea>
+                        </div>
+                    </div>
+</main>
+
+                <!-- Sidebar -->
+                <aside class="space-y-6 relative z-10">
+
+                    <div class="sticky-toc space-y-6">
+
+                        <!-- Mini Navigation -->
+                        <nav class="glass-card p-4 rounded-2xl hidden lg:block fade-in-up">
+                            <p class="text-[11px] font-extrabold text-slate-400 mb-2 px-1">پیمایش سریع</p>
+                            <ul class="space-y-1 text-xs font-semibold text-slate-600">
+                                <li><a href="#section-title" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-heading text-blue-500 w-4"></i> اطلاعات اصلی</a></li>
+                                <li><a href="#section-content" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-align-right text-emerald-500 w-4"></i> متن خبر (body)</a></li>
+                                <li><a href="#section-notes" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-comment-medical text-amber-500 w-4"></i> تحلیل و ملاحظات</a></li>
+                                <li><a href="#section-classification" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-layer-group text-rose-500 w-4"></i> طبقه‌بندی و منبع</a></li>
+                                <li><a href="#section-org" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-sitemap text-purple-500 w-4"></i> ساختار سازمانی</a></li>
+                                <li><a href="#section-people" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-users text-rose-500 w-4"></i> اشخاص مرتبط</a></li>
+                                <li><a href="#section-tags" class="nav-link flex items-center gap-2 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-tags text-teal-500 w-4"></i> کلیدواژه‌ها</a></li>
+                            </ul>
+                        </nav>
+
+                        <!-- طبقه‌بندی، منشا و مرجع انتشار -->
+                        <div id="section-classification" class="glass-card card-glow-rose p-6 rounded-2xl space-y-4 relative z-10 fade-in-up">
+                            <div class="flex items-center gap-2.5 mb-1">
+                                <span class="section-badge bg-rose-100"><i class="fa-solid fa-layer-group text-rose-600"></i></span>
+                                <h2 class="text-sm font-extrabold text-slate-800">طبقه‌بندی و منبع</h2>
+                            </div>
+                            <div>
+                                <label for="report-source" class="block text-xs font-semibold text-slate-600 mb-1.5">منشا خبر (source)</label>
+                                <select id="report-source" name="source"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm cursor-pointer">
+                                    <option value="">-- انتخاب منشا --</option>
+                                    <option value="خط">خط</option>
+                                    <option value="محیط">محیط</option>
+                                    <option value="منبع">منبع</option>
+                                    <option value="آشکار">آشکار</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="report-classification" class="block text-xs font-semibold text-slate-600 mb-1.5">سطح طبقه‌بندی (classification)</label>
+                                <select id="report-classification" name="classification"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm cursor-pointer">
+                                    <option value="">-- بدون طبقه‌بندی --</option>
+                                    <option value="عادی">عادی</option>
+                                    <option value="محرمانه">محرمانه</option>
+                                    <option value="خیلی-محرمانه">خیلی-محرمانه</option>
+                                    <option value="سری">سری</option>
+                                    <option value="به-کلی-سری">به-کلی-سری</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="report-marjaa" class="block text-xs font-semibold text-slate-600 mb-1.5">مرجع انتشار خبر (marjaa)</label>
+                                <select id="report-marjaa" name="marjaa"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm cursor-pointer">
+                                    <option value="">-- بدون مرجع --</option>
+                                    <option value="خبرگزاری">خبرگزاری</option>
+                                    <option value="مطبوعات">مطبوعات</option>
+                                    <option value="صداوسیما">صداوسیما</option>
+                                    <option value="رسانه-های-بیگانه">رسانه‌های بیگانه</option>
+                                    <option value="صفحات-مجازی">صفحات مجازی</option>
+                                    <option value="رسمی">رسمی</option>
+                                    <option value="غیررسمی">غیررسمی</option>
+                                </select>
+                            </div>
+                        </div>
+<!-- ساختار سازمانی: سطح هدف + آبشاری معاونت > اداره > میز > موضوع > هدف -->
+                        <div id="section-org" class="glass-card card-glow-purple p-6 rounded-2xl space-y-4 relative z-10 fade-in-up">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="section-badge bg-purple-100"><i class="fa-solid fa-sitemap text-purple-600"></i></span>
+                                    <h2 class="text-sm font-extrabold text-slate-800">ساختار سازمانی خبر</h2>
+                                </div>
+                                <span class="text-[11px] text-slate-400">target_type</span>
+                            </div>
+
+                            <div>
+                                <label for="report-target-level" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">★</span>
+                                    سطح هدف خبر (target_type)
+                                    <span class="tooltip-hint text-slate-400"><i class="fa-regular fa-circle-question"></i>
+                                        <span class="tooltip-text">مشخص می‌شود خبر روی کدام سطح سازمانی متمرکز است و فیلد target_* متناظر پر می‌شود</span>
+                                    </span>
+                                </label>
+                                <select id="report-target-level" name="target_type"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer">
+                                    <option value="">-- بدون هدف سازمانی --</option>
+                                    <option value="deputy">معاونت</option>
+                                    <option value="department">اداره</option>
+                                    <option value="desk">میز</option>
+                                    <option value="topic">موضوع</option>
+                                    <option value="goal">هدف</option>
+                                </select>
+                            </div>
+
+                            <div data-org-level="1">
+                                <label for="report-deputy" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">۱</span>
+                                    معاونت (target_deputy)
+                                </label>
+                                <select id="report-deputy"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer"
+                                    disabled>
+                                    <option value="">-- انتخاب معاونت --</option>
+                                </select>
+                            </div>
+
+                            <div data-org-level="2">
+                                <label for="report-department" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">۲</span>
+                                    اداره (target_department)
+                                </label>
+                                <select id="report-department"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer"
+                                    disabled>
+                                    <option value="">-- ابتدا معاونت را انتخاب کنید --</option>
+                                </select>
+                            </div>
+<div data-org-level="3">
+                                <label for="report-desk" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">۳</span>
+                                    میز (target_desk)
+                                </label>
+                                <select id="report-desk"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer"
+                                    disabled>
+                                    <option value="">-- ابتدا اداره را انتخاب کنید --</option>
+                                </select>
+                            </div>
+
+                            <div data-org-level="4">
+                                <label for="report-topic" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">۴</span>
+                                    موضوع (target_topic)
+                                </label>
+                                <select id="report-topic"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer"
+                                    disabled>
+                                    <option value="">-- ابتدا میز را انتخاب کنید --</option>
+                                </select>
+                            </div>
+
+                            <div data-org-level="5">
+                                <label for="report-goal" class="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                                    <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-extrabold flex items-center justify-center">۵</span>
+                                    هدف (target_goal)
+                                </label>
+                                <select id="report-goal"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 outline-none shadow-sm cursor-pointer"
+                                    disabled>
+                                    <option value="">-- ابتدا موضوع را انتخاب کنید --</option>
+                                </select>
+                            </div>
+                        </div>
+<!-- اشخاص مرتبط (mentioned_people → people) -->
+                        <div id="section-people" class="glass-card card-glow-rose p-6 rounded-2xl space-y-3 relative z-10 fade-in-up">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="section-badge bg-rose-100"><i class="fa-solid fa-users text-rose-600"></i></span>
+                                    <h2 class="text-sm font-extrabold text-slate-800">اشخاص مرتبط</h2>
+                                </div>
+                                <span id="people-count-badge" class="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg">۰ نفر</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">رابطه mentioned_people — حداکثر ۱۰ شخص از کالکشن people</p>
+                            <div class="suggest-wrap">
+                                <input type="text" id="people-search-input" autocomplete="off"
+                                    placeholder="جستجوی نام شخص... (مثلاً: احمدی)"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none shadow-sm">
+                                <div id="people-suggestions" class="suggest-box hidden"></div>
+                            </div>
+                            <div id="people-chips" class="flex flex-wrap gap-1.5 min-h-[1.5rem]"></div>
+                            <button type="button" id="people-add-btn"
+                                class="btn-press text-xs text-rose-700 font-bold flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition border border-rose-200 w-full">
+                                <i class="fa-solid fa-plus"></i> ایجاد شخص جدید در کالکشن people
+                            </button>
+                            <div id="people-create-form" class="hidden glass-card p-3 rounded-xl space-y-2 bg-rose-50/60 border border-rose-200">
+                                <input type="text" id="people-new-name" placeholder="نام کامل (full_name)"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                                <input type="text" id="people-new-desc" placeholder="توضیحات (اختیاری) (description)"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="people-save-btn" class="btn-press flex-1 text-xs font-bold bg-rose-100 hover:bg-rose-200 text-rose-700 px-3 py-2 rounded-lg transition border border-rose-300">
+                                        <i class="fa-solid fa-check"></i> ذخیره و انتخاب
+                                    </button>
+                                    <button type="button" id="people-cancel-btn" class="btn-press text-xs font-bold text-slate-500 px-3 py-2 rounded-lg hover:bg-slate-100 transition">انصراف</button>
+                                </div>
+                                <p id="people-create-error" class="hidden text-[11px] text-rose-500 font-semibold"></p>
+                            </div>
+                        </div>
+<!-- کلیدواژه‌ها (keywords → keywords) -->
+                        <div id="section-tags" class="glass-card card-glow-teal p-6 rounded-2xl space-y-3 relative z-10 fade-in-up">
+                            <div class="flex items-center justify-between flex-wrap gap-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="section-badge bg-teal-100"><i class="fa-solid fa-tags text-teal-600"></i></span>
+                                    <h2 class="text-sm font-extrabold text-slate-800">کلیدواژه‌ها</h2>
+                                </div>
+                                <span id="keyword-count-badge" class="text-[11px] font-bold text-teal-600 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">۰ مورد</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400">رابطه keywords — حداکثر ۱۰ کلیدواژه از کالکشن keywords</p>
+                            <div class="suggest-wrap">
+                                <input type="text" id="keyword-search-input" autocomplete="off"
+                                    placeholder="جستجو یا ورود کلیدواژه... (مثلاً: امنیت)"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none shadow-sm">
+                                <div id="keyword-suggestions" class="suggest-box hidden"></div>
+                            </div>
+                            <div id="keyword-chips" class="flex flex-wrap gap-1.5 min-h-[1.5rem]"></div>
+                            <button type="button" id="keyword-add-btn"
+                                class="btn-press text-xs text-teal-700 font-bold flex items-center gap-1.5 bg-teal-50 hover:bg-teal-100 px-3 py-2 rounded-xl transition border border-teal-200 w-full">
+                                <i class="fa-solid fa-plus"></i> ایجاد کلیدواژه جدید در کالکشن keywords
+                            </button>
+                            <div id="keyword-create-form" class="hidden glass-card p-3 rounded-xl space-y-2 bg-teal-50/60 border border-teal-200">
+                                <input type="text" id="keyword-new-title" placeholder="عنوان کلیدواژه (title)"
+                                    class="field-input w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100">
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="keyword-save-btn" class="btn-press flex-1 text-xs font-bold bg-teal-100 hover:bg-teal-200 text-teal-700 px-3 py-2 rounded-lg transition border border-teal-300">
+                                        <i class="fa-solid fa-check"></i> ذخیره و انتخاب
+                                    </button>
+                                    <button type="button" id="keyword-cancel-btn" class="btn-press text-xs font-bold text-slate-500 px-3 py-2 rounded-lg hover:bg-slate-100 transition">انصراف</button>
+                                </div>
+                                <p id="keyword-create-error" class="hidden text-[11px] text-teal-600 font-semibold"></p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </aside>
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Spacer for fixed bar clearance -->
+    <div class="h-28"></div>
+
+    <!-- Fixed Bottom Action Bar -->
+    <div class="fixed bottom-4 left-0 right-0 z-50 floating-bar px-4 pointer-events-none">
+        <div class="max-w-md mx-auto glass-card border-2 border-purple-300/70 rounded-2xl px-6 py-3 shadow-2xl shadow-purple-500/20 flex items-center justify-center gap-4 bg-white/95 backdrop-blur-md pointer-events-auto">
+            <a href="index.html"
+                class="btn-press px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold transition">
+                انصراف
+            </a>
+            <button type="submit" form="create-news-form" id="submit-btn"
+                class="btn-press px-6 py-2.5 rounded-xl bg-gradient-to-l from-indigo-600 via-purple-600 to-pink-500 hover:shadow-xl hover:shadow-purple-500/30 text-white text-sm font-bold shadow-lg shadow-indigo-500/25 transition flex items-center gap-2 cursor-pointer">
+                <span id="btn-spinner" data-submit-spinner
+                    class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+                    aria-hidden="true"></span>
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span id="btn-text" data-submit-text>ذخیره‌سازی و نهایی‌سازی</span>
+            </button>
+        </div>
+    </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        'use strict';
+
+        const PB_URL = window.location.origin;
+
+        /* ================================================================
+           اتصال به کالکشن‌های PocketBase (نقشه کالکشن news)
+        ================================================================ */
+        const COLLECTIONS = {
+            news: 'news',
+            deputies: '1deputies',
+            departments: '2departments',
+            desks: '3desks',
+            topics: '4topics',
+            goals: '5goals',
+            people: 'people',
+            keywords: 'keywords'
+        };
+
+        const MAX_RELATIONS = 10;
+
+        /* سطوح هدف خبر (target_type) و فیلد رابطی متناظر */
+        const TARGET_LEVEL_DEFS = [
+            { value: 'deputy', label: 'معاونت', field: 'target_deputy' },
+            { value: 'department', label: 'اداره', field: 'target_department' },
+            { value: 'desk', label: 'میز', field: 'target_desk' },
+            { value: 'topic', label: 'موضوع', field: 'target_topic' },
+            { value: 'goal', label: 'هدف', field: 'target_goal' }
+        ];
+
+        const state = {
+            pb: null,
+            currentUser: null,
+            editingId: null,
+            quillBody: null,
+            quillMolaheze: null,
+            quillNazarie: null,
+            org: null,
+            people: [],
+            keywords: [],
+            selectedPeople: [],
+            selectedKeywords: []
+        };
+
+        const $id = (id) => document.getElementById(id);
+
+        function toPersianDigits(str) {
+            const fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+            return String(str).replace(/\d/g, d => fa[d]);
+        }
+
+        function normText(s) {
+            return String(s || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function errorMessage(err) {
+            if (!err) return 'خطای ناشناخته';
+            const data = err.data;
+            if (data && typeof data === 'object') {
+                for (const key of Object.keys(data)) {
+                    const item = data[key];
+                    if (item && item.message) return item.message;
+                }
+            }
+            return err.message || 'خطای ناشناخته';
+        }
+/* ---------------- اعتبارسنجی نشست ---------------- */
+        async function ensureAuth() {
+            if (typeof PocketBase === 'undefined') return false;
+            state.pb = new PocketBase(PB_URL);
+            if (!state.pb.authStore.isValid) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            state.currentUser = state.pb.authStore.model || state.pb.authStore.record;
+            const nameEl = $id('current-user-name');
+            if (nameEl) {
+                nameEl.textContent = state.currentUser
+                    ? (state.currentUser.name || state.currentUser.username || 'کاربر')
+                    : 'کاربر';
+            }
+            const badge = $id('current-user-badge');
+            if (badge) badge.classList.remove('hidden');
+            // اعتبارسنجی توکن (در حالت آفلاین محلی خطا را تحمل می‌کنیم)
+            try { await state.pb.collection('a_users').authRefresh(); } catch (e) { /* ignore */ }
+            return true;
+        }
+
+        /* ---------------- بارگذاری داده‌های روابط ---------------- */
+        async function loadRelationData() {
+            const results = await Promise.allSettled([
+                state.pb.collection(COLLECTIONS.deputies).getFullList({ sort: 'title' }),
+                state.pb.collection(COLLECTIONS.departments).getFullList({ sort: 'title' }),
+                state.pb.collection(COLLECTIONS.desks).getFullList({ sort: 'title' }),
+                state.pb.collection(COLLECTIONS.topics).getFullList({ sort: 'title' }),
+                state.pb.collection(COLLECTIONS.goals).getFullList({ sort: 'title' }),
+                state.pb.collection(COLLECTIONS.people).getFullList({ sort: 'full_name' }),
+                state.pb.collection(COLLECTIONS.keywords).getFullList({ sort: 'title' })
+            ]);
+            state.org = {
+                deputies: results[0].status === 'fulfilled' ? results[0].value : [],
+                departments: results[1].status === 'fulfilled' ? results[1].value : [],
+                desks: results[2].status === 'fulfilled' ? results[2].value : [],
+                topics: results[3].status === 'fulfilled' ? results[3].value : [],
+                goals: results[4].status === 'fulfilled' ? results[4].value : []
+            };
+            state.people = results[5].status === 'fulfilled' ? results[5].value : [];
+            state.keywords = results[6].status === 'fulfilled' ? results[6].value : [];
+
+            warnIfEmpty('section-org', state.org.deputies.length + state.org.departments.length +
+                state.org.desks.length + state.org.topics.length + state.org.goals.length,
+                'داده‌های ساختار سازمانی دریافت نشد. قواعد دسترسی (listRule) کالکشن‌های 1deputies تا 5goals اکنون null است و فقط ادمین می‌تواند بخواند.');
+            warnIfEmpty('section-people', state.people.length,
+                'لیست اشخاص دریافت نشد. قواعد دسترسی کالکشن people را بررسی کنید.');
+            warnIfEmpty('section-tags', state.keywords.length,
+                'لیست کلیدواژه‌ها دریافت نشد. قواعد دسترسی کالکشن keywords را بررسی کنید.');
+        }
+
+        function warnIfEmpty(sectionId, count, message) {
+            if (count > 0) return;
+            const section = $id(sectionId);
+            if (!section) return;
+            const p = document.createElement('p');
+            p.className = 'text-[11px] text-amber-600 font-semibold mt-1';
+            p.textContent = '⚠️ ' + message;
+            section.prepend(p);
+        }
+
+        function fillSelect(selEl, items, placeholder) {
+            if (!selEl) return;
+            selEl.innerHTML = `<option value="">${placeholder}</option>`;
+            items.forEach(item => {
+                if (!item || !item.id) return;
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.title || item.full_name || item.id;
+                selEl.appendChild(opt);
+            });
+        }
+/* ================================================================
+           آبشاری سازمانی: سطح هدف + معاونت > اداره > میز > موضوع > هدف
+        ================================================================ */
+        const selTargetLevel = $id('report-target-level');
+        const orgSel = {
+            deputy: $id('report-deputy'),
+            department: $id('report-department'),
+            desk: $id('report-desk'),
+            topic: $id('report-topic'),
+            goal: $id('report-goal')
+        };
+
+        function targetLevelIndex(value) {
+            return TARGET_LEVEL_DEFS.findIndex(d => d.value === value);
+        }
+
+        function childItemsOf(levelValue, parentValue) {
+            if (!parentValue) return [];
+            switch (levelValue) {
+                case 'department':
+                    return state.org.departments.filter(d => d.deputy === parentValue);
+                case 'desk':
+                    return state.org.desks.filter(d => d.relation === parentValue);
+                case 'topic':
+                    return state.org.topics.filter(t => t.desk === parentValue);
+                case 'goal':
+                    return state.org.goals.filter(g => g.topic === parentValue);
+                default:
+                    return [];
+            }
+        }
+
+        function levelPlaceholder(levelValue) {
+            switch (levelValue) {
+                case 'department': return '-- ابتدا معاونت را انتخاب کنید --';
+                case 'desk': return '-- ابتدا اداره را انتخاب کنید --';
+                case 'topic': return '-- ابتدا میز را انتخاب کنید --';
+                case 'goal': return '-- ابتدا موضوع را انتخاب کنید --';
+                default: return '-- انتخاب معاونت --';
+            }
+        }
+
+        /* با انتخاب سطح هدف، سطوح پایین‌تر مخفی و ریست می‌شوند */
+        function applyTargetLevel(levelValue) {
+            const idx = targetLevelIndex(levelValue);
+            TARGET_LEVEL_DEFS.forEach((def, i) => {
+                const wrap = document.querySelector(`[data-org-level="${i + 1}"]`);
+                const sel = orgSel[def.value];
+                if (!wrap || !sel) return;
+                if (levelValue && i + 1 > (idx + 1)) {
+                    wrap.classList.add('hidden');
+                    sel.value = '';
+                    sel.disabled = true;
+                    fillSelect(sel, [], '-- برای این سطح هدف لازم نیست --');
+                } else {
+                    wrap.classList.remove('hidden');
+                }
+            });
+            if (!levelValue) {
+                // حذف سطح هدف: ریست کامل زنجیره
+                TARGET_LEVEL_DEFS.forEach((def, i) => {
+                    const sel = orgSel[def.value];
+                    sel.value = '';
+                    sel.disabled = true;
+                    fillSelect(sel, [], i === 0 ? '-- انتخاب معاونت --' : levelPlaceholder(def.value));
+                });
+                return;
+            }
+            // سطح اول (معاونت) فعال می‌شود و بقیه ریست می‌شوند
+            const firstSel = orgSel.deputy;
+            firstSel.value = '';
+            firstSel.disabled = false;
+            fillSelect(firstSel, state.org.deputies, '-- انتخاب معاونت --');
+            TARGET_LEVEL_DEFS.slice(1).forEach(def => {
+                const sel = orgSel[def.value];
+                sel.value = '';
+                sel.disabled = true;
+                fillSelect(sel, [], levelPlaceholder(def.value));
+            });
+        }
+
+        function loadChildOptions(levelValue, parentValue) {
+            const childSel = orgSel[levelValue];
+            const items = childItemsOf(levelValue, parentValue);
+            const def = TARGET_LEVEL_DEFS.find(d => d.value === levelValue);
+            const ph = items.length ? ('-- انتخاب ' + def.label + ' --') : levelPlaceholder(levelValue);
+            fillSelect(childSel, items, ph);
+            childSel.disabled = !(parentValue && items.length);
+        }
+/* تغییر زنجیره‌ای: معاونت → اداره → میز → موضوع → هدف */
+        const CASCADE_CHAINS = [
+            { level: 'deputy', child: 'department' },
+            { level: 'department', child: 'desk' },
+            { level: 'desk', child: 'topic' },
+            { level: 'topic', child: 'goal' }
+        ];
+
+        CASCADE_CHAINS.forEach(chain => {
+            orgSel[chain.level].addEventListener('change', function () {
+                const childSel = orgSel[chain.child];
+                childSel.value = '';
+                childSel.disabled = true;
+                fillSelect(childSel, [], levelPlaceholder(chain.child));
+                if (this.value) {
+                    loadChildOptions(chain.child, this.value);
+                }
+                updateProgress();
+                markDirty();
+            });
+        });
+
+        orgSel.goal.addEventListener('change', function () {
+            updateProgress();
+            markDirty();
+        });
+
+        selTargetLevel.addEventListener('change', function () {
+            applyTargetLevel(this.value);
+            updateProgress();
+            markDirty();
+        });
+
+        /* بازسازی زنجیره والدها از رکورد ذخیره‌شده (برای حالت ویرایش) */
+        function resolveChain(levelValue, nodeId) {
+            const chain = {};
+            if (levelValue === 'department') {
+                chain.department = nodeId;
+                const dep = state.org.departments.find(d => d.id === nodeId);
+                if (dep) chain.deputy = dep.deputy;
+            }
+            if (levelValue === 'desk') {
+                chain.desk = nodeId;
+                const desk = state.org.desks.find(d => d.id === nodeId);
+                if (desk) {
+                    const dep = state.org.departments.find(d => d.id === desk.relation);
+                    chain.department = desk.relation;
+                    if (dep) chain.deputy = dep.deputy;
+                }
+            }
+            if (levelValue === 'topic') {
+                chain.topic = nodeId;
+                const topic = state.org.topics.find(t => t.id === nodeId);
+                if (topic) {
+                    const desk = state.org.desks.find(d => d.id === topic.desk);
+                    chain.desk = topic.desk;
+                    if (desk) {
+                        const dep = state.org.departments.find(d => d.id === desk.relation);
+                        chain.department = desk.relation;
+                        if (dep) chain.deputy = dep.deputy;
+                    }
+                }
+            }
+            if (levelValue === 'goal') {
+                chain.goal = nodeId;
+                const goal = state.org.goals.find(g => g.id === nodeId);
+                if (goal) {
+                    const topic = state.org.topics.find(t => t.id === goal.topic);
+                    chain.topic = goal.topic;
+                    if (topic) {
+                        const desk = state.org.desks.find(d => d.id === topic.desk);
+                        chain.desk = topic.desk;
+                        if (desk) {
+                            const dep = state.org.departments.find(d => d.id === desk.relation);
+                            chain.department = desk.relation;
+                            if (dep) chain.deputy = dep.deputy;
+                        }
+                    }
+                }
+            }
+            chain[levelValue] = nodeId;
+            return chain;
+        }
+
+        /* پیلود هدف: فقط فیلد target_* متناظر با سطح انتخاب‌شده ارسال می‌شود */
+        function getTargetPayload() {
+            const level = selTargetLevel.value;
+            if (!level) return {};
+            const def = TARGET_LEVEL_DEFS.find(d => d.value === level);
+            const sel = orgSel[level];
+            if (!sel.value) return { target_type: level };
+            const payload = { target_type: level };
+            payload[def.field] = sel.value;
+            return payload;
+        }
+/* ================================================================
+           اشخاص مرتبط (mentioned_people → کالکشن people)
+        ================================================================ */
+        function findPerson(id) { return state.people.find(p => p.id === id); }
+
+        function renderPeopleChips() {
+            const wrap = $id('people-chips');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            state.selectedPeople.forEach(id => {
+                const p = findPerson(id);
+                if (!p) return;
+                const chip = document.createElement('span');
+                chip.className = 'relation-chip';
+                chip.title = p.description || p.full_name;
+                chip.innerHTML = `<i class="fa-solid fa-user"></i><span>${escapeHtml(p.full_name || 'بدون نام')}</span>`;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.title = 'حذف';
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                btn.addEventListener('click', () => removePersonChip(id));
+                chip.appendChild(btn);
+                wrap.appendChild(chip);
+            });
+            const badge = $id('people-count-badge');
+            if (badge) badge.textContent = `${toPersianDigits(state.selectedPeople.length)} نفر`;
+            const input = $id('people-search-input');
+            if (input) {
+                if (state.selectedPeople.length >= MAX_RELATIONS) {
+                    input.disabled = true;
+                    input.placeholder = 'حداکثر ۱۰ شخص انتخاب شده است';
+                } else {
+                    input.disabled = false;
+                }
+            }
+        }
+
+        function removePersonChip(id) {
+            state.selectedPeople = state.selectedPeople.filter(x => x !== id);
+            renderPeopleChips();
+            renderPeopleSuggestions();
+            markDirty();
+        }
+
+        function addPersonChip(id) {
+            if (state.selectedPeople.includes(id)) return;
+            if (state.selectedPeople.length >= MAX_RELATIONS) {
+                Swal.fire({ icon: 'info', title: 'حداکثر ۱۰ شخص', text: 'امکان افزودن بیش از ۱۰ شخص وجود ندارد.', confirmButtonText: 'باشه' });
+                return;
+            }
+            state.selectedPeople.push(id);
+            renderPeopleChips();
+            $id('people-search-input').value = '';
+            renderPeopleSuggestions();
+            markDirty();
+        }
+
+        function renderPeopleSuggestions() {
+            const box = $id('people-suggestions');
+            if (!box) return;
+            const q = normText($id('people-search-input').value);
+            const list = state.people
+                .filter(p => !state.selectedPeople.includes(p.id))
+                .filter(p => !q || normText(p.full_name).includes(q) || normText(p.description).includes(q))
+                .slice(0, 6);
+            if (!list.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            box.innerHTML = list.map(p => `
+                <button type="button" class="suggest-item" data-people-id="${p.id}">
+                    <i class="fa-solid fa-user text-rose-400 text-[10px]"></i>
+                    <span class="flex-1 text-right">${escapeHtml(p.full_name || 'بدون نام')}</span>
+                    <span class="suggest-sub">${escapeHtml((p.description || '').slice(0, 40))}</span>
+                </button>`).join('');
+            box.classList.remove('hidden');
+        }
+
+        $id('people-search-input').addEventListener('input', renderPeopleSuggestions);
+        $id('people-search-input').addEventListener('focus', renderPeopleSuggestions);
+        $id('people-suggestions').addEventListener('click', function (e) {
+            const btn = e.target.closest('[data-people-id]');
+            if (btn) addPersonChip(btn.dataset.peopleId);
+        });
+
+        /* ایجاد شخص جدید */
+        function showCreateError(kind, msg) {
+            const el = $id(kind + '-create-error');
+            if (!el) return;
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 4500);
+        }
+
+        $id('people-add-btn').addEventListener('click', function () {
+            const form = $id('people-create-form');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) $id('people-new-name').focus();
+        });
+        $id('people-cancel-btn').addEventListener('click', () => $id('people-create-form').classList.add('hidden'));
+        $id('people-save-btn').addEventListener('click', async function () {
+            const name = $id('people-new-name').value.trim();
+            const desc = $id('people-new-desc').value.trim();
+            if (!name) { showCreateError('people', 'نام کامل (full_name) الزامی است.'); return; }
+            try {
+                const rec = await state.pb.collection(COLLECTIONS.people).create({ full_name: name, description: desc });
+                state.people.push(rec);
+                addPersonChip(rec.id);
+                $id('people-new-name').value = '';
+                $id('people-new-desc').value = '';
+                $id('people-create-form').classList.add('hidden');
+            } catch (err) {
+                showCreateError('people', errorMessage(err));
+            }
+        });
+/* ================================================================
+           کلیدواژه‌ها (keywords → کالکشن keywords)
+        ================================================================ */
+        function findKeyword(id) { return state.keywords.find(k => k.id === id); }
+
+        function renderKeywordChips() {
+            const wrap = $id('keyword-chips');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            state.selectedKeywords.forEach(id => {
+                const k = findKeyword(id);
+                if (!k) return;
+                const chip = document.createElement('span');
+                chip.className = 'relation-chip';
+                chip.style.background = 'linear-gradient(135deg, #f0fdf4, #ecfeff)';
+                chip.style.color = '#0f766e';
+                chip.style.borderColor = '#99f6e4';
+                chip.innerHTML = `<i class="fa-solid fa-tag"></i><span>${escapeHtml(k.title || 'بدون عنوان')}</span>`;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.title = 'حذف';
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                btn.addEventListener('click', () => removeKeywordChip(id));
+                chip.appendChild(btn);
+                wrap.appendChild(chip);
+            });
+            const badge = $id('keyword-count-badge');
+            if (badge) badge.textContent = `${toPersianDigits(state.selectedKeywords.length)} مورد`;
+            const input = $id('keyword-search-input');
+            if (input) {
+                if (state.selectedKeywords.length >= MAX_RELATIONS) {
+                    input.disabled = true;
+                    input.placeholder = 'حداکثر ۱۰ کلیدواژه انتخاب شده است';
+                } else {
+                    input.disabled = false;
+                }
+            }
+        }
+
+        function removeKeywordChip(id) {
+            state.selectedKeywords = state.selectedKeywords.filter(x => x !== id);
+            renderKeywordChips();
+            renderKeywordSuggestions();
+            markDirty();
+        }
+
+        function addKeywordChip(id) {
+            if (state.selectedKeywords.includes(id)) return;
+            if (state.selectedKeywords.length >= MAX_RELATIONS) {
+                Swal.fire({ icon: 'info', title: 'حداکثر ۱۰ کلیدواژه', text: 'امکان افزودن بیش از ۱۰ کلیدواژه وجود ندارد.', confirmButtonText: 'باشه' });
+                return;
+            }
+            state.selectedKeywords.push(id);
+            renderKeywordChips();
+            $id('keyword-search-input').value = '';
+            renderKeywordSuggestions();
+            markDirty();
+            bumpKeywordUsage(id);
+        }
+
+        function renderKeywordSuggestions() {
+            const box = $id('keyword-suggestions');
+            if (!box) return;
+            const q = normText($id('keyword-search-input').value);
+            const list = state.keywords
+                .filter(k => !state.selectedKeywords.includes(k.id))
+                .filter(k => !q || normText(k.title).includes(q))
+                .slice(0, 6);
+            if (!list.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            box.innerHTML = list.map(k => `
+                <button type="button" class="suggest-item" data-keyword-id="${k.id}">
+                    <i class="fa-solid fa-tag text-teal-400 text-[10px]"></i>
+                    <span class="flex-1 text-right">${escapeHtml(k.title || 'بدون عنوان')}</span>
+                    <span class="suggest-sub">${toPersianDigits(k.usage_count || 0)} بار استفاده</span>
+                </button>`).join('');
+            box.classList.remove('hidden');
+        }
+
+        /* هر بار انتخاب یک کلیدواژه موجود، شمارنده استفاده زیاد می‌شود (غیر مسدود) */
+        function bumpKeywordUsage(id) {
+            const k = findKeyword(id);
+            if (!k) return;
+            const next = (Number(k.usage_count) || 0) + 1;
+            k.usage_count = next;
+            state.pb.collection(COLLECTIONS.keywords).update(id, { usage_count: next }).catch(() => {});
+        }
+
+        $id('keyword-search-input').addEventListener('input', renderKeywordSuggestions);
+        $id('keyword-search-input').addEventListener('focus', renderKeywordSuggestions);
+        $id('keyword-suggestions').addEventListener('click', function (e) {
+            const btn = e.target.closest('[data-keyword-id]');
+            if (btn) addKeywordChip(btn.dataset.keywordId);
+        });
+/* ایجاد کلیدواژه جدید */
+        $id('keyword-add-btn').addEventListener('click', function () {
+            const form = $id('keyword-create-form');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) $id('keyword-new-title').focus();
+        });
+        $id('keyword-cancel-btn').addEventListener('click', () => $id('keyword-create-form').classList.add('hidden'));
+        $id('keyword-save-btn').addEventListener('click', async function () {
+            const title = $id('keyword-new-title').value.trim();
+            if (!title) { showCreateError('keyword', 'عنوان (title) الزامی است.'); return; }
+            // جلوگیری از ایجاد تکراری
+            const existing = state.keywords.find(k => normText(k.title) === normText(title));
+            if (existing) {
+                addKeywordChip(existing.id);
+                $id('keyword-new-title').value = '';
+                $id('keyword-create-form').classList.add('hidden');
+                return;
+            }
+            try {
+                const rec = await state.pb.collection(COLLECTIONS.keywords).create({ title: title, usage_count: 1 });
+                state.keywords.push(rec);
+                addKeywordChip(rec.id);
+                $id('keyword-new-title').value = '';
+                $id('keyword-create-form').classList.add('hidden');
+            } catch (err) {
+                showCreateError('keyword', errorMessage(err));
+            }
+        });
+
+        /* بستن باکس‌های پیشنهاد با کلیک بیرون */
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.suggest-wrap')) {
+                const pb = $id('people-suggestions'); if (pb) pb.classList.add('hidden');
+                const kb = $id('keyword-suggestions'); if (kb) kb.classList.add('hidden');
+            }
+        });
+/* ================================================================
+           ادیتورهای Quill (body / molaheze / nazarie)
+        ================================================================ */
+        const QUILL_TOOLBAR = [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
+            ['link', 'clean']
+        ];
+
+        function initQuillEditors() {
+            state.quillBody = new Quill('#editor-body', {
+                theme: 'snow',
+                placeholder: 'متن اصلی خبر را بنویسید یا فایل Word را در باکس بالا بارگذاری کنید...',
+                modules: { toolbar: QUILL_TOOLBAR }
+            });
+            state.quillMolaheze = new Quill('#editor-molaheze', {
+                theme: 'snow',
+                placeholder: 'ملاحظات کارشناسی...',
+                modules: { toolbar: QUILL_TOOLBAR }
+            });
+            state.quillNazarie = new Quill('#editor-nazarie', {
+                theme: 'snow',
+                placeholder: 'نظریه کارشناسی...',
+                modules: { toolbar: QUILL_TOOLBAR }
+            });
+            // استایل کهربایی برای ادیتورهای تحلیل
+            ['editor-molaheze', 'editor-nazarie'].forEach(id => {
+                const container = $id(id);
+                if (!container) return;
+                container.classList.add('ql-container-amber');
+                const tl = container.previousElementSibling;
+                if (tl && tl.classList.contains('ql-toolbar')) tl.classList.add('ql-toolbar-amber');
+            });
+
+            state.quillBody.on('text-change', function () {
+                const len = state.quillBody.getText().trim().length;
+                $id('body-char-count').textContent = `${toPersianDigits(len)} کاراکتر`;
+                validateField('content');
+                updateProgress();
+                markDirty();
+            });
+            state.quillMolaheze.on('text-change', function () {
+                $id('molaheze-char-count').textContent = `${toPersianDigits(state.quillMolaheze.getText().trim().length)} کاراکتر`;
+            });
+            state.quillNazarie.on('text-change', function () {
+                $id('nazarie-char-count').textContent = `${toPersianDigits(state.quillNazarie.getText().trim().length)} کاراکتر`;
+            });
+        }
+
+        /* ---------------- تاریخ شمسی (occurred_at) ---------------- */
+        function faFromIso(iso) {
+            try {
+                const pd = new persianDate(new Date(iso));
+                pd.toLocale('en');
+                return pd.format('YYYY/MM/DD');
+            } catch (err) { return null; }
+        }
+
+        function initDatepicker(initialFa) {
+            const opts = {
+                format: 'YYYY/MM/DD',
+                autoClose: true,
+                initialValue: initialFa || false,
+                onSelect: function (unix) {
+                    const pDate = new persianDate(unix);
+                    const gDate = pDate.toDate();
+                    $id('report-occurred-at').value = gDate.toISOString();
+                    validateField('date');
+                    updateProgress();
+                    markDirty();
+                }
+            };
+            $('#occurrence-date-picker').persianDatepicker(opts);
+        }
+/* ---------------- اعتبارسنجی و پیشرفت ---------------- */
+        const titleInput = $id('report-title');
+
+        function validateField(key) {
+            if (key === 'title') {
+                const valid = titleInput.value.trim().length > 0;
+                titleInput.classList.toggle('field-valid', valid);
+                titleInput.classList.toggle('field-invalid', !valid && titleInput.dataset.touched === '1');
+                $id('title-error').classList.toggle('flex', !valid && titleInput.dataset.touched === '1');
+                $id('title-error').classList.toggle('hidden', valid || titleInput.dataset.touched !== '1');
+                document.querySelector('[data-step="title"]').classList.toggle('done', valid);
+            }
+            if (key === 'content') {
+                const valid = state.quillBody && state.quillBody.getText().trim().length > 0;
+                document.querySelector('[data-step="content"]').classList.toggle('done', !!valid);
+            }
+            if (key === 'date') {
+                const valid = !!$id('report-occurred-at').value;
+                $id('occurrence-date-picker').classList.toggle('field-valid', valid);
+                document.querySelector('[data-step="date"]').classList.toggle('done', valid);
+            }
+        }
+
+        titleInput.addEventListener('input', function () {
+            const counter = $id('title-char-count');
+            if (counter) counter.textContent = `${toPersianDigits(this.value.length)} / ۵۰۰`;
+            validateField('title');
+            updateProgress();
+            markDirty();
+        });
+        titleInput.addEventListener('blur', function () {
+            this.dataset.touched = '1';
+            validateField('title');
+        });
+
+        $id('report-orders').addEventListener('input', function () {
+            $id('orders-char-count').textContent = `${toPersianDigits(this.value.length)} کاراکتر`;
+            markDirty();
+        });
+
+        ['report-source', 'report-classification', 'report-marjaa'].forEach(id => {
+            $id(id).addEventListener('change', markDirty);
+        });
+
+        function updateProgress() {
+            const titleOk = titleInput.value.trim().length > 0;
+            const bodyOk = state.quillBody && state.quillBody.getText().trim().length > 0;
+            const dateOk = !!$id('report-occurred-at').value;
+            const level = selTargetLevel.value;
+            const orgOk = !!(level && orgSel[level] && orgSel[level].value);
+            document.querySelector('[data-step="org"]').classList.toggle('done', orgOk);
+            const checks = [titleOk, bodyOk, dateOk, orgOk];
+            const pct = Math.round(checks.filter(Boolean).length / checks.length * 100);
+            $id('form-progress-bar').style.width = pct + '%';
+        }
+/* ---------------- نشانگر ذخیره خودکار (autosave UX) ---------------- */
+        let dirtyTimer = null;
+        const autosaveIndicator = $id('autosave-indicator');
+
+        function markDirty() {
+            autosaveIndicator.classList.remove('flex');
+            autosaveIndicator.classList.add('hidden');
+            clearTimeout(dirtyTimer);
+            dirtyTimer = setTimeout(() => {
+                autosaveIndicator.classList.remove('hidden');
+                autosaveIndicator.classList.add('flex');
+                setTimeout(() => {
+                    autosaveIndicator.classList.remove('flex');
+                    autosaveIndicator.classList.add('hidden');
+                }, 2500);
+            }, 900);
+        }
+
+        /* ---------------- Word Import (Mammoth.js) ---------------- */
+        const wordZone = $id('word-import-zone');
+        const wordInput = $id('word-import-input');
+        const wordBtn = $id('word-import-btn');
+        const wordStatus = $id('word-import-status');
+
+        function showWordStatus(message, type) {
+            wordStatus.textContent = message;
+            wordStatus.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-700', 'bg-rose-50', 'text-rose-700', 'bg-indigo-50', 'text-indigo-700');
+            if (type === 'success') wordStatus.classList.add('bg-emerald-50', 'text-emerald-700');
+            else if (type === 'error') wordStatus.classList.add('bg-rose-50', 'text-rose-700');
+            else wordStatus.classList.add('bg-indigo-50', 'text-indigo-700');
+        }
+
+        function handleWordFile(file) {
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.docx')) {
+                showWordStatus('فقط فایل‌های با فرمت docx. پشتیبانی می‌شوند', 'error');
+                return;
+            }
+            showWordStatus('در حال پردازش فایل Word...', 'info');
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                mammoth.convertToHtml({ arrayBuffer: event.target.result })
+                    .then(function (result) {
+                        state.quillBody.root.innerHTML = result.value;
+                        const tmp = document.createElement('div');
+                        tmp.innerHTML = result.value;
+                        const firstText = (tmp.textContent || '').trim().split('\n')[0];
+                        if (firstText && !titleInput.value.trim()) {
+                            titleInput.value = firstText.slice(0, 500);
+                            titleInput.dispatchEvent(new Event('input'));
+                        }
+                        showWordStatus('محتوای فایل با موفقیت در بدن خبر بارگذاری شد ✓', 'success');
+                        validateField('content');
+                        updateProgress();
+                        markDirty();
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        showWordStatus('خطا در پردازش فایل Word. لطفاً فایل دیگری را امتحان کنید', 'error');
+                    });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        wordZone.addEventListener('click', () => wordInput.click());
+        wordBtn.addEventListener('click', (e) => { e.stopPropagation(); wordInput.click(); });
+        wordInput.addEventListener('change', function () { handleWordFile(this.files[0]); });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+            wordZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                wordZone.classList.add('drag-over');
+            });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            wordZone.addEventListener(evt, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                wordZone.classList.remove('drag-over');
+            });
+        });
+        wordZone.addEventListener('drop', function (e) {
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            handleWordFile(file);
+        });
+/* ---------------- هشدار خروج بدون ذخیره ---------------- */
+        let formTouched = false;
+        document.getElementById('create-news-form').addEventListener('input', () => { formTouched = true; });
+        window.addEventListener('beforeunload', function (e) {
+            if (formTouched) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        /* ---------------- بارگذاری رکورد در حالت ویرایش (?id=) ---------------- */
+        async function loadRecordForEdit() {
+            try {
+                const rec = await state.pb.collection(COLLECTIONS.news).getOne(state.editingId, {
+                    expand: 'mentioned_people,keywords,created_by'
+                });
+                titleInput.value = rec.title || '';
+                const tc = $id('title-char-count');
+                if (tc) tc.textContent = `${toPersianDigits(titleInput.value.length)} / ۵۰۰`;
+                $id('report-orders').value = rec.orders || '';
+                $id('orders-char-count').textContent = `${toPersianDigits(rec.orders ? rec.orders.length : 0)} کاراکتر`;
+                if (rec.source) $id('report-source').value = rec.source;
+                if (rec.classification) $id('report-classification').value = rec.classification;
+                if (rec.marjaa) $id('report-marjaa').value = rec.marjaa;
+
+                state.quillBody.root.innerHTML = rec.body || '';
+                state.quillMolaheze.root.innerHTML = rec.molaheze || '';
+                state.quillNazarie.root.innerHTML = rec.nazarie || '';
+
+                if (rec.occurred_at) {
+                    $id('report-occurred-at').value = rec.occurred_at;
+                }
+
+                // ساختار سازمانی: بازسازی زنجیره از رکورد
+                if (rec.target_type && rec['target_' + rec.target_type]) {
+                    selTargetLevel.value = rec.target_type;
+                    applyTargetLevel(rec.target_type);
+                    const chain = resolveChain(rec.target_type, rec['target_' + rec.target_type]);
+                    let parentValue = chain.deputy;
+                    ['department', 'desk', 'topic', 'goal'].forEach(lv => {
+                        if (!parentValue) return;
+                        const items = childItemsOf(lv, parentValue);
+                        fillSelect(orgSel[lv], items, items.length ? '-- ... --' : levelPlaceholder(lv));
+                        orgSel[lv].disabled = !items.length;
+                        parentValue = chain[lv] || null;
+                    });
+                    TARGET_LEVEL_DEFS.forEach(def => {
+                        if (chain[def.value] && orgSel[def.value]) {
+                            orgSel[def.value].value = chain[def.value];
+                        }
+                    });
+                }
+
+                // اشخاص و کلیدواژه‌ها
+                state.selectedPeople = Array.isArray(rec.mentioned_people) ? rec.mentioned_people.slice(0, MAX_RELATIONS) : [];
+                state.selectedKeywords = Array.isArray(rec.keywords) ? rec.keywords.slice(0, MAX_RELATIONS) : [];
+                renderPeopleChips();
+                renderKeywordChips();
+
+                updateProgress();
+                return rec.occurred_at ? faFromIso(rec.occurred_at) : null;
+            } catch (err) {
+                console.error('خطا در بارگذاری رکورد برای ویرایش:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا در بارگذاری خبر',
+                    text: errorMessage(err),
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#ef4444'
+                });
+                return null;
+            }
+        }
+/* ================================================================
+           ارسال فرم (create / update → کالکشن news)
+        ================================================================ */
+        document.getElementById('create-news-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            titleInput.dataset.touched = '1';
+            validateField('title');
+            validateField('content');
+            validateField('date');
+
+            let firstInvalid = null;
+
+            if (!titleInput.value.trim()) {
+                firstInvalid = firstInvalid || titleInput;
+            }
+            if (!$id('report-occurred-at').value) {
+                firstInvalid = firstInvalid || $id('occurrence-date-picker');
+            }
+            if (state.quillBody.getText().trim().length === 0) {
+                $id('content-error').classList.remove('hidden');
+                $id('content-error').classList.add('flex');
+                firstInvalid = firstInvalid || $id('editor-body');
+            } else {
+                $id('content-error').classList.add('hidden');
+                $id('content-error').classList.remove('flex');
+            }
+
+            // اعتبارسنجی هدف سازمانی: اگر سطح هدف انتخاب شده، گره متناظر الزامی است
+            const lvl = selTargetLevel.value;
+            if (lvl && !orgSel[lvl].value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'سطح هدف ناقص است',
+                    text: 'سطح هدف خبر را انتخاب کرده‌اید؛ لطفاً گره متناظر آن را نیز در زنجیره سازمانی مشخص کنید.',
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#6366f1'
+                });
+                firstInvalid = firstInvalid || orgSel[lvl];
+            }
+
+            if (firstInvalid) {
+                const card = firstInvalid.closest('.glass-card') || firstInvalid;
+                card.classList.add('shake');
+                setTimeout(() => card.classList.remove('shake'), 500);
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (!(lvl && !orgSel[lvl].value)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'لطفاً فیلدهای الزامی را تکمیل کنید',
+                        text: 'عنوان، متن اصلی خبر و تاریخ وقوع نمی‌توانند خالی باشند.',
+                        confirmButtonText: 'باشه',
+                        confirmButtonColor: '#6366f1'
+                    });
+                }
+                return;
+            }
+
+            const payload = {
+                title: titleInput.value.trim(),
+                body: state.quillBody.root.innerHTML,
+                molaheze: state.quillMolaheze.root.innerHTML,
+                nazarie: state.quillNazarie.root.innerHTML,
+                orders: $id('report-orders').value.trim(),
+                classification: $id('report-classification').value || null,
+                source: $id('report-source').value || null,
+                marjaa: $id('report-marjaa').value || null,
+                occurred_at: $id('report-occurred-at').value || null,
+                mentioned_people: state.selectedPeople.slice(),
+                keywords: state.selectedKeywords.slice()
+            };
+            Object.assign(payload, getTargetPayload());
+
+            const btnText = $id('btn-text');
+            const btnSpinner = $id('btn-spinner');
+            const submitBtn = $id('submit-btn');
+
+            try {
+                submitBtn.disabled = true;
+                btnSpinner.classList.remove('hidden');
+                btnText.textContent = state.editingId ? 'در حال بروزرسانی...' : 'در حال ذخیره‌سازی...';
+
+                if (state.editingId) {
+                    await state.pb.collection(COLLECTIONS.news).update(state.editingId, payload);
+                } else {
+                    payload.created_by = state.currentUser.id;
+                    await state.pb.collection(COLLECTIONS.news).create(payload);
+                }
+
+                formTouched = false;
+                Swal.fire({
+                    icon: 'success',
+                    title: state.editingId ? 'با موفقیت بروزرسانی شد!' : 'با موفقیت ذخیره شد!',
+                    text: 'اطلاعات خبر در کالکشن news ثبت شد.',
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#10b981'
+                });
+            } catch (err) {
+                console.error('خطا در ذخیره‌سازی خبر:', err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطا در ذخیره‌سازی',
+                    text: errorMessage(err),
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#ef4444'
+                });
+            } finally {
+                submitBtn.disabled = false;
+                btnSpinner.classList.add('hidden');
+                btnText.textContent = 'ذخیره‌سازی و نهایی‌سازی';
+            }
+        });
+/* ---------------- خروج از سامانه ---------------- */
+        const userBadge = $id('current-user-badge');
+        if (userBadge) {
+            userBadge.addEventListener('click', function () {
+                if (state.pb) state.pb.authStore.clear();
+                window.location.href = 'login.html';
+            });
+        }
+
+        /* ================================================================
+           راه‌اندازی
+        ================================================================ */
+        async function boot() {
+            if (!await ensureAuth()) return;
+
+            // بارگذاری داده‌های روابط
+            await loadRelationData();
+
+            // راه‌اندازی ادیتورها
+            initQuillEditors();
+
+            // حالت ویرایش (?id=)
+            const urlParams = new URLSearchParams(window.location.search);
+            state.editingId = urlParams.get('id');
+            let initialFa = null;
+            if (state.editingId) {
+                const btnText = $id('btn-text');
+                if (btnText) btnText.textContent = 'بروزرسانی خبر';
+                initialFa = await loadRecordForEdit();
+            }
+
+            initDatepicker(initialFa);
+            updateProgress();
+        }
+
+        boot();
+    });
+</script>
+
+</body>
+
+</html>

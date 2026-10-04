@@ -93,13 +93,13 @@
 
         <form id="login-form" class="space-y-5">
             <div>
-                <label class="block text-xs font-bold text-slate-700 mb-2" for="identity">ایمیل</label>
+                <label class="block text-xs font-bold text-slate-700 mb-2" for="card-number">شماره کارت <span class="text-slate-400 font-normal">(card_number)</span></label>
                 <div class="relative">
-                    <input type="text" id="identity" required
+                    <input type="text" id="card-number" required autocomplete="username" inputmode="numeric"
                         class="w-full pl-4 pr-10 py-3 rounded-xl border border-slate-200 bg-white/80 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm text-slate-800 placeholder-slate-400 shadow-sm"
-                        placeholder="username@sahab.local">
+                        placeholder="شماره کارت کاربر را وارد کنید...">
                     <span class="absolute right-3.5 top-3.5 text-slate-400">
-                        <i class="fa-solid fa-user text-base"></i>
+                        <i class="fa-solid fa-id-card text-base"></i>
                     </span>
                 </div>
             </div>
@@ -159,22 +159,40 @@
             }
         });
 
+        // تبدیل ارقام فارسی/عربی به لاتین (شماره کارت ممکن است با ارقام فارسی ورود شود)
+        const toLatinDigits = (str) => {
+            const fa = '۰۱۲۳۴۵۶۷۸۹';
+            const ar = '٠١٢٣٤٥٦٧٨٩';
+            return String(str)
+                .replace(/[۰-۹]/g, (d) => String(fa.indexOf(d)))
+                .replace(/[٠-٩]/g, (d) => String(ar.indexOf(d)));
+        };
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const identity = document.getElementById('identity').value.trim();
+            const cardNumber = toLatinDigits(document.getElementById('card-number').value.trim());
             const password = document.getElementById('password').value;
 
             errorDiv.classList.add('hidden');
+
+            if (!cardNumber) {
+                errorDiv.innerText = 'شماره کارت را وارد کنید.';
+                errorDiv.classList.remove('hidden');
+                document.getElementById('card-number').focus();
+                return;
+            }
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span>در حال بررسی...</span>';
 
             try {
-                const authData = await pb.collection('users').authWithPassword(identity, password);
+                // کالکشن احراز هویت: a_users — ورود با شماره کارت card_number (identity) و رمز عبور
+                const authData = await pb.collection('a_users').authWithPassword(cardNumber, password);
                 window.location.href = 'index.html';
             } catch (err) {
                 console.error(err);
-                errorDiv.innerText = 'نام کاربری یا رمز عبور اشتباه است.';
+                errorDiv.innerText = 'شماره کارت یا رمز عبور اشتباه است.';
                 errorDiv.classList.remove('hidden');
             } finally {
                 submitBtn.disabled = false;

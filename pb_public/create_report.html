@@ -1864,10 +1864,18 @@
                             if (!person) {
                                 person = await state.pb.collection(COLLECTIONS.people).create({ full_name: name, description });
                                 state.people.push(person);
-                            } else if (description && normalizeWordValue(person.description) !== normalizeWordValue(description)) {
-                                // شرح قالب در فیلد توضیحات شخص ثبت می‌شود تا نام و مسئولیت کنار هم بمانند.
-                                person = await state.pb.collection(COLLECTIONS.people).update(person.id, { description });
-                                state.people = state.people.map(item => item.id === person.id ? person : item);
+                            } else if (description) {
+                                // توضیحات تازه از قالب را به سطرهای قبلی اضافه می‌کنیم و سطر تکراری نمی‌سازیم.
+                                const currentDescription = String(person.description || '').trim();
+                                const existingLines = currentDescription.split(/\r?\n/).map(normalizeWordValue).filter(Boolean);
+                                const newLines = description.split(/\r?\n/)
+                                    .map(line => line.trim())
+                                    .filter(line => line && !existingLines.includes(normalizeWordValue(line)));
+                                if (newLines.length) {
+                                    const updatedDescription = [currentDescription, ...newLines].filter(Boolean).join('\n');
+                                    person = await state.pb.collection(COLLECTIONS.people).update(person.id, { description: updatedDescription });
+                                    state.people = state.people.map(item => item.id === person.id ? person : item);
+                                }
                             }
                             addPersonChip(person.id);
                         } catch (error) {

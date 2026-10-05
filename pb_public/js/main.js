@@ -166,6 +166,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAllBaseData();
     populateSearchDropdowns();
 
+    document.getElementById('table-reports-body')?.addEventListener('click', (event) => {
+        const sourceLink = event.target.closest('[data-filter-source]');
+        if (sourceLink) filterNewsBySource(sourceLink.dataset.filterSource);
+
+        const classificationLink = event.target.closest('[data-filter-classification]');
+        if (classificationLink) filterNewsByClassification(classificationLink.dataset.filterClassification);
+
+        const targetLink = event.target.closest('[data-filter-target-level][data-filter-target-id]');
+        if (targetLink) filterNewsByTarget(targetLink.dataset.filterTargetLevel, targetLink.dataset.filterTargetId);
+    });
+
     // بررسی وجود پارامتر author در URL و تنظیم فیلتر
     const urlParams = new URLSearchParams(window.location.search);
     const authorParam = urlParams.get('author');
@@ -920,7 +931,7 @@ function fillFilterSelect(id, records, emptyLabel) {
     if (!select) return;
     const priorValue = select.value;
     select.innerHTML = `<option value="">${escapeHtml(emptyLabel)}</option>` + records
-        .map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(record.title || record.name || record.username || record.id)}</option>`)
+        .map((record) => `<option value="${escapeHtml(record.id)}">${escapeHtml(record.title || record.full_name || record.name || record.username || record.id)}</option>`)
         .join('');
     if (records.some((record) => record.id === priorValue)) select.value = priorValue;
 }
@@ -951,6 +962,8 @@ function populateSearchDropdowns() {
     fillFilterSelect('adv-filter-topic', [], 'ابتدا میز را انتخاب کنید');
     fillFilterSelect('adv-filter-goal', [], 'ابتدا موضوع را انتخاب کنید');
     fillFilterSelect('adv-filter-author', allUsers, 'همه کاربران');
+    fillFilterSelect('adv-filter-person', allPeople, 'همه اشخاص');
+    fillFilterSelect('adv-filter-keyword', allKeywords, 'همه کلیدواژه‌ها');
     ['deputy', 'department', 'desk', 'topic'].forEach((level) => {
         const select = document.getElementById(`adv-filter-${level}`);
         select?.addEventListener('change', () => refreshOrgFilterChildren(level));
@@ -1002,7 +1015,7 @@ function currentNewsFilter() {
         const value = document.getElementById(id)?.value;
         if (value) filters.push(`(${buildHierarchyFilter(level, value)})`);
     }
-    for (const field of ['classification', 'source', 'marjaa']) {
+    for (const field of ['classification', 'source']) {
         const value = document.getElementById(`adv-filter-${field}`)?.value;
         if (value) filters.push(`${field} = "${escapeFilterValue(value)}"`);
     }
@@ -1021,7 +1034,7 @@ function applyAdvancedFilters() {
 
 function resetAdvancedFilters() {
     document.getElementById('global-search-input').value = '';
-    ['deputy', 'department', 'desk', 'topic', 'goal', 'classification', 'source', 'marjaa', 'author'].forEach((name) => {
+    ['deputy', 'department', 'desk', 'topic', 'goal', 'classification', 'source', 'person', 'keyword', 'author'].forEach((name) => {
         const select = document.getElementById(`adv-filter-${name}`);
         if (select) select.value = '';
     });
@@ -1029,6 +1042,95 @@ function resetAdvancedFilters() {
     currentFilterQuery = '';
     currentPage = 1;
     loadReportsTable();
+}
+
+function filterNewsByEntity(type, id) {
+    const selectId = type === 'person' ? 'adv-filter-person' : type === 'keyword' ? 'adv-filter-keyword' : null;
+    const select = selectId && document.getElementById(selectId);
+    if (!select || !id) return;
+
+    select.value = id;
+    document.getElementById('advanced-filter-accordion')?.classList.remove('hidden');
+    applyAdvancedFilters();
+}
+
+function filterNewsBySource(source) {
+    const select = document.getElementById('adv-filter-source');
+    if (!select || !source) return;
+
+    select.value = source;
+    document.getElementById('advanced-filter-accordion')?.classList.remove('hidden');
+    applyAdvancedFilters();
+}
+
+function filterNewsByClassification(classification) {
+    const select = document.getElementById('adv-filter-classification');
+    if (!select || !classification) return;
+
+    select.value = classification;
+    document.getElementById('advanced-filter-accordion')?.classList.remove('hidden');
+    applyAdvancedFilters();
+}
+
+function filterNewsByTarget(level, id) {
+    const levels = ['deputy', 'department', 'desk', 'topic', 'goal'];
+    const targetIndex = levels.indexOf(level);
+    if (targetIndex < 0 || !id) return;
+
+    const chain = {};
+    if (level === 'deputy') {
+        chain.deputy = id;
+    } else if (level === 'department') {
+        const department = allDepartments.find((item) => item.id === id);
+        if (department) {
+            chain.department = id;
+            chain.deputy = relationId(department.deputy);
+        }
+    } else if (level === 'desk') {
+        const desk = allDesks.find((item) => item.id === id);
+        const department = allDepartments.find((item) => item.id === relationId(desk?.relation));
+        if (desk && department) {
+            chain.desk = id;
+            chain.department = department.id;
+            chain.deputy = relationId(department.deputy);
+        }
+    } else if (level === 'topic') {
+        const topic = allTopics.find((item) => item.id === id);
+        const desk = allDesks.find((item) => item.id === relationId(topic?.desk));
+        const department = allDepartments.find((item) => item.id === relationId(desk?.relation));
+        if (topic && desk && department) {
+            chain.topic = id;
+            chain.desk = desk.id;
+            chain.department = department.id;
+            chain.deputy = relationId(department.deputy);
+        }
+    } else if (level === 'goal') {
+        const goal = allGoals.find((item) => item.id === id);
+        const topic = allTopics.find((item) => item.id === relationId(goal?.topic));
+        const desk = allDesks.find((item) => item.id === relationId(topic?.desk));
+        const department = allDepartments.find((item) => item.id === relationId(desk?.relation));
+        if (goal && topic && desk && department) {
+            chain.goal = id;
+            chain.topic = topic.id;
+            chain.desk = desk.id;
+            chain.department = department.id;
+            chain.deputy = relationId(department.deputy);
+        }
+    }
+
+    if (!chain[level]) return;
+    document.getElementById('adv-filter-deputy').value = chain.deputy;
+    refreshOrgFilterChildren('deputy');
+    for (let index = 1; index <= targetIndex; index++) {
+        const currentLevel = levels[index];
+        const select = document.getElementById(`adv-filter-${currentLevel}`);
+        if (!select) return;
+        select.value = chain[currentLevel];
+        if (index < targetIndex) refreshOrgFilterChildren(currentLevel);
+    }
+
+    document.getElementById('advanced-filter-accordion')?.classList.remove('hidden');
+    applyAdvancedFilters();
 }
 
 function toggleAdvancedFilterAccordion() {
@@ -1058,12 +1160,24 @@ async function loadReportsTable() {
     if (!tbody) return;
     try {
         const filter = currentFilterQuery || getRoleBasedFilter();
-        const newsRecords = await pb.collection('news').getFullList({
+        let newsRecords = await pb.collection('news').getFullList({
             sort: '-created',
             expand: 'created_by,mentioned_people,keywords,target_deputy,target_department,target_desk,target_topic,target_goal',
             filter,
             requestKey: null
         });
+        const personId = document.getElementById('adv-filter-person')?.value;
+        const keywordId = document.getElementById('adv-filter-keyword')?.value;
+        if (personId) {
+            newsRecords = newsRecords.filter((news) => Array.isArray(news.mentioned_people)
+                ? news.mentioned_people.includes(personId)
+                : news.mentioned_people === personId);
+        }
+        if (keywordId) {
+            newsRecords = newsRecords.filter((news) => Array.isArray(news.keywords)
+                ? news.keywords.includes(keywordId)
+                : news.keywords === keywordId);
+        }
         const direction = newsSortDirection === 'asc' ? 1 : -1;
         newsRecords.sort((left, right) => {
             const leftValue = getNewsSortValue(left, newsSortKey);
@@ -1100,24 +1214,32 @@ async function loadReportsTable() {
             const exp = news.expand || {};
             const personIds = Array.isArray(news.mentioned_people) ? news.mentioned_people : [];
             const keywordIds = Array.isArray(news.keywords) ? news.keywords : [];
-            const names = (ids, items, field) => ids.map((id) => lookupTitle(items, id, field)).filter(Boolean);
-            const people = names(personIds, allPeople, 'full_name');
-            const keywords = names(keywordIds, allKeywords);
+            const people = personIds.map((id) => ({
+                id,
+                name: lookupTitle(allPeople, id, 'full_name')
+            })).filter((person) => person.name);
+            const keywords = keywordIds.map((id) => ({
+                id,
+                name: lookupTitle(allKeywords, id)
+            })).filter((keyword) => keyword.name);
             const createdBy = exp.created_by || allUsers.find((user) => user.id === news.created_by);
             const classification = displayChoice(news.classification || 'عادی');
             const classificationClass = /سری/.test(classification) ? 'bg-red-100 text-red-800 border border-red-200' : /محرمانه/.test(classification) ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-700';
             const checked = selectedReportIds.has(news.id) ? 'checked' : '';
             const background = index % 2 ? 'bg-slate-50/70' : 'bg-white';
-            const chips = [...people.slice(0, 2), ...keywords.slice(0, 2)].map((name) => `<span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">${escapeHtml(name)}</span>`).join(' ');
+            const chips = [
+                ...people.slice(0, 2).map((person) => `<button type="button" onclick="filterNewsByEntity('person','${escapeHtml(person.id)}')" title="فیلتر بر اساس ${escapeHtml(person.name)}" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 underline decoration-dotted underline-offset-2 px-1.5 py-0.5 rounded border border-indigo-200">${escapeHtml(person.name)}</button>`),
+                ...keywords.slice(0, 2).map((keyword) => `<button type="button" onclick="filterNewsByEntity('keyword','${escapeHtml(keyword.id)}')" title="فیلتر بر اساس ${escapeHtml(keyword.name)}" class="bg-teal-50 text-teal-700 hover:bg-teal-100 hover:text-teal-900 underline decoration-dotted underline-offset-2 px-1.5 py-0.5 rounded border border-teal-200">${escapeHtml(keyword.name)}</button>`)
+            ].join(' ');
             return `<tr class="${background} hover:bg-indigo-50/40 transition-colors">
-                <td class="p-2.5 text-center"><input type="checkbox" value="${escapeHtml(news.id)}" ${checked} onchange="toggleReportSelection('${escapeHtml(news.id)}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600"></td>
-                <td class="p-2.5"><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-900 hover:text-indigo-600 hover:underline">${escapeHtml(news.title || 'بدون عنوان')}</a><div class="text-[10px] text-slate-500 mt-1">ثبت‌کننده: ${escapeHtml(createdBy?.name || createdBy?.username || '---')}</div>${getHighlightedSnippet(news.body || '', document.getElementById('global-search-input')?.value || '')}</td>
-                <td class="p-2.5 whitespace-normal min-w-[200px]">${escapeHtml(getNewsTargetLabel(news))}</td>
-                <td class="p-2.5 whitespace-normal"><div class="flex flex-wrap gap-1">${chips || '<span class="text-slate-400">---</span>'}</div></td>
-                <td class="p-2.5"><div>${escapeHtml(displayChoice(news.source))}</div><div class="text-[10px] text-slate-500">${escapeHtml(displayChoice(news.marjaa))}</div></td>
-                <td class="p-2.5">${escapeHtml(formatDateToFa(news.occurred_at))}</td>
-                <td class="p-2.5"><span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${classificationClass}">${escapeHtml(classification)}</span></td>
-                <td class="p-2.5 text-center"><div class="flex items-center justify-center gap-1"><button onclick="openDetailModal('${escapeHtml(news.id)}')" title="جزئیات" class="p-1.5 bg-slate-100 rounded-lg">🔍</button><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" title="ویرایش" class="p-1.5 bg-indigo-50 text-indigo-700 rounded-lg">✏️</a><button onclick="deleteReport('${escapeHtml(news.id)}')" title="حذف" class="p-1.5 bg-red-50 text-red-600 rounded-lg">❌</button></div></td>
+                <td class="p-1 sm:p-2.5 text-center"><input type="checkbox" value="${escapeHtml(news.id)}" ${checked} onchange="toggleReportSelection('${escapeHtml(news.id)}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600"></td>
+                <td class="p-1 sm:p-2.5"><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-900 hover:text-indigo-600 hover:underline">${escapeHtml(news.title || 'بدون عنوان')}</a><div class="text-[10px] text-slate-500 mt-1">ثبت‌کننده: ${escapeHtml(createdBy?.name || createdBy?.username || '---')}</div>${getHighlightedSnippet(news.body || '', document.getElementById('global-search-input')?.value || '')}</td>
+                <td class="p-1 sm:p-2.5">${news.target_type && relationId(news[`target_${news.target_type}`]) ? `<button type="button" data-filter-target-level="${escapeHtml(news.target_type)}" data-filter-target-id="${escapeHtml(relationId(news[`target_${news.target_type}`]))}" title="فیلتر بر اساس این هدف سازمانی" class="text-indigo-700 hover:text-indigo-900 underline decoration-dotted underline-offset-2">${escapeHtml(getNewsTargetLabel(news))}</button>` : escapeHtml(getNewsTargetLabel(news))}</td>
+                <td class="p-1 sm:p-2.5"><div class="flex flex-wrap gap-1">${chips || '<span class="text-slate-400">---</span>'}</div></td>
+                <td class="p-1 sm:p-2.5"><div>${news.source ? `<button type="button" data-filter-source="${escapeHtml(news.source)}" title="فیلتر بر اساس این منشا" class="text-indigo-700 hover:text-indigo-900 underline decoration-dotted underline-offset-2">${escapeHtml(displayChoice(news.source))}</button>` : '<span>---</span>'}</div><div class="text-[10px] text-slate-500">${escapeHtml(displayChoice(news.marjaa))}</div></td>
+                <td class="p-1 sm:p-2.5">${escapeHtml(formatDateToFa(news.occurred_at))}</td>
+                <td class="p-1 sm:p-2.5"><button type="button" data-filter-classification="${escapeHtml(news.classification || 'عادی')}" title="فیلتر بر اساس این طبقه‌بندی" class="inline-block max-w-full text-[10px] font-bold px-1.5 py-0.5 rounded ${classificationClass} hover:ring-2 hover:ring-indigo-300">${escapeHtml(classification)}</button></td>
+                <td class="p-1 sm:p-2.5 text-center"><button onclick="deleteReport('${escapeHtml(news.id)}')" title="حذف" aria-label="حذف خبر" class="p-1 bg-red-50 text-red-600 rounded-lg">❌</button></td>
             </tr>`;
         }).join('');
         updateSelectionUI();

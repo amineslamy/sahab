@@ -1359,15 +1359,16 @@
                 return chain;
             }
 
-            /* پیلود هدف: فقط فیلد target_* متناظر با سطح انتخاب‌شده ارسال می‌شود */
+            /* همه سطوح انتخاب‌شده تا عمیق‌ترین هدف ذخیره می‌شوند؛ سطح‌های پایین‌تر پاک می‌مانند. */
             function getTargetPayload() {
                 const level = syncTargetTypeFromSelections();
-                if (!level) return {};
-                const def = TARGET_LEVEL_DEFS.find(d => d.value === level);
-                const sel = orgSel[level];
-                if (!sel.value) return { target_type: level };
-                const payload = { target_type: level };
-                payload[def.field] = sel.value;
+                const payload = { target_type: level || '' };
+
+                TARGET_LEVEL_DEFS.forEach(def => {
+                    // ارسال رشته خالی برای سطوح انتخاب‌نشده، مقادیر قدیمی را هنگام ویرایش پاک می‌کند.
+                    payload[def.field] = orgSel[def.value].value || '';
+                });
+
                 return payload;
             }
             /* ================================================================

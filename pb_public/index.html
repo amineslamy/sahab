@@ -64,6 +64,23 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
+        #news-reports-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        #news-reports-table th,
+        #news-reports-table td {
+            min-width: 0;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        #news-reports-table [data-sort-key] {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
     </style>
 </head>
 
@@ -168,8 +185,12 @@
                             <select id="adv-filter-source" class="border p-2 rounded-lg w-full bg-white"><option value="">همه موارد</option><option value="آشکار">آشکار</option><option value="خط">خط</option><option value="محیط">محیط</option><option value="منبع">منبع</option></select>
                         </div>
                         <div>
-                            <label class="block text-slate-600 mb-1">مرجع انتشار:</label>
-                            <select id="adv-filter-marjaa" class="border p-2 rounded-lg w-full bg-white"><option value="">همه موارد</option><option value="خبرگزاری">خبرگزاری</option><option value="مطبوعات">مطبوعات</option><option value="صداوسیما">صداوسیما</option><option value="رسانه-های-بیگانه">رسانه‌های بیگانه</option><option value="صفحات-مجازی">صفحات مجازی</option><option value="رسمی">رسمی</option><option value="غیررسمی">غیررسمی</option></select>
+                            <label class="block text-slate-600 mb-1">شخص ذکرشده:</label>
+                            <select id="adv-filter-person" class="border p-2 rounded-lg w-full bg-white"><option value="">همه اشخاص</option></select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-600 mb-1">کلیدواژه:</label>
+                            <select id="adv-filter-keyword" class="border p-2 rounded-lg w-full bg-white"><option value="">همه کلیدواژه‌ها</option></select>
                         </div>
                         <div><label class="block text-slate-600 mb-1">ثبت‌کننده:</label><select id="adv-filter-author" class="border p-2 rounded-lg w-full bg-white"><option value="">همه کاربران</option></select></div>
                     </div>
@@ -209,22 +230,32 @@
                         </button>
                     </div>
                 </div>
-                <div class="w-full overflow-x-auto">
-                    <table class="w-full text-right text-[11px] sm:text-xs text-slate-700 whitespace-nowrap">
+                <div class="w-full max-w-full overflow-hidden">
+                    <table id="news-reports-table" class="w-full table-fixed text-right text-[10px] sm:text-xs text-slate-700">
+                        <colgroup>
+                            <col style="width: 7%">
+                            <col style="width: 20%">
+                            <col style="width: 15%">
+                            <col style="width: 15%">
+                            <col style="width: 12%">
+                            <col style="width: 9%">
+                            <col style="width: 15%">
+                            <col style="width: 7%">
+                        </colgroup>
                         <thead class="bg-slate-100 font-black text-slate-600 uppercase border-b border-slate-200">
                             <tr>
-                                <th class="p-2.5 text-center w-10">
+                                <th class="p-1 sm:p-2.5 text-center">
                                     <input type="checkbox" id="select-all-page"
                                         onchange="toggleSelectAllPage(this.checked)"
                                         class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                                 </th>
-                                <th class="p-2.5 min-w-[220px]"><button type="button" data-sort-key="title" onclick="sortNewsTable('title')" class="inline-flex items-center gap-1 hover:text-indigo-700">عنوان خبر <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 min-w-[220px]"><button type="button" data-sort-key="target" onclick="sortNewsTable('target')" class="inline-flex items-center gap-1 hover:text-indigo-700">هدف سازمانی <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 min-w-[160px]"><button type="button" data-sort-key="people_keywords" onclick="sortNewsTable('people_keywords')" class="inline-flex items-center gap-1 hover:text-indigo-700">اشخاص و کلیدواژه‌ها <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 min-w-[150px]"><button type="button" data-sort-key="source_marjaa" onclick="sortNewsTable('source_marjaa')" class="inline-flex items-center gap-1 hover:text-indigo-700">منشا / مرجع انتشار <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 min-w-[130px]"><button type="button" data-sort-key="occurred_at" onclick="sortNewsTable('occurred_at')" class="inline-flex items-center gap-1 hover:text-indigo-700">تاریخ وقوع <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 min-w-[120px]"><button type="button" data-sort-key="classification" onclick="sortNewsTable('classification')" class="inline-flex items-center gap-1 hover:text-indigo-700">طبقه‌بندی <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
-                                <th class="p-2.5 text-center w-28">عملیات</th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="title" onclick="sortNewsTable('title')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">عنوان خبر <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="target" onclick="sortNewsTable('target')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">هدف سازمانی <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="people_keywords" onclick="sortNewsTable('people_keywords')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">اشخاص و کلیدواژه‌ها <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="source_marjaa" onclick="sortNewsTable('source_marjaa')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">منشا / مرجع انتشار <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="occurred_at" onclick="sortNewsTable('occurred_at')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">تاریخ وقوع <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5"><button type="button" data-sort-key="classification" onclick="sortNewsTable('classification')" class="inline-flex max-w-full items-center gap-1 hover:text-indigo-700">طبقه‌بندی <span class="sort-indicator shrink-0 text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-1 sm:p-2.5 text-center">عملیات</th>
                             </tr>
                         </thead>
                         <tbody id="table-reports-body" class="divide-y divide-slate-200 font-medium">
@@ -316,7 +347,7 @@
         <script src="js/persian-date.min.js"></script>
         <script src="js/persian-datepicker.min.js"></script>
         <script src="js/header.js"></script>
-        <script src="js/main.js?v=3"></script>
+        <script src="js/main.js?v=9"></script>
         <script src="js/system-sync.js"></script>
         <!-- اسکریپت‌های خروجی ورد بر اساس الگو -->
         <script src="js/FileSaver.min.js"></script>

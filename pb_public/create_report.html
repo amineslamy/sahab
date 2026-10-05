@@ -645,13 +645,6 @@
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot"></span>
                     پیش‌نویس ذخیره شد
                 </div>
-                <div id="current-user-badge"
-                    class="hidden items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-white/80 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer"
-                    title="خروج از سامانه">
-                    <i class="fa-solid fa-user text-indigo-400"></i>
-                    <span id="current-user-name">...</span>
-                    <i class="fa-solid fa-right-from-bracket text-rose-400"></i>
-                </div>
                 <div class="flex items-center gap-1.5" id="step-dots">
                     <span class="step-dot" data-step="title"></span>
                     <span class="step-dot" data-step="content"></span>
@@ -673,8 +666,7 @@
                         <i class="fa-solid fa-file-word text-2xl text-white"></i>
                     </div>
                     <p class="text-base font-extrabold text-slate-800">فایل Word (.docx) را اینجا بکشید و رها کنید</p>
-                    <p class="text-xs text-slate-500 mt-1.5">یا برای انتخاب فایل از روی سیستم کلیک کنید — عنوان و متن
-                        خبر به‌صورت خودکار در فیلد body پر می‌شود</p>
+                    <p class="text-xs text-slate-500 mt-1.5">یا فایل قالب گزارش را انتخاب کنید — اطلاعات هر بخش در فیلد متناظر وارد می‌شود</p>
                     <button type="button" id="word-import-btn"
                         class="btn-press mt-4 px-5 py-2 rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold shadow-sm hover:bg-indigo-50 transition flex items-center gap-2">
                         <i class="fa-solid fa-folder-open"></i>
@@ -1087,6 +1079,7 @@
                 pb: null,
                 currentUser: null,
                 editingId: null,
+                datepicker: null,
                 quillBody: null,
                 quillMolaheze: null,
                 quillNazarie: null,
@@ -1137,14 +1130,6 @@
                     return false;
                 }
                 state.currentUser = state.pb.authStore.model || state.pb.authStore.record;
-                const nameEl = $id('current-user-name');
-                if (nameEl) {
-                    nameEl.textContent = state.currentUser
-                        ? (state.currentUser.name || state.currentUser.username || 'کاربر')
-                        : 'کاربر';
-                }
-                const badge = $id('current-user-badge');
-                if (badge) badge.classList.remove('hidden');
                 // اعتبارسنجی توکن (در حالت آفلاین محلی خطا را تحمل می‌کنیم)
                 try { await state.pb.collection('a_users').authRefresh(); } catch (e) { /* ignore */ }
                 return true;
@@ -1675,7 +1660,7 @@
                         markDirty();
                     }
                 };
-                $('#occurrence-date-picker').persianDatepicker(opts);
+                state.datepicker = $('#occurrence-date-picker').persianDatepicker(opts);
             }
             /* ---------------- اعتبارسنجی و پیشرفت ---------------- */
             const titleInput = $id('report-title');
@@ -1765,6 +1750,237 @@
                 else wordStatus.classList.add('bg-indigo-50', 'text-indigo-700');
             }
 
+            function normalizeWordValue(value) {
+                return String(value || '')
+                    .replace(/[يى]/g, 'ی')
+                    .replace(/ك/g, 'ک')
+                    .replace(/\u200c/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLocaleLowerCase('fa');
+            }
+
+            function normalizeWordChoice(value) {
+                return normalizeWordValue(value).replace(/[\s\-_ـ]/g, '');
+            }
+
+            function cellText(table, rowIndex, cellIndex) {
+                return table?.rows?.[rowIndex]?.cells?.[cellIndex]?.textContent?.trim() || '';
+            }
+
+            function findWordTemplateTables(doc) {
+                const tables = [...doc.querySelectorAll('table')];
+                const tableHasLabels = (table, labels) => labels.every(label =>
+                    [...table.querySelectorAll('th, td')].some(cell => normalizeWordValue(cell.textContent).includes(normalizeWordValue(label)))
+                );
+                return {
+                    title: tables.find(table => normalizeWordValue(cellText(table, 0, 0)).includes('عنوان خبر')),
+                    // قالب، جدول تحلیل را با همین سه برچسب در ستون اول و به همین ترتیب مشخص می‌کند.
+                    // این تشخیص دقیق‌تر مانع اشتباه گرفتن جدول‌های احتمالی داخل متن خبر می‌شود.
+                    analysis: tables.find(table => table.rows.length === 3 &&
+                        ['دستورات', 'ملاحظه', 'نظریه'].every((label, index) =>
+                            normalizeWordValue(cellText(table, index, 0)).startsWith(normalizeWordValue(label))
+                        )),
+                    metadata: tables.find(table => tableHasLabels(table, ['منشأ خبر', 'طبقه بندی', 'مرجع انتشار'])),
+                    organization: tables.find(table => tableHasLabels(table, ['معاونت', 'اداره', 'میز', 'موضوع', 'هدف اطلاعاتی'])),
+                    relations: tables.find(table => tableHasLabels(table, ['افراد مرتبط', 'کلیدواژه ها']))
+                };
+            }
+
+            function findWordValueCell(table, label) {
+                for (const row of [...(table?.rows || [])]) {
+                    const cells = [...row.cells];
+                    const labelIndex = cells.findIndex(cell => normalizeWordValue(cell.textContent).includes(normalizeWordValue(label)));
+                    if (labelIndex >= 0) return cells[labelIndex + 1] || null;
+                }
+                return null;
+            }
+
+            function findMatchingOption(select, value) {
+                const desired = normalizeWordChoice(value);
+                if (!select || !desired) return '';
+                const option = [...select.options].find(item => item.value && normalizeWordChoice(item.value) === desired);
+                return option?.value || '';
+            }
+
+            function findOrganizationRecord(records, label) {
+                const desired = normalizeWordValue(label);
+                if (!desired) return null;
+                return records.find(record => [record.title, record.name, record.code, record.id]
+                    .some(value => normalizeWordValue(value) === desired)) || null;
+            }
+
+            function setOrganizationFromTemplate(table, issues) {
+                initializeOrgSelectors();
+                const headerCells = [...(table?.rows?.[0]?.cells || [])];
+                const values = [...(table?.rows?.[1]?.cells || [])];
+                const defs = [
+                    { value: 'deputy', label: 'معاونت', records: state.org.deputies },
+                    { value: 'department', label: 'اداره', records: state.org.departments },
+                    { value: 'desk', label: 'میز', records: state.org.desks },
+                    { value: 'topic', label: 'موضوع', records: state.org.topics },
+                    { value: 'goal', label: 'هدف اطلاعاتی', records: state.org.goals }
+                ].map(def => ({
+                    ...def,
+                    text: values[headerCells.findIndex(cell => normalizeWordValue(cell.textContent).includes(normalizeWordValue(def.label)))]?.textContent?.trim() || ''
+                }));
+
+                let parentId = '';
+                for (let index = 0; index < defs.length; index++) {
+                    const def = defs[index];
+                    if (!def.text) {
+                        const laterValue = defs.slice(index + 1).find(item => item.text);
+                        if (laterValue) issues.push(`${laterValue.label} «${laterValue.text}» بدون انتخاب سطح بالاتر وارد شده است`);
+                        break;
+                    }
+                    const candidates = index === 0 ? def.records : childItemsOf(def.value, parentId);
+                    const match = findOrganizationRecord(candidates, def.text);
+                    if (!match) {
+                        issues.push(`${def.label} «${def.text}» در فهرست سازمانی پیدا نشد`);
+                        break;
+                    }
+                    orgSel[def.value].value = match.id;
+                    parentId = match.id;
+                    const next = defs[index + 1];
+                    if (next) loadChildOptions(next.value, parentId);
+                }
+                syncTargetTypeFromSelections();
+            }
+
+            async function importTemplateRelations(table, issues) {
+                state.selectedPeople = [];
+                state.selectedKeywords = [];
+                renderPeopleChips();
+                renderKeywordChips();
+
+                for (const row of [...(table?.rows || [])].slice(1)) {
+                    const name = row.cells[0]?.textContent?.trim() || '';
+                    const description = row.cells[1]?.textContent?.trim() || '';
+                    const keywordTitle = row.cells[2]?.textContent?.trim() || '';
+
+                    if (name) {
+                        try {
+                            let person = state.people.find(item => normalizeWordValue(item.full_name) === normalizeWordValue(name));
+                            if (!person) {
+                                person = await state.pb.collection(COLLECTIONS.people).create({ full_name: name, description });
+                                state.people.push(person);
+                            } else if (description && normalizeWordValue(person.description) !== normalizeWordValue(description)) {
+                                // شرح قالب در فیلد توضیحات شخص ثبت می‌شود تا نام و مسئولیت کنار هم بمانند.
+                                person = await state.pb.collection(COLLECTIONS.people).update(person.id, { description });
+                                state.people = state.people.map(item => item.id === person.id ? person : item);
+                            }
+                            addPersonChip(person.id);
+                        } catch (error) {
+                            console.error('خطا در افزودن شخص از قالب:', error);
+                            issues.push(`شخص «${name}» وارد نشد`);
+                        }
+                    }
+
+                    if (keywordTitle) {
+                        try {
+                            let keyword = state.keywords.find(item => normalizeWordValue(item.title) === normalizeWordValue(keywordTitle));
+                            if (!keyword) {
+                                keyword = await state.pb.collection(COLLECTIONS.keywords).create({ title: keywordTitle });
+                                state.keywords.push(keyword);
+                            }
+                            addKeywordChip(keyword.id);
+                        } catch (error) {
+                            console.error('خطا در افزودن کلیدواژه از قالب:', error);
+                            issues.push(`کلیدواژه «${keywordTitle}» وارد نشد`);
+                        }
+                    }
+                }
+            }
+
+            function setOccurredDateFromFile(file) {
+                const modifiedDate = new Date(file.lastModified);
+                if (!Number.isFinite(modifiedDate.getTime())) return false;
+                const localDate = new Date(modifiedDate.getFullYear(), modifiedDate.getMonth(), modifiedDate.getDate());
+                const isoDate = localDate.toISOString();
+                state.datepicker?.setDate(localDate.getTime());
+                $id('report-occurred-at').value = isoDate;
+                $id('occurrence-date-picker').value = faFromIso(isoDate) || '';
+                validateField('date');
+                updateProgress();
+                return true;
+            }
+
+            async function importWordTemplate(file, html) {
+                const parsed = new DOMParser().parseFromString(html, 'text/html');
+                const tables = findWordTemplateTables(parsed);
+                if (!tables.title || !tables.analysis || !tables.metadata || !tables.organization || !tables.relations) {
+                    throw new Error('ساختار فایل با قالب گزارش پیوست مطابقت ندارد.');
+                }
+
+                const issues = [];
+                const importedTitle = tables.title.rows[0]?.cells[1]?.textContent?.trim() || '';
+                if (importedTitle) {
+                    titleInput.value = importedTitle.slice(0, 500);
+                    titleInput.dispatchEvent(new Event('input'));
+                } else {
+                    titleInput.value = '';
+                    titleInput.dispatchEvent(new Event('input'));
+                }
+
+                const nodes = [...parsed.body.children];
+                const bodyLabelIndex = nodes.findIndex(node => node.tagName === 'P' && normalizeWordValue(node.textContent).startsWith('متن خبر'));
+                // فقط جدول تحلیلِ قالب پایان متن خبر است؛ جدول‌های داخل خود خبر باید حفظ شوند.
+                const analysisTableIndex = nodes.indexOf(tables.analysis);
+                const bodyEndIndex = analysisTableIndex > bodyLabelIndex ? analysisTableIndex : -1;
+                let bodyHtml = '';
+                if (bodyLabelIndex >= 0) {
+                    const labelText = nodes[bodyLabelIndex].textContent.replace(/^\s*متن خبر\s*[:：]?/i, '').trim();
+                    if (labelText) bodyHtml += `<p>${escapeHtml(labelText)}</p>`;
+                    const end = bodyEndIndex >= 0 ? bodyEndIndex : nodes.length;
+                    bodyHtml += nodes.slice(bodyLabelIndex + 1, end)
+                        .filter(node => node.tagName === 'TABLE' || node.textContent.trim())
+                        .map(node => node.outerHTML).join('');
+                } else issues.push('بخش «متن خبر» در فایل پیدا نشد');
+                state.quillBody.setText('');
+                if (bodyHtml) state.quillBody.clipboard.dangerouslyPasteHTML(bodyHtml, 'user');
+
+                const ordersCell = findWordValueCell(tables.analysis, 'دستورات');
+                const molahezeCell = findWordValueCell(tables.analysis, 'ملاحظه');
+                const nazarieCell = findWordValueCell(tables.analysis, 'نظریه');
+                $id('report-orders').value = ordersCell?.textContent?.trim() || '';
+                $id('orders-char-count').textContent = `${toPersianDigits($id('report-orders').value.length)} کاراکتر`;
+                state.quillMolaheze.setText('');
+                if (molahezeCell?.innerHTML.trim()) state.quillMolaheze.clipboard.dangerouslyPasteHTML(molahezeCell.innerHTML, 'user');
+                state.quillNazarie.setText('');
+                if (nazarieCell?.innerHTML.trim()) state.quillNazarie.clipboard.dangerouslyPasteHTML(nazarieCell.innerHTML, 'user');
+
+                const sourceCell = findWordValueCell(tables.metadata, 'منشأ خبر');
+                const classificationCell = findWordValueCell(tables.metadata, 'طبقه بندی');
+                const sourceValue = sourceCell?.textContent?.trim() || '';
+                const classificationValue = classificationCell?.textContent?.trim() || '';
+                const sourceSelect = $id('report-source');
+                const classificationSelect = $id('report-classification');
+                sourceSelect.value = sourceValue ? findMatchingOption(sourceSelect, sourceValue) : '';
+                classificationSelect.value = classificationValue ? findMatchingOption(classificationSelect, classificationValue) : '';
+                if (sourceValue && !sourceSelect.value) issues.push(`منشا «${sourceValue}» در فهرست فرم پیدا نشد`);
+                if (classificationValue && !classificationSelect.value) issues.push(`طبقه‌بندی «${classificationValue}» در فهرست فرم پیدا نشد`);
+                $id('report-marjaa').value = findWordValueCell(tables.metadata, 'مرجع انتشار')?.textContent?.trim() || '';
+
+                setOrganizationFromTemplate(tables.organization, issues);
+                await importTemplateRelations(tables.relations, issues);
+
+                if (!setOccurredDateFromFile(file)) issues.push('تاریخ آخرین تغییر فایل Word قابل خواندن نبود');
+                $id('report-source').dispatchEvent(new Event('change'));
+                $id('report-classification').dispatchEvent(new Event('change'));
+                $id('report-marjaa').dispatchEvent(new Event('input'));
+                validateField('title');
+                validateField('content');
+                validateField('date');
+                updateProgress();
+                markDirty();
+
+                if (issues.length) {
+                    showWordStatus(`اطلاعات قالب وارد شد؛ موارد نیازمند بررسی: ${issues.join('؛ ')}`, 'info');
+                } else {
+                    showWordStatus('اطلاعات قالب با موفقیت در فیلدهای متناظر وارد شد ✓', 'success');
+                }
+            }
+
             function handleWordFile(file) {
                 if (!file) return;
                 if (!file.name.toLowerCase().endsWith('.docx')) {
@@ -1773,25 +1989,12 @@
                 }
                 showWordStatus('در حال پردازش فایل Word...', 'info');
                 const reader = new FileReader();
-                reader.onload = function (event) {
+                reader.onload = async function (event) {
                     mammoth.convertToHtml({ arrayBuffer: event.target.result })
-                        .then(function (result) {
-                            state.quillBody.root.innerHTML = result.value;
-                            const tmp = document.createElement('div');
-                            tmp.innerHTML = result.value;
-                            const firstText = (tmp.textContent || '').trim().split('\n')[0];
-                            if (firstText && !titleInput.value.trim()) {
-                                titleInput.value = firstText.slice(0, 500);
-                                titleInput.dispatchEvent(new Event('input'));
-                            }
-                            showWordStatus('محتوای فایل با موفقیت در بدن خبر بارگذاری شد ✓', 'success');
-                            validateField('content');
-                            updateProgress();
-                            markDirty();
-                        })
-                        .catch(function (err) {
+                        .then(result => importWordTemplate(file, result.value))
+                        .catch(err => {
                             console.error(err);
-                            showWordStatus('خطا در پردازش فایل Word. لطفاً فایل دیگری را امتحان کنید', 'error');
+                            showWordStatus(err.message || 'خطا در پردازش فایل Word. لطفاً فایل دیگری را امتحان کنید', 'error');
                         });
                 };
                 reader.readAsArrayBuffer(file);
@@ -1988,15 +2191,6 @@
                     btnText.textContent = 'ذخیره‌سازی و نهایی‌سازی';
                 }
             });
-            /* ---------------- خروج از سامانه ---------------- */
-            const userBadge = $id('current-user-badge');
-            if (userBadge) {
-                userBadge.addEventListener('click', function () {
-                    if (state.pb) state.pb.authStore.clear();
-                    window.location.href = 'login.html';
-                });
-            }
-
             /* ================================================================
                راه‌اندازی
             ================================================================ */

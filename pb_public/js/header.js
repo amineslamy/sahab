@@ -41,8 +41,8 @@ window.renderGlobalHeader = async function renderGlobalHeader() {
         <header class="main-navbar">
             <div class="navbar-brand">
                 <a href="index.html" class="logo-link">
-                    <img src="images/logo.png" alt="لوگو سحاب" class="app-logo" height="40" style="height: 40px; width: auto;">
-                    <span class="app-title">بانک اطلاعات آفلاین «سحاب»</span>
+                    <img src="images/logo.png" alt="لوگو مبین" class="app-logo" height="40" style="height: 40px; width: auto;">
+                    <span class="app-title">بانک اطلاعات آفلاین «مبین»</span>
                 </a>
             </div>
 

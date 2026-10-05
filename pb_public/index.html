@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="images/logo.png">
-    <title>داشبورد سامانه مدیریت اخبار سحاب</title>
+    <title>داشبورد سامانه مدیریت اخبار</title>
 
     <!-- ۱. استایل هدر و Tailwind محلی -->
     <link rel="stylesheet" href="css/header.css">
@@ -69,7 +69,7 @@
 
 <body class="bg-slate-50 text-slate-800 text-sm min-h-screen flex flex-col">
 
-    <!-- ۱. هدر سراسری سامانه سحاب -->
+    <!-- ۱. هدر سراسری سامانه مبین -->
     <div id="app-header"></div>
 
     <!-- ۲. نوار تب‌های اصلی (مستقیم زیر هدر و کاملاً چسبیده به آن) -->
@@ -218,12 +218,12 @@
                                         onchange="toggleSelectAllPage(this.checked)"
                                         class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                                 </th>
-                                <th class="p-2.5 min-w-[220px]">عنوان خبر</th>
-                                <th class="p-2.5 min-w-[220px]">هدف سازمانی</th>
-                                <th class="p-2.5 min-w-[160px]">اشخاص و کلیدواژه‌ها</th>
-                                <th class="p-2.5 min-w-[150px]">منشا / مرجع انتشار</th>
-                                <th class="p-2.5 min-w-[130px]">تاریخ وقوع</th>
-                                <th class="p-2.5 min-w-[120px]">طبقه‌بندی</th>
+                                <th class="p-2.5 min-w-[220px]"><button type="button" data-sort-key="title" onclick="sortNewsTable('title')" class="inline-flex items-center gap-1 hover:text-indigo-700">عنوان خبر <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-2.5 min-w-[220px]"><button type="button" data-sort-key="target" onclick="sortNewsTable('target')" class="inline-flex items-center gap-1 hover:text-indigo-700">هدف سازمانی <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-2.5 min-w-[160px]"><button type="button" data-sort-key="people_keywords" onclick="sortNewsTable('people_keywords')" class="inline-flex items-center gap-1 hover:text-indigo-700">اشخاص و کلیدواژه‌ها <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-2.5 min-w-[150px]"><button type="button" data-sort-key="source_marjaa" onclick="sortNewsTable('source_marjaa')" class="inline-flex items-center gap-1 hover:text-indigo-700">منشا / مرجع انتشار <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-2.5 min-w-[130px]"><button type="button" data-sort-key="occurred_at" onclick="sortNewsTable('occurred_at')" class="inline-flex items-center gap-1 hover:text-indigo-700">تاریخ وقوع <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
+                                <th class="p-2.5 min-w-[120px]"><button type="button" data-sort-key="classification" onclick="sortNewsTable('classification')" class="inline-flex items-center gap-1 hover:text-indigo-700">طبقه‌بندی <span class="sort-indicator text-indigo-600" aria-hidden="true">↕</span></button></th>
                                 <th class="p-2.5 text-center w-28">عملیات</th>
                             </tr>
                         </thead>

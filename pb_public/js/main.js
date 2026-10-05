@@ -13,6 +13,8 @@ let chartInstances = {};
 let currentPage = 1;
 let perPage = 100;
 let currentFilterQuery = "";
+let newsSortKey = 'created';
+let newsSortDirection = 'desc';
 
 window.selectedReportIds = new Set();
 const selectedReportIds = window.selectedReportIds;
@@ -853,6 +855,66 @@ function getNewsTargetPath(news) {
     return path.filter(Boolean).join(' ← ') || 'بدون هدف سازمانی';
 }
 
+function getNewsTargetLabel(news) {
+    const level = news.target_type;
+    const id = relationId(news[`target_${level}`]);
+    if (!level || !id) return 'بدون هدف سازمانی';
+    const recordsByLevel = {
+        deputy: allDeputies,
+        department: allDepartments,
+        desk: allDesks,
+        topic: allTopics,
+        goal: allGoals
+    };
+    return lookupTitle(recordsByLevel[level] || [], id) || 'بدون هدف سازمانی';
+}
+
+function getNewsSortValue(news, key) {
+    switch (key) {
+        case 'title':
+            return news.title || '';
+        case 'target':
+            return getNewsTargetLabel(news);
+        case 'people_keywords': {
+            const people = (news.mentioned_people || []).map(id => lookupTitle(allPeople, id, 'full_name'));
+            const keywords = (news.keywords || []).map(id => lookupTitle(allKeywords, id));
+            return [...people, ...keywords].join('، ');
+        }
+        case 'source_marjaa':
+            return `${displayChoice(news.source)} ${displayChoice(news.marjaa)}`;
+        case 'occurred_at':
+            return news.occurred_at || '';
+        case 'classification':
+            return displayChoice(news.classification || 'عادی');
+        case 'created':
+            return news.created || '';
+        default:
+            return '';
+    }
+}
+
+function sortNewsTable(key) {
+    if (newsSortKey === key) {
+        newsSortDirection = newsSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        newsSortKey = key;
+        newsSortDirection = 'asc';
+    }
+    updateSortIndicators();
+    currentPage = 1;
+    loadReportsTable();
+}
+
+function updateSortIndicators() {
+    document.querySelectorAll('[data-sort-key]').forEach((button) => {
+        const active = button.dataset.sortKey === newsSortKey;
+        const indicator = button.querySelector('.sort-indicator');
+        const heading = button.closest('th');
+        if (indicator) indicator.textContent = active ? (newsSortDirection === 'asc' ? '↑' : '↓') : '↕';
+        if (heading) heading.setAttribute('aria-sort', active ? (newsSortDirection === 'asc' ? 'ascending' : 'descending') : 'none');
+    });
+}
+
 function fillFilterSelect(id, records, emptyLabel) {
     const select = document.getElementById(id);
     if (!select) return;
@@ -996,19 +1058,45 @@ async function loadReportsTable() {
     if (!tbody) return;
     try {
         const filter = currentFilterQuery || getRoleBasedFilter();
-        const result = await pb.collection('news').getList(currentPage, perPage, {
+        const newsRecords = await pb.collection('news').getFullList({
             sort: '-created',
             expand: 'created_by,mentioned_people,keywords,target_deputy,target_department,target_desk,target_topic,target_goal',
             filter,
             requestKey: null
         });
-        if (!result.items.length) {
+        const direction = newsSortDirection === 'asc' ? 1 : -1;
+        newsRecords.sort((left, right) => {
+            const leftValue = getNewsSortValue(left, newsSortKey);
+            const rightValue = getNewsSortValue(right, newsSortKey);
+            const leftEmpty = leftValue === null || leftValue === undefined || leftValue === '';
+            const rightEmpty = rightValue === null || rightValue === undefined || rightValue === '';
+            if (leftEmpty || rightEmpty) return leftEmpty === rightEmpty ? 0 : (leftEmpty ? 1 : -1);
+
+            let comparison;
+            if (newsSortKey === 'created' || newsSortKey === 'occurred_at') {
+                comparison = (new Date(leftValue).getTime() || 0) - (new Date(rightValue).getTime() || 0);
+            } else {
+                comparison = String(leftValue).localeCompare(String(rightValue), 'fa', { numeric: true, sensitivity: 'base' });
+            }
+            return comparison * direction;
+        });
+
+        const totalItems = newsRecords.length;
+        if (!totalItems) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center p-6 text-slate-500 font-bold">خبری با این مشخصات پیدا نشد.</td></tr>';
             document.getElementById('pagination-info').innerText = 'صفحه ۰ از ۰';
             document.getElementById('pagination-controls').innerHTML = '';
+            const selectAll = document.getElementById('select-all-page');
+            if (selectAll) selectAll.checked = false;
             return;
         }
-        tbody.innerHTML = result.items.map((news, index) => {
+
+        const pageSize = perPage === 1000 ? totalItems : perPage;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+        const pageItems = newsRecords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+        tbody.innerHTML = pageItems.map((news, index) => {
             const exp = news.expand || {};
             const personIds = Array.isArray(news.mentioned_people) ? news.mentioned_people : [];
             const keywordIds = Array.isArray(news.keywords) ? news.keywords : [];
@@ -1024,7 +1112,7 @@ async function loadReportsTable() {
             return `<tr class="${background} hover:bg-indigo-50/40 transition-colors">
                 <td class="p-2.5 text-center"><input type="checkbox" value="${escapeHtml(news.id)}" ${checked} onchange="toggleReportSelection('${escapeHtml(news.id)}', this.checked)" class="report-checkbox rounded border-slate-300 text-indigo-600"></td>
                 <td class="p-2.5"><a href="create_report.html?id=${encodeURIComponent(news.id)}" target="_blank" rel="noopener noreferrer" class="font-bold text-slate-900 hover:text-indigo-600 hover:underline">${escapeHtml(news.title || 'بدون عنوان')}</a><div class="text-[10px] text-slate-500 mt-1">ثبت‌کننده: ${escapeHtml(createdBy?.name || createdBy?.username || '---')}</div>${getHighlightedSnippet(news.body || '', document.getElementById('global-search-input')?.value || '')}</td>
-                <td class="p-2.5 whitespace-normal min-w-[200px]">${escapeHtml(getNewsTargetPath(news))}</td>
+                <td class="p-2.5 whitespace-normal min-w-[200px]">${escapeHtml(getNewsTargetLabel(news))}</td>
                 <td class="p-2.5 whitespace-normal"><div class="flex flex-wrap gap-1">${chips || '<span class="text-slate-400">---</span>'}</div></td>
                 <td class="p-2.5"><div>${escapeHtml(displayChoice(news.source))}</div><div class="text-[10px] text-slate-500">${escapeHtml(displayChoice(news.marjaa))}</div></td>
                 <td class="p-2.5">${escapeHtml(formatDateToFa(news.occurred_at))}</td>
@@ -1033,8 +1121,8 @@ async function loadReportsTable() {
             </tr>`;
         }).join('');
         updateSelectionUI();
-        document.getElementById('pagination-info').innerText = `صفحه ${result.page} از ${result.totalPages} (مجموع ${result.totalItems} خبر)`;
-        document.getElementById('pagination-controls').innerHTML = `<button onclick="goToPage(${result.page - 1})" ${result.page === 1 ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">قبلی</button><span class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg">${result.page}</span><button onclick="goToPage(${result.page + 1})" ${result.page === result.totalPages ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">بعدی</button>`;
+        document.getElementById('pagination-info').innerText = `صفحه ${currentPage} از ${totalPages} (مجموع ${totalItems} خبر)`;
+        document.getElementById('pagination-controls').innerHTML = `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">قبلی</button><span class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg">${currentPage}</span><button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 border rounded-lg bg-white disabled:opacity-50">بعدی</button>`;
     } catch (err) {
         console.error('خطا در دریافت اخبار:', err);
         tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-rose-600">خطا در دریافت اخبار: ${escapeHtml(err.message)}</td></tr>`;

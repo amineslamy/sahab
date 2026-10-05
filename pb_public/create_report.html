@@ -276,7 +276,18 @@
             word-break: break-word;
         }
 
+        #editor-body .ql-editor,
+        #editor-molaheze .ql-editor,
+        #editor-nazarie .ql-editor {
+            direction: rtl;
+            text-align: right;
+        }
+
         .ql-editor.ql-blank::before {
+            right: 15px;
+            left: auto;
+            direction: rtl;
+            text-align: right;
             font-family: 'Vazirmatn', sans-serif;
             font-style: normal;
             color: #94a3b8;
